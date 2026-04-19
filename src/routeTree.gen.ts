@@ -18,6 +18,7 @@ import { Route as FinancialRouteImport } from './routes/financial'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -64,6 +65,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TransportsIdRoute = TransportsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TransportsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,8 +79,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
-  '/transports': typeof TransportsRoute
+  '/transports': typeof TransportsRouteWithChildren
   '/users': typeof UsersRoute
+  '/transports/$id': typeof TransportsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,8 +91,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
-  '/transports': typeof TransportsRoute
+  '/transports': typeof TransportsRouteWithChildren
   '/users': typeof UsersRoute
+  '/transports/$id': typeof TransportsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,8 +104,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
-  '/transports': typeof TransportsRoute
+  '/transports': typeof TransportsRouteWithChildren
   '/users': typeof UsersRoute
+  '/transports/$id': typeof TransportsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/social'
     | '/transports'
     | '/users'
+    | '/transports/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/social'
     | '/transports'
     | '/users'
+    | '/transports/$id'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/social'
     | '/transports'
     | '/users'
+    | '/transports/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -143,7 +155,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   SocialRoute: typeof SocialRoute
-  TransportsRoute: typeof TransportsRoute
+  TransportsRoute: typeof TransportsRouteWithChildren
   UsersRoute: typeof UsersRoute
 }
 
@@ -212,8 +224,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/transports/$id': {
+      id: '/transports/$id'
+      path: '/$id'
+      fullPath: '/transports/$id'
+      preLoaderRoute: typeof TransportsIdRouteImport
+      parentRoute: typeof TransportsRoute
+    }
   }
 }
+
+interface TransportsRouteChildren {
+  TransportsIdRoute: typeof TransportsIdRoute
+}
+
+const TransportsRouteChildren: TransportsRouteChildren = {
+  TransportsIdRoute: TransportsIdRoute,
+}
+
+const TransportsRouteWithChildren = TransportsRoute._addFileChildren(
+  TransportsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -223,7 +254,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   SocialRoute: SocialRoute,
-  TransportsRoute: TransportsRoute,
+  TransportsRoute: TransportsRouteWithChildren,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
