@@ -202,7 +202,7 @@ function DashboardPage() {
                         borderRadius: 8,
                         color: "oklch(0.97 0.01 255)",
                       }}
-                      formatter={(v: number) => brl(v)}
+                      formatter={(v) => brl(Number(v))}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Bar dataKey="revenue" name="Receita" fill="oklch(0.78 0.16 70)" radius={[4, 4, 0, 0]} />
