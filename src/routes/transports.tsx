@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
@@ -289,6 +289,9 @@ function TransportsPage() {
                     <td className="px-4 py-3 text-xs">{dateBR(t.estimated_delivery)}</td>
                     <td className="px-4 py-3"><TransportStatusBadge status={t.status} /></td>
                     <td className="px-4 py-3 text-right">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link to="/transports/$id" params={{ id: t.id }}>Detalhes</Link>
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>Editar</Button>
                       {t.status !== "cancelled" && (
                         <Button variant="ghost" size="sm" onClick={() => cancelTransport(t)}>
