@@ -102,7 +102,7 @@ function TransportDetailPage() {
 
   const updateStatus = async (status: string) => {
     if (!transport || transport === "missing") return;
-    const { error } = await supabase.from("transports").update({ status }).eq("id", transport.id);
+    const { error } = await supabase.from("transports").update({ status: status as Transport["status"] as any }).eq("id", transport.id);
     if (error) return toast.error(error.message);
     toast.success(`Status: ${transportStatusLabel[status] ?? status}`);
     void load();
