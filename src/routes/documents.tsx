@@ -405,7 +405,7 @@ function DocumentsPage() {
                 <div className="md:col-span-2 flex items-center justify-between gap-2 rounded border border-border bg-muted/30 px-3 py-2">
                   <div className="text-xs text-muted-foreground">
                     Modelo: <span className="text-foreground font-medium">
-                      {DOCUMENT_TEMPLATES.find((t) => t.kind === docType && t.templateKey === form.template)?.name ?? "Personalizado"}
+                      {allTemplates.find((t) => t.kind === docType && t.templateKey === form.template)?.name ?? "Personalizado"}
                     </span>
                   </div>
                   <button onClick={() => setStep("template")} className="text-xs text-primary hover:underline">
