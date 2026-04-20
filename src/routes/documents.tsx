@@ -18,10 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck } from "lucide-react";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
-import { DOCUMENT_TEMPLATES, type DocTemplate } from "@/lib/document-templates";
+import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
+import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
