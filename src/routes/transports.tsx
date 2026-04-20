@@ -345,14 +345,8 @@ function TransportsPage() {
             <Field label="Modelo">
               <Input value={form.vehicle_model} onChange={(e) => setForm({ ...form, vehicle_model: e.target.value })} />
             </Field>
-            <Field label="Ano">
-              <Input type="number" value={form.vehicle_year} onChange={(e) => setForm({ ...form, vehicle_year: e.target.value })} />
-            </Field>
             <Field label="Cor">
               <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} />
-            </Field>
-            <Field label="Chassi" full>
-              <Input value={form.vehicle_chassis} onChange={(e) => setForm({ ...form, vehicle_chassis: e.target.value })} />
             </Field>
 
             <Field label="Cidade origem *">
@@ -376,9 +370,6 @@ function TransportsPage() {
             </Field>
             <Field label="Telefone">
               <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
-            </Field>
-            <Field label="Motorista">
-              <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />
             </Field>
 
             <Field label="Entrega estimada">
