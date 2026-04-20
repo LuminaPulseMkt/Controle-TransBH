@@ -88,6 +88,54 @@ export type Database = {
         }
         Relationships: []
       }
+      document_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          extra: number
+          id: string
+          insurance: number
+          kind: Database["public"]["Enums"]["document_type"]
+          name: string
+          notes: string
+          service_value: number
+          template_key: Database["public"]["Enums"]["contract_template"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          extra?: number
+          id?: string
+          insurance?: number
+          kind: Database["public"]["Enums"]["document_type"]
+          name: string
+          notes?: string
+          service_value?: number
+          template_key?: Database["public"]["Enums"]["contract_template"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          extra?: number
+          id?: string
+          insurance?: number
+          kind?: Database["public"]["Enums"]["document_type"]
+          name?: string
+          notes?: string
+          service_value?: number
+          template_key?: Database["public"]["Enums"]["contract_template"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           body: Json
