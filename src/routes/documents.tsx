@@ -474,6 +474,14 @@ function DocumentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CustomTemplateDialog
+        open={tplDialogOpen}
+        onOpenChange={setTplDialogOpen}
+        kind={docType}
+        editing={editingTpl}
+        onSaved={loadTemplates}
+      />
     </AppLayout>
   );
 }
