@@ -3,14 +3,17 @@
 // deixando ao usuário apenas o preenchimento dos dados de cliente, veículo e rota.
 
 export type DocTemplateKind = "budget" | "contract";
+export type TemplateKey = "standard" | "fragile" | "express";
 
 export interface DocTemplate {
   id: string;
   kind: DocTemplateKind;
   // chave persistida em documents.template (apenas para contratos é exigida pelo enum)
-  templateKey: "standard" | "fragile" | "express";
+  templateKey: TemplateKey;
   name: string;
   description: string;
+  // marca se é um modelo customizado (vindo do banco) ou fixo
+  isCustom?: boolean;
   defaults: {
     title: string;
     service_value: string;
@@ -130,3 +133,35 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
     },
   },
 ];
+
+// Converte uma linha do banco em DocTemplate
+export interface DBTemplateRow {
+  id: string;
+  kind: DocTemplateKind;
+  template_key: TemplateKey;
+  name: string;
+  description: string | null;
+  title: string;
+  service_value: number | string;
+  insurance: number | string;
+  extra: number | string;
+  notes: string;
+}
+
+export function dbRowToTemplate(row: DBTemplateRow): DocTemplate {
+  return {
+    id: row.id,
+    kind: row.kind,
+    templateKey: row.template_key,
+    name: row.name,
+    description: row.description ?? "",
+    isCustom: true,
+    defaults: {
+      title: row.title,
+      service_value: String(row.service_value ?? ""),
+      insurance: String(row.insurance ?? ""),
+      extra: String(row.extra ?? ""),
+      notes: row.notes ?? "",
+    },
+  };
+}
