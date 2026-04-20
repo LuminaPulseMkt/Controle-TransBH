@@ -55,11 +55,14 @@ interface Document {
 function DocumentsPage() {
   const { isAdmin, user } = useAuth();
   const [items, setItems] = useState<Document[] | null>(null);
+  const [customTemplates, setCustomTemplates] = useState<DocTemplate[]>([]);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
   const [filter, setFilter] = useState<"all" | "budget" | "contract">("all");
   const [busy, setBusy] = useState(false);
+  const [tplDialogOpen, setTplDialogOpen] = useState(false);
+  const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
 
   const [form, setForm] = useState({
     title: "",
