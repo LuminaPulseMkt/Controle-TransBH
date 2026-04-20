@@ -55,6 +55,7 @@ function DocumentsPage() {
   const { isAdmin, user } = useAuth();
   const [items, setItems] = useState<Document[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
   const [filter, setFilter] = useState<"all" | "budget" | "contract">("all");
   const [busy, setBusy] = useState(false);
