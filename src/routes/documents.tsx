@@ -84,7 +84,27 @@ function DocumentsPage() {
     const { data } = await supabase.from("documents").select("*").order("created_at", { ascending: false });
     setItems((data ?? []) as Document[]);
   };
-  useEffect(() => { void load(); }, []);
+  const loadTemplates = async () => {
+    const { data } = await supabase
+      .from("document_templates")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setCustomTemplates(((data ?? []) as unknown as DBTemplateRow[]).map(dbRowToTemplate));
+  };
+  useEffect(() => { void load(); void loadTemplates(); }, []);
+
+  const allTemplates = useMemo(
+    () => [...DOCUMENT_TEMPLATES, ...customTemplates],
+    [customTemplates],
+  );
+
+  const deleteTemplate = async (id: string) => {
+    if (!confirm("Excluir este modelo personalizado?")) return;
+    const { error } = await supabase.from("document_templates").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Modelo excluído.");
+    void loadTemplates();
+  };
 
   const filtered = useMemo(() => {
     if (!items) return [];
