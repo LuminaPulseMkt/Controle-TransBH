@@ -18,9 +18,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle } from "lucide-react";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { DOCUMENT_TEMPLATES, type DocTemplate } from "@/lib/document-templates";
+
+const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
+  standard: FileCheck2,
+  fragile: ShieldCheck,
+  express: Zap,
+};
 
 export const Route = createFileRoute("/documents")({
   component: () => (
