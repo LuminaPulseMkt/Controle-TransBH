@@ -18,9 +18,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle } from "lucide-react";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { DOCUMENT_TEMPLATES, type DocTemplate } from "@/lib/document-templates";
+
+const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
+  standard: FileCheck2,
+  fragile: ShieldCheck,
+  express: Zap,
+};
 
 export const Route = createFileRoute("/documents")({
   component: () => (
@@ -48,6 +55,7 @@ function DocumentsPage() {
   const { isAdmin, user } = useAuth();
   const [items, setItems] = useState<Document[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
   const [filter, setFilter] = useState<"all" | "budget" | "contract">("all");
   const [busy, setBusy] = useState(false);
@@ -87,8 +95,34 @@ function DocumentsPage() {
 
   const openNew = (type: "budget" | "contract") => {
     setDocType(type);
-    setForm({ ...form, title: type === "budget" ? "Orçamento" : "Contrato de Transporte" });
+    setStep("template");
     setOpen(true);
+  };
+
+  const pickTemplate = (tpl: DocTemplate) => {
+    setForm({
+      ...form,
+      title: tpl.defaults.title,
+      template: tpl.templateKey,
+      service_value: tpl.defaults.service_value,
+      insurance: tpl.defaults.insurance,
+      extra: tpl.defaults.extra,
+      notes: tpl.defaults.notes,
+    });
+    setStep("form");
+  };
+
+  const startBlank = () => {
+    setForm({
+      ...form,
+      title: docType === "budget" ? "Orçamento" : "Contrato de Transporte",
+      template: "standard",
+      service_value: "",
+      insurance: "",
+      extra: "",
+      notes: "",
+    });
+    setStep("form");
   };
 
   const save = async () => {
@@ -259,83 +293,121 @@ function DocumentsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-display text-2xl">
-              Novo {docType === "budget" ? "Orçamento" : "Contrato"}
+              {step === "template" ? "Escolha um modelo" : `Novo ${docType === "budget" ? "Orçamento" : "Contrato"}`}
             </DialogTitle>
+            {step === "template" && (
+              <p className="text-sm text-muted-foreground">
+                Selecione um modelo pré-pronto. Depois você só preenche os dados do cliente e do veículo.
+              </p>
+            )}
           </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2">
-              <Label>Título</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            </div>
-            {docType === "contract" && (
-              <div className="md:col-span-2">
-                <Label>Modelo</Label>
-                <Select value={form.template} onValueChange={(v) => setForm({ ...form, template: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Padrão</SelectItem>
-                    <SelectItem value="fragile">Veículo Frágil</SelectItem>
-                    <SelectItem value="express">Entrega Expressa</SelectItem>
-                  </SelectContent>
-                </Select>
+          {step === "template" ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {DOCUMENT_TEMPLATES.filter((t) => t.kind === docType).map((tpl) => {
+                  const Icon = TEMPLATE_ICONS[tpl.templateKey] ?? Sparkles;
+                  return (
+                    <button
+                      key={tpl.id}
+                      onClick={() => pickTemplate(tpl)}
+                      className="text-left rounded-lg border border-border bg-card hover:border-primary hover:bg-primary/5 transition-colors p-4 flex flex-col gap-2"
+                    >
+                      <div className="h-9 w-9 rounded bg-primary/15 text-primary flex items-center justify-center">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="font-semibold leading-tight">{tpl.name}</div>
+                      <div className="text-xs text-muted-foreground">{tpl.description}</div>
+                      <div className="mt-2 text-xs text-primary font-medium">
+                        Sugerido: {brl(Number(tpl.defaults.service_value) + Number(tpl.defaults.insurance) + Number(tpl.defaults.extra))}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-            <div>
-              <Label>Cliente *</Label>
-              <Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+              <div className="flex justify-between items-center pt-2 border-t border-border">
+                <button
+                  onClick={startBlank}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                >
+                  Ou começar do zero (em branco)
+                </button>
+                <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+              </div>
             </div>
-            <div>
-              <Label>CPF/CNPJ</Label>
-              <Input value={form.client_document} onChange={(e) => setForm({ ...form, client_document: e.target.value })} />
-            </div>
-            <div>
-              <Label>Telefone</Label>
-              <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
-            </div>
-            <div>
-              <Label>E-mail</Label>
-              <Input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
-            </div>
-            <div>
-              <Label>Veículo</Label>
-              <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020 — ABC1D23" />
-            </div>
-            <div></div>
-            <div>
-              <Label>Origem</Label>
-              <Input value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} placeholder="Belo Horizonte/MG" />
-            </div>
-            <div>
-              <Label>Destino</Label>
-              <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="São Paulo/SP" />
-            </div>
-            <div>
-              <Label>Frete</Label>
-              <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
-            </div>
-            <div>
-              <Label>Seguro</Label>
-              <Input type="number" step="0.01" value={form.insurance} onChange={(e) => setForm({ ...form, insurance: e.target.value })} />
-            </div>
-            <div>
-              <Label>Adicionais</Label>
-              <Input type="number" step="0.01" value={form.extra} onChange={(e) => setForm({ ...form, extra: e.target.value })} />
-            </div>
-            <div>
-              <Label>Total</Label>
-              <Input value={brl(total)} readOnly className="font-semibold text-primary" />
-            </div>
-            <div className="md:col-span-2">
-              <Label>Observações</Label>
-              <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2 flex items-center justify-between gap-2 rounded border border-border bg-muted/30 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Modelo: <span className="text-foreground font-medium">
+                      {DOCUMENT_TEMPLATES.find((t) => t.kind === docType && t.templateKey === form.template)?.name ?? "Personalizado"}
+                    </span>
+                  </div>
+                  <button onClick={() => setStep("template")} className="text-xs text-primary hover:underline">
+                    Trocar modelo
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Título</Label>
+                  <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Cliente *</Label>
+                  <Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>CPF/CNPJ</Label>
+                  <Input value={form.client_document} onChange={(e) => setForm({ ...form, client_document: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Telefone</Label>
+                  <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Veículo</Label>
+                  <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020 — ABC1D23" />
+                </div>
+                <div>
+                  <Label>Origem</Label>
+                  <Input value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} placeholder="Belo Horizonte/MG" />
+                </div>
+                <div>
+                  <Label>Destino</Label>
+                  <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="São Paulo/SP" />
+                </div>
+                <div>
+                  <Label>Frete</Label>
+                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Seguro</Label>
+                  <Input type="number" step="0.01" value={form.insurance} onChange={(e) => setForm({ ...form, insurance: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Adicionais</Label>
+                  <Input type="number" step="0.01" value={form.extra} onChange={(e) => setForm({ ...form, extra: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Total</Label>
+                  <Input value={brl(total)} readOnly className="font-semibold text-primary" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Observações / Cláusulas</Label>
+                  <Textarea rows={5} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                </div>
+              </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setStep("template")}>Voltar</Button>
+                <Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </AppLayout>
