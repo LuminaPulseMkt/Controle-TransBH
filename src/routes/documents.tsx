@@ -95,8 +95,34 @@ function DocumentsPage() {
 
   const openNew = (type: "budget" | "contract") => {
     setDocType(type);
-    setForm({ ...form, title: type === "budget" ? "Orçamento" : "Contrato de Transporte" });
+    setStep("template");
     setOpen(true);
+  };
+
+  const pickTemplate = (tpl: DocTemplate) => {
+    setForm({
+      ...form,
+      title: tpl.defaults.title,
+      template: tpl.templateKey,
+      service_value: tpl.defaults.service_value,
+      insurance: tpl.defaults.insurance,
+      extra: tpl.defaults.extra,
+      notes: tpl.defaults.notes,
+    });
+    setStep("form");
+  };
+
+  const startBlank = () => {
+    setForm({
+      ...form,
+      title: docType === "budget" ? "Orçamento" : "Contrato de Transporte",
+      template: "standard",
+      service_value: "",
+      insurance: "",
+      extra: "",
+      notes: "",
+    });
+    setStep("form");
   };
 
   const save = async () => {
