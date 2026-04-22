@@ -576,22 +576,22 @@ function DocRow({
   return (
     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
       <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
-        <div className="h-10 w-10 rounded bg-primary/15 text-primary flex items-center justify-center shrink-0">
-          <FileText className="h-5 w-5" />
+        <div className="h-11 w-11 rounded bg-primary/15 text-primary flex items-center justify-center shrink-0">
+          <FileText className="h-6 w-6" />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold truncate">{d.title}</h3>
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-muted">
+            <h3 className="text-lg md:text-xl font-bold text-foreground truncate leading-tight">{d.title}</h3>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-muted text-foreground/80">
               {d.doc_type === "budget" ? "Orçamento" : "Contrato"}
             </span>
             {d.doc_type === "budget" && d.accepted_at && (
-              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" /> Aceito {dateBR(d.accepted_at)}
               </span>
             )}
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-foreground/70">
             {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
           </div>
         </div>
