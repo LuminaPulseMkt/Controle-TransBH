@@ -69,6 +69,7 @@ function DocumentsPage() {
   const [tplDialogOpen, setTplDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [groupByClient, setGroupByClient] = useState(true);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
 
