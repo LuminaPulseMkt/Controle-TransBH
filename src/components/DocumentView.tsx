@@ -42,16 +42,16 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-display text-2xl font-bold tracking-tight text-primary">
+            <div className="font-sans text-3xl font-bold tracking-tight text-primary">
               {company?.name || "TransBH"}
             </div>
-            <div className="text-xs uppercase tracking-[0.18em] text-white/80">
+            <div className="text-sm font-medium text-white/80">
               Transporte de Veículos
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-[0.18em] text-white/80">
+          <div className="text-sm font-semibold text-white/80">
             {isContract ? "Contrato" : "Orçamento"}
           </div>
           <div className="text-base font-medium text-white/95 mt-0.5">{dateBR(doc.created_at)}</div>
