@@ -1,52 +1,43 @@
 
 
-## Corrigir erro 500 ao aceitar orçamento
+## Corrigir "Configuração do servidor incompleta (SUPABASE_SERVICE_ROLE_KEY)"
 
 ### Diagnóstico
 
-O endpoint `/_serverFn/accept-budget` retorna `HTTP 500 {"unhandled":true,"message":"HTTPError"}`. Não há logs no Postgres (a request nunca chega ao banco) nem logs detalhados no Worker.
+O log do Worker confirma:
+```
+[acceptBudget] missing env: SUPABASE_SERVICE_ROLE_KEY
+```
 
-A causa é o **Worker não conseguindo inicializar `supabaseAdmin`**: o cliente em `src/integrations/supabase/client.server.ts` lê `process.env.SUPABASE_SERVICE_ROLE_KEY`, que não está no `.env` do projeto (lá só existem `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`). Quando o handler toca `supabaseAdmin.from(...)`, o proxy executa `createClient` e o `throw new Error("Missing Supabase server environment variables")` sobe como exceção não tratada → 500 genérico.
+A chave **existe** nos secrets do Supabase, mas o Worker do TanStack Start (Cloudflare) só enxerga variáveis registradas como **secrets de runtime do próprio projeto Lovable**. Hoje o projeto tem apenas `LOVABLE_API_KEY` registrado lá — nenhum `SUPABASE_*`. Por isso `process.env.SUPABASE_SERVICE_ROLE_KEY` é `undefined` em produção.
 
-Como não há `try/catch` em volta do handler, o cliente também recebe apenas um toast vago "Erro ao processar aceite" e a causa real fica escondida.
+Os valores que estão no `.env` local (`VITE_SUPABASE_*`) são embutidos no bundle do **cliente** pelo Vite — não chegam ao runtime do servidor.
 
 ### Correção
 
-**1. Disponibilizar a service role key ao Worker**
+**1. Adicionar dois secrets de runtime ao projeto Lovable:**
 
-Adicionar ao `.env` (a chave já existe nos secrets do Supabase, basta espelhar para o runtime do Worker):
+- `SUPABASE_URL` → `https://mbcyrkofidalwpfykutf.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY` → valor da service role key (a mesma já guardada no Supabase)
 
-```env
-SUPABASE_SERVICE_ROLE_KEY="<valor da secret SUPABASE_SERVICE_ROLE_KEY>"
-```
+Vou solicitar a inclusão desses secrets via ferramenta. Após aprovação, eles passam a estar disponíveis em `process.env.*` no Worker e o `supabaseAdmin` inicializa normalmente.
 
-Sem isso o `supabaseAdmin` continuará explodindo na primeira chamada.
+**2. Nenhuma alteração de código necessária.**
 
-**2. Endurecer `accept-budget.functions.ts`**
+O handler `acceptBudget` já valida a presença das variáveis e retorna mensagem clara — assim que os secrets forem injetados, o fluxo passa.
 
-- Envolver todo o handler em `try/catch` e devolver sempre `{ ok: false, error, stage }` em vez de deixar a exceção subir como 500. Isso transforma qualquer falha futura em mensagem clara no toast (ex.: "Falha ao criar transporte: violates foreign key").
-- Em cada `if (err)`, incluir `err.message` na string retornada (hoje só retorna texto fixo, então o admin nunca vê qual constraint quebrou).
-- Logar `console.error("[acceptBudget]", stage, err)` antes de retornar — fica visível em `server-function-logs`.
+**3. Republicar o app**
 
-**3. Ajustes de robustez já no mesmo arquivo**
-
-- `template`: o tipo `contract_template` é um enum; quando o orçamento tem `template = null`, o fallback `"standard"` já é seguro, manter.
-- `transports.created_by`: a coluna é `nullable`, mas a policy de INSERT só exige `auth.uid() IS NOT NULL`. Como usamos `supabaseAdmin` (bypass RLS), seguir copiando `budget.created_by` sem alteração.
-- Validar `budget.total_amount` como número finito antes de inserir o recebível (evita `NaN` se o orçamento estiver malformado).
-
-**4. UI — `AcceptBudgetCard.tsx`**
-
-Mostrar o `error` retornado pelo servidor diretamente no toast (já faz `toast.error(res.error)`), sem mudanças adicionais. O texto agora será informativo após o passo 2.
+Secrets só entram em vigor para o Worker após um novo deploy. Depois de aprovar a adição dos secrets, é preciso clicar em **Publish → Update** para o runtime de produção carregá-los.
 
 ### Como verificar
 
-1. Após o deploy, abrir a página pública do orçamento existente (`/d/5af4a2cd-…`) em aba anônima.
+1. Após publicar, abrir `/d/{token-do-orçamento}` em aba anônima.
 2. Marcar o checkbox e clicar em "Aceitar orçamento e gerar contrato".
-3. Esperado: toast "Orçamento aceito! Contrato gerado." + cartão verde com link para o contrato.
-4. Conferir em `/transports` o novo registro `pending` e em `/financial` a cobrança com vencimento +7 dias.
+3. Esperado: toast verde "Orçamento aceito! Contrato gerado." + link para o contrato.
+4. Conferir novo registro em `/transports` (status `pending`) e em `/financial` (vencimento +7 dias).
 
-### Arquivos a editar
+### Observação importante
 
-- `.env` — adicionar `SUPABASE_SERVICE_ROLE_KEY`
-- `src/server/accept-budget.functions.ts` — envolver em try/catch, propagar `err.message`, logar stages
+O `SUPABASE_SERVICE_ROLE_KEY` é uma chave **administrativa** que ignora RLS. Ela já é usada apenas em código server-side (`client.server.ts`, importado só por `*.functions.ts`), nunca chega ao bundle do cliente.
 
