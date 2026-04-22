@@ -1,61 +1,50 @@
 
 
-## Editar contratos e orçamentos já gerados
+## Adicionar campos Placa e Cor no formulário de Contratos/Orçamentos
 
-### Comportamento
+### O que muda
 
-Adicionar um botão **Editar** em cada linha da lista de documentos (`/documents`) que reabre o mesmo formulário usado na criação, pré-preenchido com os dados atuais. Ao salvar, o documento é atualizado em vez de um novo ser criado.
-
-### Permissões
-
-A política RLS `Admins update documents` só permite `UPDATE` para administradores. Logo:
-
-- O botão **Editar** só aparece para usuários `isAdmin`.
-- Não-admins continuam vendo apenas Visualizar / PDF / WhatsApp.
-
-### Bloqueio de edição em orçamentos aceitos
-
-Um orçamento aceito (`accepted_at` preenchido) já gerou contrato + transporte + cobrança. Editar valores depois disso quebra a rastreabilidade. Regra:
-
-- Se `doc_type === "budget"` e `accepted_at != null` → botão Editar fica **desabilitado** com tooltip "Orçamento já aceito — não pode ser editado".
-- Contratos podem ser editados livremente (por admin).
+Hoje o formulário tem apenas um campo livre **Veículo** (ex.: "Honda Civic 2020 — ABC1D23"). Vou separar **Placa** e **Cor** em campos dedicados, mantendo o campo Veículo (descrição/modelo) — assim a placa fica padronizada e a cor fica visível tanto no documento quanto no PDF.
 
 ### Mudanças em `src/routes/documents.tsx`
 
-1. **Novo estado** `editingDoc: Document | null` ao lado de `previewDoc`.
-2. **Nova função `openEdit(d: Document)`**:
-   - Define `docType = d.doc_type`.
-   - Faz `setForm({...})` populando todos os campos a partir de `d` e `d.body` (origin, destination, vehicle, service_value, insurance, extra, notes — convertendo números para string).
-   - Define `setEditingDoc(d)`, `setStep("form")` (pula a tela de modelos) e `setOpen(true)`.
-3. **Refator de `save()`**:
-   - Se `editingDoc` existir: `supabase.from("documents").update({ ... }).eq("id", editingDoc.id)`.
-   - Senão: mantém o `insert` atual.
-   - Em ambos os casos: limpa `editingDoc` ao fechar e recarrega a lista.
-   - Mensagens: "Documento atualizado." vs "Documento criado.".
-4. **Reset ao fechar**: no `onOpenChange` do `Dialog`, quando fechar, zerar `editingDoc` e voltar `step` para `"template"`.
-5. **Título do diálogo**: "Editar {Orçamento|Contrato}" quando `editingDoc` estiver presente.
-6. **Esconder a faixa "Trocar modelo"** no modo edição (não faz sentido trocar modelo de um doc existente — só edita os campos).
-7. **Em `DocRow`**: adicionar prop `onEdit?: () => void` e prop `canEdit: boolean`. Quando `canEdit` for true, renderizar antes do botão PDF:
-   ```
-   <Button size="sm" variant="outline" onClick={onEdit} disabled={isAcceptedBudget}>
-     <Pencil className="h-4 w-4 mr-1" /> Editar
-   </Button>
-   ```
-   Com `title` explicativo quando desabilitado.
-8. **Passar `onEdit={() => openEdit(d)}` e `canEdit={isAdmin}`** nas duas renderizações de `DocRow` (visão "Por cliente" e visão "Lista").
+1. **Estado do formulário** (`form`, ~linha 76): adicionar dois campos:
+   - `vehicle_plate: ""`
+   - `vehicle_color: ""`
+
+2. **`openEdit()`** (~linha 155): popular os novos campos a partir de `d.body.vehicle_plate` e `d.body.vehicle_color`.
+
+3. **`save()`** (~linha 206): incluir `vehicle_plate` (uppercase) e `vehicle_color` no objeto `body` salvo no JSONB.
+
+4. **Layout do formulário** (~linhas 547–550): substituir o bloco atual por uma grade com 3 inputs:
+   - **Veículo** (md:col-span-2) — descrição/modelo, placeholder "Honda Civic 2020"
+   - **Placa** — `uppercase font-mono`, `maxLength={8}`, placeholder "ABC1D23"
+   - **Cor** — placeholder "Prata"
+
+5. **`exportPDF()`** (~linhas 270): após `Veículo:`, imprimir também `Placa:` e `Cor:` se preenchidos.
+
+### Mudanças em `src/components/DocumentView.tsx`
+
+Na seção "Detalhes do Serviço" (~linhas 77–83), incluir os novos campos quando preenchidos:
+- `{body.vehicle_plate && <Field label="Placa" value={body.vehicle_plate} />}`
+- `{body.vehicle_color && <Field label="Cor" value={body.vehicle_color} />}`
+
+E adicionar `body.vehicle_plate || body.vehicle_color` à condição que decide se a seção é renderizada.
+
+### Compatibilidade
+
+- Documentos antigos sem `vehicle_plate`/`vehicle_color` continuam funcionando — os campos só aparecem no preview/PDF se estiverem preenchidos.
+- Não muda o schema do banco: os novos campos vivem dentro do JSONB `documents.body` (mesmo lugar de `vehicle`, `origin`, etc.). Sem migrações necessárias.
 
 ### Fora do escopo
 
-- Não altero o schema do banco — RLS e colunas já suportam tudo.
-- Não toco no `DocumentPreviewDialog`, `DocumentView`, `CustomTemplateDialog`, geração de PDF nem na rota pública `/d/$token`.
-- Não adiciono histórico/auditoria de edições (pode ser uma melhoria futura se você quiser).
-- Não permito alterar `doc_type` (orçamento ↔ contrato) — apenas os campos do formulário.
+- Não toco em `CustomTemplateDialog`, geração via `d.$token.tsx` (a rota pública usa o mesmo `DocumentView`, herda automaticamente).
+- Não copio a placa/cor para a tabela `transports` ao aceitar um orçamento (pode ser uma melhoria futura, se desejar).
 
 ### Como validar
 
-1. Logado como administrador, abrir `/documents`.
-2. Em qualquer documento não-aceito, clicar **Editar** → confere que o diálogo abre direto no formulário com todos os valores preenchidos.
-3. Alterar título, valores ou observações e salvar → toast "Documento atualizado." e a lista reflete a mudança (valor total, data permanece a original).
-4. Em um orçamento já aceito, conferir que o botão Editar está desabilitado com tooltip explicativo.
-5. Logado como colaborador (não-admin), conferir que o botão Editar não aparece.
+1. Abrir `/documents` → criar novo orçamento ou contrato → conferir os 3 campos (Veículo, Placa, Cor) no formulário.
+2. Salvar e clicar em **Visualizar** → conferir Placa e Cor na seção "Detalhes do Serviço".
+3. Exportar PDF → conferir as linhas Placa e Cor logo abaixo de Veículo.
+4. Editar um documento existente sem placa/cor → preencher e salvar → confirma persistência.
 
