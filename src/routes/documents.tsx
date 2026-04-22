@@ -117,6 +117,25 @@ function DocumentsPage() {
     return items.filter((i) => i.doc_type === filter);
   }, [items, filter]);
 
+  // Agrupa documentos por cliente (chave = nome normalizado)
+  const groupedByClient = useMemo(() => {
+    const map = new Map<string, { name: string; docs: Document[]; total: number }>();
+    for (const d of filtered) {
+      const key = d.client_name.trim().toLowerCase();
+      const existing = map.get(key);
+      if (existing) {
+        existing.docs.push(d);
+        existing.total += Number(d.total_amount ?? 0);
+      } else {
+        map.set(key, { name: d.client_name, docs: [d], total: Number(d.total_amount ?? 0) });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [filtered]);
+
+  const toggleClient = (key: string) =>
+    setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
+
   const total = useMemo(() => {
     const s = (Number(form.service_value) || 0) + (Number(form.insurance) || 0) + (Number(form.extra) || 0);
     return s;
