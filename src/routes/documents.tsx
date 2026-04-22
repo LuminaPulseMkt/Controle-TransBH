@@ -384,6 +384,8 @@ function DocumentsPage() {
                         <DocRow
                           key={d.id}
                           d={d}
+                          canEdit={isAdmin}
+                          onEdit={() => openEdit(d)}
                           onPreview={() => setPreviewDoc(d)}
                           onPDF={() => exportPDF(d)}
                           onWhatsApp={() => shareWhatsApp(d)}
