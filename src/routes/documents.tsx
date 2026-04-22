@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User } from "lucide-react";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
@@ -53,6 +53,8 @@ interface Document {
   body: any;
   created_at: string;
   public_token: string | null;
+  accepted_at: string | null;
+  accepted_contract_id: string | null;
 }
 
 function DocumentsPage() {
@@ -583,6 +585,11 @@ function DocRow({
             <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-muted">
               {d.doc_type === "budget" ? "Orçamento" : "Contrato"}
             </span>
+            {d.doc_type === "budget" && d.accepted_at && (
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <CheckCircle2 className="h-3 w-3" /> Aceito {dateBR(d.accepted_at)}
+              </span>
+            )}
           </div>
           <div className="text-sm text-muted-foreground">
             {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
