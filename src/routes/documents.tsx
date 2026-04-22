@@ -83,6 +83,8 @@ function DocumentsPage() {
     origin: "",
     destination: "",
     vehicle: "",
+    vehicle_plate: "",
+    vehicle_color: "",
     service_value: "",
     insurance: "",
     extra: "",
@@ -207,6 +209,8 @@ function DocumentsPage() {
       origin: form.origin,
       destination: form.destination,
       vehicle: form.vehicle,
+      vehicle_plate: form.vehicle_plate.toUpperCase(),
+      vehicle_color: form.vehicle_color,
       service_value: Number(form.service_value) || 0,
       insurance: Number(form.insurance) || 0,
       extra: Number(form.extra) || 0,
@@ -268,6 +272,8 @@ function DocumentsPage() {
     doc.text("Detalhes do Serviço", 14, y); y += 6;
     doc.setFontSize(10);
     if (d.body?.vehicle) { doc.text(`Veículo: ${d.body.vehicle}`, 14, y); y += 5; }
+    if (d.body?.vehicle_plate) { doc.text(`Placa: ${d.body.vehicle_plate}`, 14, y); y += 5; }
+    if (d.body?.vehicle_color) { doc.text(`Cor: ${d.body.vehicle_color}`, 14, y); y += 5; }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { doc.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
 
@@ -546,7 +552,21 @@ function DocumentsPage() {
                 </div>
                 <div className="md:col-span-2">
                   <Label>Veículo</Label>
-                  <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020 — ABC1D23" />
+                  <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020" />
+                </div>
+                <div>
+                  <Label>Placa</Label>
+                  <Input
+                    value={form.vehicle_plate}
+                    onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
+                    placeholder="ABC1D23"
+                    maxLength={8}
+                    className="uppercase font-mono"
+                  />
+                </div>
+                <div>
+                  <Label>Cor</Label>
+                  <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} placeholder="Prata" />
                 </div>
                 <div>
                   <Label>Origem</Label>
