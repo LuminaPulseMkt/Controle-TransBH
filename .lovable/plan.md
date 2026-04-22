@@ -1,43 +1,51 @@
 
 
-## Corrigir "Configuração do servidor incompleta (SUPABASE_SERVICE_ROLE_KEY)"
+## Melhorar legibilidade dos títulos em Contratos e Orçamentos
 
-### Diagnóstico
+### Problema
 
-O log do Worker confirma:
-```
-[acceptBudget] missing env: SUPABASE_SERVICE_ROLE_KEY
-```
+Na visualização do documento (`DocumentView.tsx`), o título principal e os rótulos das seções usam tamanhos pequenos, peso leve e baixo contraste (`text-muted-foreground` em uppercase 10px com tracking largo), o que dificulta a leitura — especialmente no cabeçalho escuro e nos cartões de seção (Cliente, Detalhes do Serviço, Valores, Observações).
 
-A chave **existe** nos secrets do Supabase, mas o Worker do TanStack Start (Cloudflare) só enxerga variáveis registradas como **secrets de runtime do próprio projeto Lovable**. Hoje o projeto tem apenas `LOVABLE_API_KEY` registrado lá — nenhum `SUPABASE_*`. Por isso `process.env.SUPABASE_SERVICE_ROLE_KEY` é `undefined` em produção.
+### Mudanças propostas em `src/components/DocumentView.tsx`
 
-Os valores que estão no `.env` local (`VITE_SUPABASE_*`) são embutidos no bundle do **cliente** pelo Vite — não chegam ao runtime do servidor.
+1. **Cabeçalho do documento (faixa escura)**
+   - Nome da empresa: aumentar de `text-xl` para `text-2xl` e usar a fonte display (Bebas Neue) para destaque.
+   - Etiqueta "Transporte de Veículos" / "Contrato" / "Orçamento": subir de `text-[10px]` para `text-xs` e clarear a cor (`text-white/80` em vez de `text-white/60`).
+   - Data: passar a `text-base` com peso médio.
 
-### Correção
+2. **Título do documento (ex.: "Orçamento de Transporte — Padrão")**
+   - Subir de `text-2xl` para `text-3xl md:text-4xl`.
+   - Aplicar a fonte display (`font-display`) para alinhar com a identidade industrial do app.
+   - Trocar `font-semibold` por `font-bold` e clarear (`text-foreground`).
+   - ID do documento: aumentar para `text-sm` com `text-foreground/70`.
 
-**1. Adicionar dois secrets de runtime ao projeto Lovable:**
+3. **Títulos das seções (Cliente / Detalhes do Serviço / Valores / Observações / Cláusulas)**
+   - Aumentar de `text-[10px]` para `text-sm`.
+   - Reduzir tracking de `0.18em` para `0.1em` (mais legível).
+   - Trocar `text-muted-foreground` por `text-primary` (âmbar) para destacar como cabeçalho de seção.
+   - Manter uppercase, mas com `font-bold`.
 
-- `SUPABASE_URL` → `https://mbcyrkofidalwpfykutf.supabase.co`
-- `SUPABASE_SERVICE_ROLE_KEY` → valor da service role key (a mesma já guardada no Supabase)
+4. **Campos (label/valor) dentro das seções**
+   - Subir de `text-sm` para `text-base`.
+   - Aumentar `min-w` do label de 90px para 110px para melhor alinhamento com os textos maiores.
+   - Reforçar contraste do label (`text-foreground/70` em vez de `text-muted-foreground`).
 
-Vou solicitar a inclusão desses secrets via ferramenta. Após aprovação, eles passam a estar disponíveis em `process.env.*` no Worker e o `supabaseAdmin` inicializa normalmente.
+5. **Total**
+   - Manter o valor em `text-2xl` mas aumentar o rótulo "Total" para `text-base font-semibold`.
 
-**2. Nenhuma alteração de código necessária.**
+6. **Assinaturas (contratos) e rodapé da empresa**
+   - Nome do contratante/contratada: subir para `text-sm font-medium text-foreground`.
+   - Etiqueta "Contratante/Contratada": `text-xs` em vez de `text-[10px]`.
+   - Rodapé com dados da empresa: subir para `text-sm`.
 
-O handler `acceptBudget` já valida a presença das variáveis e retorna mensagem clara — assim que os secrets forem injetados, o fluxo passa.
+### Fora do escopo
 
-**3. Republicar o app**
+- Não altero as cores do tema (`src/styles.css`), nem o conteúdo dos modelos em `document-templates.ts`.
+- Não mexo no `DocumentPreviewDialog` nem na rota pública `d.$token.tsx` — ambos consomem `DocumentView`, então herdam as melhorias automaticamente.
 
-Secrets só entram em vigor para o Worker após um novo deploy. Depois de aprovar a adição dos secrets, é preciso clicar em **Publish → Update** para o runtime de produção carregá-los.
+### Como validar
 
-### Como verificar
-
-1. Após publicar, abrir `/d/{token-do-orçamento}` em aba anônima.
-2. Marcar o checkbox e clicar em "Aceitar orçamento e gerar contrato".
-3. Esperado: toast verde "Orçamento aceito! Contrato gerado." + link para o contrato.
-4. Conferir novo registro em `/transports` (status `pending`) e em `/financial` (vencimento +7 dias).
-
-### Observação importante
-
-O `SUPABASE_SERVICE_ROLE_KEY` é uma chave **administrativa** que ignora RLS. Ela já é usada apenas em código server-side (`client.server.ts`, importado só por `*.functions.ts`), nunca chega ao bundle do cliente.
+1. Abrir `/documents`, clicar em qualquer orçamento ou contrato para abrir o preview.
+2. Conferir que título, seções e campos estão claramente legíveis no tema escuro.
+3. Abrir um link público (`/d/<token>`) para confirmar a mesma melhoria na visão do cliente.
 
