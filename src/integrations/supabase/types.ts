@@ -148,6 +148,7 @@ export type Database = {
           doc_type: Database["public"]["Enums"]["document_type"]
           id: string
           pdf_url: string | null
+          public_token: string
           template: Database["public"]["Enums"]["contract_template"] | null
           title: string
           total_amount: number | null
@@ -165,6 +166,7 @@ export type Database = {
           doc_type: Database["public"]["Enums"]["document_type"]
           id?: string
           pdf_url?: string | null
+          public_token?: string
           template?: Database["public"]["Enums"]["contract_template"] | null
           title: string
           total_amount?: number | null
@@ -182,6 +184,7 @@ export type Database = {
           doc_type?: Database["public"]["Enums"]["document_type"]
           id?: string
           pdf_url?: string | null
+          public_token?: string
           template?: Database["public"]["Enums"]["contract_template"] | null
           title?: string
           total_amount?: number | null
