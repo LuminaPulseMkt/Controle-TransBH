@@ -147,7 +147,30 @@ function DocumentsPage() {
 
   const openNew = (type: "budget" | "contract") => {
     setDocType(type);
+    setEditingDoc(null);
     setStep("template");
+    setOpen(true);
+  };
+
+  const openEdit = (d: Document) => {
+    setDocType(d.doc_type);
+    setEditingDoc(d);
+    setForm({
+      title: d.title ?? "",
+      client_name: d.client_name ?? "",
+      client_document: d.client_document ?? "",
+      client_phone: d.client_phone ?? "",
+      client_email: d.client_email ?? "",
+      template: (d.template as string) ?? "standard",
+      origin: d.body?.origin ?? "",
+      destination: d.body?.destination ?? "",
+      vehicle: d.body?.vehicle ?? "",
+      service_value: d.body?.service_value != null ? String(d.body.service_value) : "",
+      insurance: d.body?.insurance != null ? String(d.body.insurance) : "",
+      extra: d.body?.extra != null ? String(d.body.extra) : "",
+      notes: d.body?.notes ?? "",
+    });
+    setStep("form");
     setOpen(true);
   };
 
