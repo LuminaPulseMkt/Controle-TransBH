@@ -1,51 +1,49 @@
 
 
-## Melhorar legibilidade dos títulos em Contratos e Orçamentos
+## Ajustar legibilidade do cabeçalho dos documentos
 
 ### Problema
 
-Na visualização do documento (`DocumentView.tsx`), o título principal e os rótulos das seções usam tamanhos pequenos, peso leve e baixo contraste (`text-muted-foreground` em uppercase 10px com tracking largo), o que dificulta a leitura — especialmente no cabeçalho escuro e nos cartões de seção (Cliente, Detalhes do Serviço, Valores, Observações).
+No cabeçalho escuro do documento (faixa azul-marinho no topo), três textos estão com legibilidade ruim:
 
-### Mudanças propostas em `src/components/DocumentView.tsx`
+1. **"TransBH"** — usa `font-display` (Bebas Neue) com peso bold e tracking apertado, o que comprime as letras e prejudica a leitura no fundo escuro.
+2. **"Transporte de Veículos"** — `text-xs` em uppercase com `tracking-[0.18em]` (espaçamento muito largo entre letras pequenas).
+3. **"Orçamento" / "Contrato"** — mesmo problema: fonte pequena, uppercase, tracking largo demais, dificultando leitura.
 
-1. **Cabeçalho do documento (faixa escura)**
-   - Nome da empresa: aumentar de `text-xl` para `text-2xl` e usar a fonte display (Bebas Neue) para destaque.
-   - Etiqueta "Transporte de Veículos" / "Contrato" / "Orçamento": subir de `text-[10px]` para `text-xs` e clarear a cor (`text-white/80` em vez de `text-white/60`).
-   - Data: passar a `text-base` com peso médio.
+### Mudança proposta em `src/components/DocumentView.tsx` (linhas 38–63 — bloco do cabeçalho)
 
-2. **Título do documento (ex.: "Orçamento de Transporte — Padrão")**
-   - Subir de `text-2xl` para `text-3xl md:text-4xl`.
-   - Aplicar a fonte display (`font-display`) para alinhar com a identidade industrial do app.
-   - Trocar `font-semibold` por `font-bold` e clarear (`text-foreground`).
-   - ID do documento: aumentar para `text-sm` com `text-foreground/70`.
+**Logo / nome da empresa:**
+- Trocar `font-display` por `font-sans` para evitar compressão da Bebas Neue.
+- Aumentar de `text-2xl` para `text-3xl`.
+- Manter `font-bold` e cor `text-primary` (âmbar).
+- Adicionar `tracking-tight` em vez de tracking padrão para um nome curto ficar coeso mas legível.
 
-3. **Títulos das seções (Cliente / Detalhes do Serviço / Valores / Observações / Cláusulas)**
-   - Aumentar de `text-[10px]` para `text-sm`.
-   - Reduzir tracking de `0.18em` para `0.1em` (mais legível).
-   - Trocar `text-muted-foreground` por `text-primary` (âmbar) para destacar como cabeçalho de seção.
-   - Manter uppercase, mas com `font-bold`.
+**Etiqueta "Transporte de Veículos" (subtítulo da logo):**
+- Remover uppercase e tracking largo.
+- Trocar `text-xs uppercase tracking-[0.18em]` por `text-sm font-medium`.
+- Manter `text-white/80`.
 
-4. **Campos (label/valor) dentro das seções**
-   - Subir de `text-sm` para `text-base`.
-   - Aumentar `min-w` do label de 90px para 110px para melhor alinhamento com os textos maiores.
-   - Reforçar contraste do label (`text-foreground/70` em vez de `text-muted-foreground`).
+**Etiqueta "Orçamento" / "Contrato" (canto direito):**
+- Remover uppercase e tracking largo.
+- Trocar `text-xs uppercase tracking-[0.18em]` por `text-sm font-semibold`.
+- Manter `text-white/80`.
 
-5. **Total**
-   - Manter o valor em `text-2xl` mas aumentar o rótulo "Total" para `text-base font-semibold`.
+**Data (logo abaixo da etiqueta):**
+- Manter `text-base font-medium`, sem alteração — já está legível.
 
-6. **Assinaturas (contratos) e rodapé da empresa**
-   - Nome do contratante/contratada: subir para `text-sm font-medium text-foreground`.
-   - Etiqueta "Contratante/Contratada": `text-xs` em vez de `text-[10px]`.
-   - Rodapé com dados da empresa: subir para `text-sm`.
+### Resultado esperado
+
+- "TransBH" maior e com letras mais abertas (sem usar a fonte display estreita).
+- "Transporte de Veículos", "Orçamento" e "Contrato" passam de uppercase comprimido com tracking largo para texto normal (case original) em tamanho `sm`, ficando muito mais fáceis de ler.
 
 ### Fora do escopo
 
-- Não altero as cores do tema (`src/styles.css`), nem o conteúdo dos modelos em `document-templates.ts`.
-- Não mexo no `DocumentPreviewDialog` nem na rota pública `d.$token.tsx` — ambos consomem `DocumentView`, então herdam as melhorias automaticamente.
+- Não altero os títulos das seções internas (Cliente, Valores etc.) — esses já foram ajustados na rodada anterior.
+- Não mexo no PDF gerado por `jsPDF` em `d.$token.tsx`, apenas na visualização HTML compartilhada (`DocumentView`), que serve tanto o preview interno quanto o link público.
 
 ### Como validar
 
-1. Abrir `/documents`, clicar em qualquer orçamento ou contrato para abrir o preview.
-2. Conferir que título, seções e campos estão claramente legíveis no tema escuro.
-3. Abrir um link público (`/d/<token>`) para confirmar a mesma melhoria na visão do cliente.
+1. Abrir `/documents` e clicar em qualquer documento para ver o preview.
+2. Conferir o cabeçalho escuro: nome da empresa grande e legível, subtítulo e etiqueta de tipo de documento sem espaçamento exagerado.
+3. Abrir um link público `/d/<token>` e confirmar a mesma melhoria.
 
