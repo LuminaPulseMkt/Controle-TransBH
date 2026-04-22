@@ -9,6 +9,8 @@ import { DocumentView, type DocumentViewData } from "./DocumentView";
 interface DocumentPreview extends DocumentViewData {
   template: string | null;
   public_token: string | null;
+  accepted_at?: string | null;
+  accepted_contract_id?: string | null;
 }
 
 interface Props {

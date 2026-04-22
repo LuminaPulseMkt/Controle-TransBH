@@ -175,12 +175,21 @@ function PublicDocumentPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
         <div className="rounded-lg overflow-hidden border border-border shadow-sm bg-background">
           <DocumentView doc={doc} company={company} showFooter />
         </div>
 
-        <div className="mt-4 text-center text-xs text-muted-foreground">
+        {doc.doc_type === "budget" && (
+          <AcceptBudgetCard
+            token={token}
+            acceptedAt={doc.accepted_at}
+            acceptedContractToken={acceptedContractToken}
+            onAccepted={(ct) => setAcceptedContractToken(ct)}
+          />
+        )}
+
+        <div className="mt-2 text-center text-xs text-muted-foreground">
           Documento gerado por {company?.name || "TransBH"} · Para dúvidas entre em contato pelos canais acima.
         </div>
       </div>
