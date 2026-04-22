@@ -167,6 +167,8 @@ function DocumentsPage() {
       origin: d.body?.origin ?? "",
       destination: d.body?.destination ?? "",
       vehicle: d.body?.vehicle ?? "",
+      vehicle_plate: d.body?.vehicle_plate ?? "",
+      vehicle_color: d.body?.vehicle_color ?? "",
       service_value: d.body?.service_value != null ? String(d.body.service_value) : "",
       insurance: d.body?.insurance != null ? String(d.body.insurance) : "",
       extra: d.body?.extra != null ? String(d.body.extra) : "",
