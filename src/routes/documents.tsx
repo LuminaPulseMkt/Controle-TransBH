@@ -212,8 +212,7 @@ function DocumentsPage() {
       extra: Number(form.extra) || 0,
       notes: form.notes,
     };
-    const { error } = await supabase.from("documents").insert({
-      doc_type: docType,
+    const payload = {
       template: docType === "contract" ? (form.template as any) : null,
       title: form.title || (docType === "budget" ? "Orçamento" : "Contrato"),
       client_name: form.client_name,
@@ -222,12 +221,19 @@ function DocumentsPage() {
       client_email: form.client_email || null,
       body,
       total_amount: total,
-      created_by: user?.id ?? null,
-    });
+    };
+    const { error } = editingDoc
+      ? await supabase.from("documents").update(payload).eq("id", editingDoc.id)
+      : await supabase.from("documents").insert({
+          ...payload,
+          doc_type: docType,
+          created_by: user?.id ?? null,
+        });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Documento criado.");
+    toast.success(editingDoc ? "Documento atualizado." : "Documento criado.");
     setOpen(false);
+    setEditingDoc(null);
     void load();
   };
 
