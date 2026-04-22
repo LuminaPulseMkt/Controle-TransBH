@@ -42,27 +42,27 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xl font-bold tracking-tight text-primary">
+            <div className="font-display text-2xl font-bold tracking-tight text-primary">
               {company?.name || "TransBH"}
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+            <div className="text-xs uppercase tracking-[0.18em] text-white/80">
               Transporte de Veículos
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+          <div className="text-xs uppercase tracking-[0.18em] text-white/80">
             {isContract ? "Contrato" : "Orçamento"}
           </div>
-          <div className="text-sm text-white/90 mt-0.5">{dateBR(doc.created_at)}</div>
+          <div className="text-base font-medium text-white/95 mt-0.5">{dateBR(doc.created_at)}</div>
         </div>
       </div>
 
       {/* Corpo */}
       <div className="px-6 py-6 space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold leading-tight">{doc.title}</h2>
-          <div className="text-xs text-muted-foreground mt-1">
+          <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight text-foreground">{doc.title}</h2>
+          <div className="text-sm text-foreground/70 mt-1">
             ID: {doc.id.slice(0, 8).toUpperCase()}
           </div>
         </div>
