@@ -74,9 +74,11 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
           {doc.client_email && <Field label="E-mail" value={doc.client_email} />}
         </Section>
 
-        {(body.vehicle || body.origin || body.destination) && (
+        {(body.vehicle || body.vehicle_plate || body.vehicle_color || body.origin || body.destination) && (
           <Section title="Detalhes do Serviço">
             {body.vehicle && <Field label="Veículo" value={body.vehicle} />}
+            {body.vehicle_plate && <Field label="Placa" value={body.vehicle_plate} />}
+            {body.vehicle_color && <Field label="Cor" value={body.vehicle_color} />}
             {body.origin && <Field label="Origem" value={body.origin} />}
             {body.destination && <Field label="Destino" value={body.destination} />}
           </Section>
