@@ -42,27 +42,27 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xl font-bold tracking-tight text-primary">
+            <div className="font-display text-2xl font-bold tracking-tight text-primary">
               {company?.name || "TransBH"}
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+            <div className="text-xs uppercase tracking-[0.18em] text-white/80">
               Transporte de Veículos
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+          <div className="text-xs uppercase tracking-[0.18em] text-white/80">
             {isContract ? "Contrato" : "Orçamento"}
           </div>
-          <div className="text-sm text-white/90 mt-0.5">{dateBR(doc.created_at)}</div>
+          <div className="text-base font-medium text-white/95 mt-0.5">{dateBR(doc.created_at)}</div>
         </div>
       </div>
 
       {/* Corpo */}
       <div className="px-6 py-6 space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold leading-tight">{doc.title}</h2>
-          <div className="text-xs text-muted-foreground mt-1">
+          <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight text-foreground">{doc.title}</h2>
+          <div className="text-sm text-foreground/70 mt-1">
             ID: {doc.id.slice(0, 8).toUpperCase()}
           </div>
         </div>
@@ -87,7 +87,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
           {body.insurance ? <Field label="Seguro" value={brl(body.insurance)} /> : null}
           {body.extra ? <Field label="Adicionais" value={brl(body.extra)} /> : null}
           <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-            <span className="text-sm font-medium">Total</span>
+            <span className="text-base font-semibold">Total</span>
             <span className="text-2xl font-bold text-primary">{brl(doc.total_amount ?? 0)}</span>
           </div>
         </Section>
@@ -103,22 +103,22 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
         {isContract && (
           <div className="pt-8 grid grid-cols-2 gap-8">
             <div className="text-center">
-              <div className="border-t border-foreground/40 pt-2 text-xs text-muted-foreground">
+              <div className="border-t border-foreground/40 pt-2 text-sm font-medium text-foreground">
                 {doc.client_name}
-                <div className="text-[10px] uppercase tracking-wider mt-0.5">Contratante</div>
+                <div className="text-xs uppercase tracking-wider mt-0.5 text-muted-foreground">Contratante</div>
               </div>
             </div>
             <div className="text-center">
-              <div className="border-t border-foreground/40 pt-2 text-xs text-muted-foreground">
+              <div className="border-t border-foreground/40 pt-2 text-sm font-medium text-foreground">
                 {company?.name || "TransBH"}
-                <div className="text-[10px] uppercase tracking-wider mt-0.5">Contratada</div>
+                <div className="text-xs uppercase tracking-wider mt-0.5 text-muted-foreground">Contratada</div>
               </div>
             </div>
           </div>
         )}
 
         {showFooter && company && (
-          <div className="pt-6 mt-6 border-t border-border text-xs text-muted-foreground space-y-1">
+          <div className="pt-6 mt-6 border-t border-border text-sm text-muted-foreground space-y-1">
             <div className="font-semibold text-foreground/80">{company.name || "TransBH"}</div>
             {company.cnpj && <div>CNPJ: {company.cnpj}</div>}
             {company.address && <div>{company.address}</div>}
@@ -137,18 +137,18 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-3 font-semibold">
+      <div className="text-sm uppercase tracking-[0.1em] text-primary mb-3 font-bold">
         {title}
       </div>
-      <div className="space-y-1.5">{children}</div>
+      <div className="space-y-2">{children}</div>
     </div>
   );
 }
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-2 text-sm">
-      <span className="text-muted-foreground min-w-[90px]">{label}:</span>
+    <div className="flex items-baseline gap-2 text-base">
+      <span className="text-foreground/70 min-w-[110px]">{label}:</span>
       <span className="font-medium text-foreground">{value}</span>
     </div>
   );
