@@ -544,6 +544,58 @@ function DocumentsPage() {
         editing={editingTpl}
         onSaved={loadTemplates}
       />
+
+      <DocumentPreviewDialog
+        doc={previewDoc}
+        open={!!previewDoc}
+        onOpenChange={(v) => !v && setPreviewDoc(null)}
+        onExportPDF={exportPDF}
+        onShareWhatsApp={shareWhatsApp}
+      />
     </AppLayout>
+  );
+}
+
+function DocRow({
+  d,
+  onPreview,
+  onPDF,
+  onWhatsApp,
+}: {
+  d: Document;
+  onPreview: () => void;
+  onPDF: () => void;
+  onWhatsApp: () => void;
+}) {
+  return (
+    <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
+        <div className="h-10 w-10 rounded bg-primary/15 text-primary flex items-center justify-center shrink-0">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold truncate">{d.title}</h3>
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-muted">
+              {d.doc_type === "budget" ? "Orçamento" : "Contrato"}
+            </span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
+          </div>
+        </div>
+      </button>
+      <div className="flex gap-2 shrink-0">
+        <Button size="sm" variant="outline" onClick={onPreview}>
+          <Eye className="h-4 w-4 mr-1" /> Visualizar
+        </Button>
+        <Button size="sm" variant="outline" onClick={onPDF}>
+          <Download className="h-4 w-4 mr-1" /> PDF
+        </Button>
+        <Button size="sm" variant="outline" onClick={onWhatsApp}>
+          <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+        </Button>
+      </div>
+    </div>
   );
 }
