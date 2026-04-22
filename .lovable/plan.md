@@ -1,114 +1,52 @@
 
 
-## Aceite público de orçamento → contrato + transporte + cobrança
+## Corrigir erro 500 ao aceitar orçamento
 
-Adicionar um botão **"Aceitar orçamento"** na página pública `/d/{token}`. Ao aceitar, o sistema cria automaticamente, em uma única operação:
+### Diagnóstico
 
-1. Um **contrato** com os mesmos dados do orçamento.
-2. Um registro em **Transportes** com o cliente e veículo.
-3. Um lançamento em **Cobranças (Recebíveis)** com o valor total.
+O endpoint `/_serverFn/accept-budget` retorna `HTTP 500 {"unhandled":true,"message":"HTTPError"}`. Não há logs no Postgres (a request nunca chega ao banco) nem logs detalhados no Worker.
 
-### Como o cliente vê
+A causa é o **Worker não conseguindo inicializar `supabaseAdmin`**: o cliente em `src/integrations/supabase/client.server.ts` lê `process.env.SUPABASE_SERVICE_ROLE_KEY`, que não está no `.env` do projeto (lá só existem `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`). Quando o handler toca `supabaseAdmin.from(...)`, o proxy executa `createClient` e o `throw new Error("Missing Supabase server environment variables")` sobe como exceção não tratada → 500 genérico.
 
-- Na página pública do orçamento, abaixo do total, aparece um cartão de aceite com:
-  - Checkbox "Li e concordo com as condições do orçamento"
-  - Campo opcional "Data prevista de entrega"
-  - Botão **"Aceitar orçamento e gerar contrato"**
-- Após confirmar, a tela mostra um estado de sucesso com:
-  - Aviso "Orçamento aceito" + data/hora
-  - Link direto para o **contrato gerado** (também página pública `/d/{novo_token}`)
-  - Botão "Baixar contrato em PDF"
-- Se o orçamento já foi aceito antes, o botão é substituído pelo aviso e link para o contrato existente (idempotência).
-- Contratos não exibem o botão de aceite.
+Como não há `try/catch` em volta do handler, o cliente também recebe apenas um toast vago "Erro ao processar aceite" e a causa real fica escondida.
 
-### Como o admin vê
+### Correção
 
-- Na lista de Documentos, orçamentos aceitos ganham um selo **"Aceito"** com a data.
-- O contrato gerado aparece automaticamente na aba "Contratos", agrupado pelo mesmo cliente.
-- O transporte aparece em /transports com status `pending`.
-- O recebível aparece em /financial com vencimento padrão de **7 dias** após o aceite, status `pending`.
+**1. Disponibilizar a service role key ao Worker**
 
-### Estrutura técnica
+Adicionar ao `.env` (a chave já existe nos secrets do Supabase, basta espelhar para o runtime do Worker):
 
-**1. Migração de banco**
-
-Adicionar à tabela `documents`:
-- `accepted_at timestamptz` — quando o cliente aceitou
-- `accepted_ip text` — IP do aceite (auditoria)
-- `accepted_contract_id uuid` — referência ao contrato gerado a partir do orçamento
-- `accepted_transport_id uuid` — referência ao transporte criado
-- `accepted_receivable_id uuid` — referência ao recebível criado
-
-Política RLS extra (anon): permitir `UPDATE` apenas dos campos `accepted_*` quando `public_token` é fornecido e `accepted_at` ainda é nulo. Como não dá para restringir colunas via RLS, o aceite será feito via **server function com `supabaseAdmin`** (bypass RLS) e validação por token — RLS continua bloqueando UPDATE direto pelo anon.
-
-**2. Server function `acceptBudget`** (`src/server/accept-budget.ts`)
-
-```ts
-createServerFn({ method: "POST" })
-  .inputValidator(z.object({
-    token: z.string().uuid(),
-    estimated_delivery: z.string().date().optional(),
-    accepted: z.literal(true),
-  }))
-  .handler(async ({ data }) => {
-    // 1. Buscar documento por public_token usando supabaseAdmin
-    // 2. Validar: doc_type === 'budget' && accepted_at === null
-    // 3. Se já aceito → retornar contrato/links existentes (idempotente)
-    // 4. Inserir contract (mesmos campos, doc_type='contract', body copiado)
-    // 5. Inserir transport (cliente + parse origin/destination "Cidade/UF")
-    // 6. Inserir receivable (amount=total, due_date=now+7d)
-    // 7. UPDATE budget SET accepted_at=now(), accepted_*_id=...
-    // 8. Retornar { contract_token, message }
-  })
+```env
+SUPABASE_SERVICE_ROLE_KEY="<valor da secret SUPABASE_SERVICE_ROLE_KEY>"
 ```
 
-Parsing de origem/destino: o orçamento guarda strings livres em `body.origin` / `body.destination`. O parser tenta extrair `"Cidade/UF"` ou `"Cidade - UF"`; se não conseguir, usa a string toda como `*_city` e `"--"` como `*_state` (campos obrigatórios na tabela). O veículo (`body.vehicle`) vai como `vehicle_plate` placeholder `"A DEFINIR"` se vazio, com a string original em `notes`.
+Sem isso o `supabaseAdmin` continuará explodindo na primeira chamada.
 
-**3. UI da página pública** (`src/routes/d.$token.tsx`)
+**2. Endurecer `accept-budget.functions.ts`**
 
-- Adicionar componente `<AcceptBudgetCard />` exibido só quando `doc_type === 'budget'`.
-- Estados: `idle` → `confirming` (modal de confirmação) → `submitting` → `success` / `error`.
-- Após sucesso, refetch do documento + exibe link `/d/{contract_token}`.
-- Se `doc.accepted_at` já vier preenchido no fetch, exibe direto o estado de sucesso com link salvo.
+- Envolver todo o handler em `try/catch` e devolver sempre `{ ok: false, error, stage }` em vez de deixar a exceção subir como 500. Isso transforma qualquer falha futura em mensagem clara no toast (ex.: "Falha ao criar transporte: violates foreign key").
+- Em cada `if (err)`, incluir `err.message` na string retornada (hoje só retorna texto fixo, então o admin nunca vê qual constraint quebrou).
+- Logar `console.error("[acceptBudget]", stage, err)` antes de retornar — fica visível em `server-function-logs`.
 
-**4. Lista de documentos** (`src/routes/documents.tsx`)
+**3. Ajustes de robustez já no mesmo arquivo**
 
-- Em `DocRow`, se `d.accepted_at`, mostrar badge verde **"Aceito em {data}"**.
-- Adicionar campo `accepted_at`, `accepted_contract_id` na interface `Document` e no SELECT.
+- `template`: o tipo `contract_template` é um enum; quando o orçamento tem `template = null`, o fallback `"standard"` já é seguro, manter.
+- `transports.created_by`: a coluna é `nullable`, mas a policy de INSERT só exige `auth.uid() IS NOT NULL`. Como usamos `supabaseAdmin` (bypass RLS), seguir copiando `budget.created_by` sem alteração.
+- Validar `budget.total_amount` como número finito antes de inserir o recebível (evita `NaN` se o orçamento estiver malformado).
 
-**5. WhatsApp**
+**4. UI — `AcceptBudgetCard.tsx`**
 
-Sem mudanças no payload — o link já vai. O cliente abre, aceita, e o contrato é criado.
+Mostrar o `error` retornado pelo servidor diretamente no toast (já faz `toast.error(res.error)`), sem mudanças adicionais. O texto agora será informativo após o passo 2.
 
-### Diagrama do fluxo
+### Como verificar
 
-```text
-Cliente abre /d/{token-orcamento}
-        │
-        ├─► Clica "Aceitar orçamento"
-        │       │
-        │       └─► server fn acceptBudget(token)
-        │              │
-        │              ├─► INSERT documents (contract)  ──► token-contrato
-        │              ├─► INSERT transports             ──► aparece em /transports
-        │              ├─► INSERT receivables (+7 dias)  ──► aparece em /financial
-        │              └─► UPDATE documents SET accepted_at, accepted_*_id
-        │
-        └─► Redireciona para /d/{token-contrato}
-```
+1. Após o deploy, abrir a página pública do orçamento existente (`/d/5af4a2cd-…`) em aba anônima.
+2. Marcar o checkbox e clicar em "Aceitar orçamento e gerar contrato".
+3. Esperado: toast "Orçamento aceito! Contrato gerado." + cartão verde com link para o contrato.
+4. Conferir em `/transports` o novo registro `pending` e em `/financial` a cobrança com vencimento +7 dias.
 
-### Arquivos a criar/editar
+### Arquivos a editar
 
-- **Migração SQL**: campos `accepted_*` em `documents`
-- **Criar**: `src/server/accept-budget.ts` (server function com `supabaseAdmin`)
-- **Criar**: `src/components/AcceptBudgetCard.tsx`
-- **Editar**: `src/routes/d.$token.tsx` (renderiza card de aceite + estado pós-aceite)
-- **Editar**: `src/routes/documents.tsx` (badge "Aceito" + select dos novos campos)
-- **Editar**: `src/integrations/supabase/types.ts` (regenerado)
-
-### Pontos de decisão
-
-- **Vencimento padrão da cobrança**: 7 dias após o aceite (sem campo customizável no aceite, para manter simples — admin pode ajustar depois em Financeiro).
-- **Idempotência**: clicar "Aceitar" duas vezes nunca duplica — segunda chamada retorna o contrato já criado.
-- **Sem assinatura digital nesta etapa**: aceite é registrado por checkbox + IP + timestamp (juridicamente válido como aceite eletrônico simples). Assinatura formal pode ser uma evolução futura.
+- `.env` — adicionar `SUPABASE_SERVICE_ROLE_KEY`
+- `src/server/accept-budget.functions.ts` — envolver em try/catch, propagar `err.message`, logar stages
 
