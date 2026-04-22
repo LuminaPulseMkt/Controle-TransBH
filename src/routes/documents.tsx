@@ -18,11 +18,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2 } from "lucide-react";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
@@ -63,6 +65,9 @@ function DocumentsPage() {
   const [busy, setBusy] = useState(false);
   const [tplDialogOpen, setTplDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [groupByClient, setGroupByClient] = useState(true);
+  const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState({
     title: "",
@@ -111,6 +116,25 @@ function DocumentsPage() {
     if (filter === "all") return items;
     return items.filter((i) => i.doc_type === filter);
   }, [items, filter]);
+
+  // Agrupa documentos por cliente (chave = nome normalizado)
+  const groupedByClient = useMemo(() => {
+    const map = new Map<string, { name: string; docs: Document[]; total: number }>();
+    for (const d of filtered) {
+      const key = d.client_name.trim().toLowerCase();
+      const existing = map.get(key);
+      if (existing) {
+        existing.docs.push(d);
+        existing.total += Number(d.total_amount ?? 0);
+      } else {
+        map.set(key, { name: d.client_name, docs: [d], total: Number(d.total_amount ?? 0) });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [filtered]);
+
+  const toggleClient = (key: string) =>
+    setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const total = useMemo(() => {
     const s = (Number(form.service_value) || 0) + (Number(form.insurance) || 0) + (Number(form.extra) || 0);
@@ -267,47 +291,85 @@ function DocumentsPage() {
         </div>
       }
     >
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="mb-4">
-        <TabsList>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="budget">Orçamentos</TabsTrigger>
-          <TabsTrigger value="contract">Contratos</TabsTrigger>
-        </TabsList>
-        <TabsContent value={filter} />
-      </Tabs>
+      <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+          <TabsList>
+            <TabsTrigger value="all">Todos</TabsTrigger>
+            <TabsTrigger value="budget">Orçamentos</TabsTrigger>
+            <TabsTrigger value="contract">Contratos</TabsTrigger>
+          </TabsList>
+          <TabsContent value={filter} />
+        </Tabs>
+        <div className="flex items-center gap-1 rounded-md border border-border p-0.5 bg-muted/30">
+          <button
+            onClick={() => setGroupByClient(true)}
+            className={`text-xs px-3 py-1.5 rounded ${groupByClient ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Por cliente
+          </button>
+          <button
+            onClick={() => setGroupByClient(false)}
+            className={`text-xs px-3 py-1.5 rounded ${!groupByClient ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Lista
+          </button>
+        </div>
+      </div>
 
       {!items ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center text-muted-foreground">Nenhum documento ainda.</Card>
+      ) : groupByClient ? (
+        <div className="space-y-3">
+          {groupedByClient.map((group) => {
+            const key = group.name.trim().toLowerCase();
+            const isOpen = openClients[key] ?? true;
+            return (
+              <Card key={key} className="overflow-hidden">
+                <Collapsible open={isOpen} onOpenChange={() => toggleClient(key)}>
+                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <div className="font-semibold truncate">{group.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {group.docs.length} {group.docs.length === 1 ? "documento" : "documentos"} · Total {brl(group.total)}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t border-border divide-y divide-border">
+                      {group.docs.map((d) => (
+                        <DocRow
+                          key={d.id}
+                          d={d}
+                          onPreview={() => setPreviewDoc(d)}
+                          onPDF={() => exportPDF(d)}
+                          onWhatsApp={() => shareWhatsApp(d)}
+                        />
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid gap-3">
           {filtered.map((d) => (
-            <Card key={d.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="h-10 w-10 rounded bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold truncate">{d.title}</h3>
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-muted">
-                      {d.doc_type === "budget" ? "Orçamento" : "Contrato"}
-                    </span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {d.client_name} · {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button size="sm" variant="outline" onClick={() => exportPDF(d)}>
-                  <Download className="h-4 w-4 mr-1" /> PDF
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => shareWhatsApp(d)}>
-                  <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-                </Button>
-              </div>
+            <Card key={d.id} className="p-0 overflow-hidden">
+              <DocRow
+                d={d}
+                onPreview={() => setPreviewDoc(d)}
+                onPDF={() => exportPDF(d)}
+                onWhatsApp={() => shareWhatsApp(d)}
+              />
             </Card>
           ))}
         </div>
@@ -482,6 +544,58 @@ function DocumentsPage() {
         editing={editingTpl}
         onSaved={loadTemplates}
       />
+
+      <DocumentPreviewDialog
+        doc={previewDoc}
+        open={!!previewDoc}
+        onOpenChange={(v) => !v && setPreviewDoc(null)}
+        onExportPDF={exportPDF}
+        onShareWhatsApp={shareWhatsApp}
+      />
     </AppLayout>
+  );
+}
+
+function DocRow({
+  d,
+  onPreview,
+  onPDF,
+  onWhatsApp,
+}: {
+  d: Document;
+  onPreview: () => void;
+  onPDF: () => void;
+  onWhatsApp: () => void;
+}) {
+  return (
+    <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
+        <div className="h-10 w-10 rounded bg-primary/15 text-primary flex items-center justify-center shrink-0">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold truncate">{d.title}</h3>
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-muted">
+              {d.doc_type === "budget" ? "Orçamento" : "Contrato"}
+            </span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
+          </div>
+        </div>
+      </button>
+      <div className="flex gap-2 shrink-0">
+        <Button size="sm" variant="outline" onClick={onPreview}>
+          <Eye className="h-4 w-4 mr-1" /> Visualizar
+        </Button>
+        <Button size="sm" variant="outline" onClick={onPDF}>
+          <Download className="h-4 w-4 mr-1" /> PDF
+        </Button>
+        <Button size="sm" variant="outline" onClick={onWhatsApp}>
+          <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+        </Button>
+      </div>
+    </div>
   );
 }
