@@ -52,6 +52,7 @@ interface Document {
   total_amount: number | null;
   body: any;
   created_at: string;
+  public_token: string | null;
 }
 
 function DocumentsPage() {
@@ -268,8 +269,11 @@ function DocumentsPage() {
 
   const shareWhatsApp = (d: Document) => {
     const phone = (d.client_phone ?? "").replace(/\D/g, "");
+    const link = d.public_token ? `${window.location.origin}/d/${d.public_token}` : "";
+    const tipo = d.doc_type === "budget" ? "orçamento" : "contrato";
+    const valor = brl(d.total_amount ?? 0);
     const msg = encodeURIComponent(
-      `Olá ${d.client_name}! Segue o ${d.doc_type === "budget" ? "orçamento" : "contrato"} no valor de ${brl(d.total_amount ?? 0)}. — TransBH`,
+      `Olá ${d.client_name}! Segue seu ${tipo} TransBH no valor de ${valor}.${link ? `\n${link}` : ""}`,
     );
     if (phone) window.open(`https://wa.me/${phone}?text=${msg}`, "_blank", "noopener,noreferrer");
     else window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
