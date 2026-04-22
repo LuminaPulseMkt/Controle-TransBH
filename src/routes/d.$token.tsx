@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText } from "lucide-react";
 import { brl, dateBR } from "@/lib/format";
 import jsPDF from "jspdf";
+import { AcceptBudgetCard } from "@/components/AcceptBudgetCard";
 
 export const Route = createFileRoute("/d/$token")({
   component: PublicDocumentPage,
@@ -23,10 +24,11 @@ interface CompanyInfo {
 
 function PublicDocumentPage() {
   const { token } = Route.useParams();
-  const [doc, setDoc] = useState<DocumentViewData | null>(null);
+  const [doc, setDoc] = useState<(DocumentViewData & { accepted_at?: string | null; accepted_contract_id?: string | null }) | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [acceptedContractToken, setAcceptedContractToken] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -35,16 +37,28 @@ function PublicDocumentPage() {
       const [{ data: docData, error }, { data: companyData }] = await Promise.all([
         supabase
           .from("documents")
-          .select("id,doc_type,title,client_name,client_document,client_phone,client_email,total_amount,body,created_at")
+          .select("id,doc_type,title,client_name,client_document,client_phone,client_email,total_amount,body,created_at,accepted_at,accepted_contract_id")
           .eq("public_token", token)
           .maybeSingle(),
         supabase.from("company_settings").select("name,phone,whatsapp,email,address,cnpj").maybeSingle(),
       ]);
+
+      // Se já foi aceito, buscar token público do contrato gerado
+      let contractToken: string | null = null;
+      if (docData?.accepted_contract_id) {
+        const { data: contractData } = await supabase
+          .from("documents")
+          .select("public_token")
+          .eq("id", docData.accepted_contract_id)
+          .maybeSingle();
+        contractToken = contractData?.public_token ?? null;
+      }
+      setAcceptedContractToken(contractToken);
       if (!active) return;
       if (error || !docData) {
         setNotFound(true);
       } else {
-        setDoc(docData as DocumentViewData);
+        setDoc(docData as any);
         setCompany((companyData as CompanyInfo) ?? null);
       }
       setLoading(false);
@@ -161,12 +175,21 @@ function PublicDocumentPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
         <div className="rounded-lg overflow-hidden border border-border shadow-sm bg-background">
           <DocumentView doc={doc} company={company} showFooter />
         </div>
 
-        <div className="mt-4 text-center text-xs text-muted-foreground">
+        {doc.doc_type === "budget" && (
+          <AcceptBudgetCard
+            token={token}
+            acceptedAt={doc.accepted_at}
+            acceptedContractToken={acceptedContractToken}
+            onAccepted={(ct) => setAcceptedContractToken(ct)}
+          />
+        )}
+
+        <div className="mt-2 text-center text-xs text-muted-foreground">
           Documento gerado por {company?.name || "TransBH"} · Para dúvidas entre em contato pelos canais acima.
         </div>
       </div>
