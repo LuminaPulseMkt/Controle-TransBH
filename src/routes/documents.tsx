@@ -69,6 +69,7 @@ function DocumentsPage() {
   const [tplDialogOpen, setTplDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [groupByClient, setGroupByClient] = useState(true);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
 
@@ -146,7 +147,30 @@ function DocumentsPage() {
 
   const openNew = (type: "budget" | "contract") => {
     setDocType(type);
+    setEditingDoc(null);
     setStep("template");
+    setOpen(true);
+  };
+
+  const openEdit = (d: Document) => {
+    setDocType(d.doc_type);
+    setEditingDoc(d);
+    setForm({
+      title: d.title ?? "",
+      client_name: d.client_name ?? "",
+      client_document: d.client_document ?? "",
+      client_phone: d.client_phone ?? "",
+      client_email: d.client_email ?? "",
+      template: (d.template as string) ?? "standard",
+      origin: d.body?.origin ?? "",
+      destination: d.body?.destination ?? "",
+      vehicle: d.body?.vehicle ?? "",
+      service_value: d.body?.service_value != null ? String(d.body.service_value) : "",
+      insurance: d.body?.insurance != null ? String(d.body.insurance) : "",
+      extra: d.body?.extra != null ? String(d.body.extra) : "",
+      notes: d.body?.notes ?? "",
+    });
+    setStep("form");
     setOpen(true);
   };
 
@@ -188,8 +212,7 @@ function DocumentsPage() {
       extra: Number(form.extra) || 0,
       notes: form.notes,
     };
-    const { error } = await supabase.from("documents").insert({
-      doc_type: docType,
+    const payload = {
       template: docType === "contract" ? (form.template as any) : null,
       title: form.title || (docType === "budget" ? "Orçamento" : "Contrato"),
       client_name: form.client_name,
@@ -198,12 +221,19 @@ function DocumentsPage() {
       client_email: form.client_email || null,
       body,
       total_amount: total,
-      created_by: user?.id ?? null,
-    });
+    };
+    const { error } = editingDoc
+      ? await supabase.from("documents").update(payload).eq("id", editingDoc.id)
+      : await supabase.from("documents").insert({
+          ...payload,
+          doc_type: docType,
+          created_by: user?.id ?? null,
+        });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Documento criado.");
+    toast.success(editingDoc ? "Documento atualizado." : "Documento criado.");
     setOpen(false);
+    setEditingDoc(null);
     void load();
   };
 
@@ -354,6 +384,8 @@ function DocumentsPage() {
                         <DocRow
                           key={d.id}
                           d={d}
+                          canEdit={isAdmin}
+                          onEdit={() => openEdit(d)}
                           onPreview={() => setPreviewDoc(d)}
                           onPDF={() => exportPDF(d)}
                           onWhatsApp={() => shareWhatsApp(d)}
@@ -372,6 +404,8 @@ function DocumentsPage() {
             <Card key={d.id} className="p-0 overflow-hidden">
               <DocRow
                 d={d}
+                canEdit={isAdmin}
+                onEdit={() => openEdit(d)}
                 onPreview={() => setPreviewDoc(d)}
                 onPDF={() => exportPDF(d)}
                 onWhatsApp={() => shareWhatsApp(d)}
@@ -381,13 +415,21 @@ function DocumentsPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          setEditingDoc(null);
+          setStep("template");
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-display text-2xl">
-              {step === "template" ? "Escolha um modelo" : `Novo ${docType === "budget" ? "Orçamento" : "Contrato"}`}
+              {editingDoc
+                ? `Editar ${editingDoc.doc_type === "budget" ? "Orçamento" : "Contrato"}`
+                : step === "template" ? "Escolha um modelo" : `Novo ${docType === "budget" ? "Orçamento" : "Contrato"}`}
             </DialogTitle>
-            {step === "template" && (
+            {!editingDoc && step === "template" && (
               <p className="text-sm text-muted-foreground">
                 Selecione um modelo pré-pronto. Depois você só preenche os dados do cliente e do veículo.
               </p>
@@ -470,16 +512,18 @@ function DocumentsPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="md:col-span-2 flex items-center justify-between gap-2 rounded border border-border bg-muted/30 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">
-                    Modelo: <span className="text-foreground font-medium">
-                      {allTemplates.find((t) => t.kind === docType && t.templateKey === form.template)?.name ?? "Personalizado"}
-                    </span>
+                {!editingDoc && (
+                  <div className="md:col-span-2 flex items-center justify-between gap-2 rounded border border-border bg-muted/30 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">
+                      Modelo: <span className="text-foreground font-medium">
+                        {allTemplates.find((t) => t.kind === docType && t.templateKey === form.template)?.name ?? "Personalizado"}
+                      </span>
+                    </div>
+                    <button onClick={() => setStep("template")} className="text-xs text-primary hover:underline">
+                      Trocar modelo
+                    </button>
                   </div>
-                  <button onClick={() => setStep("template")} className="text-xs text-primary hover:underline">
-                    Trocar modelo
-                  </button>
-                </div>
+                )}
                 <div className="md:col-span-2">
                   <Label>Título</Label>
                   <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -564,15 +608,20 @@ function DocumentsPage() {
 
 function DocRow({
   d,
+  canEdit,
+  onEdit,
   onPreview,
   onPDF,
   onWhatsApp,
 }: {
   d: Document;
+  canEdit?: boolean;
+  onEdit?: () => void;
   onPreview: () => void;
   onPDF: () => void;
   onWhatsApp: () => void;
 }) {
+  const isAcceptedBudget = d.doc_type === "budget" && !!d.accepted_at;
   return (
     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
       <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
@@ -600,6 +649,17 @@ function DocRow({
         <Button size="sm" variant="outline" onClick={onPreview}>
           <Eye className="h-4 w-4 mr-1" /> Visualizar
         </Button>
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onEdit}
+            disabled={isAcceptedBudget}
+            title={isAcceptedBudget ? "Orçamento já aceito — não pode ser editado" : "Editar documento"}
+          >
+            <Pencil className="h-4 w-4 mr-1" /> Editar
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={onPDF}>
           <Download className="h-4 w-4 mr-1" /> PDF
         </Button>
