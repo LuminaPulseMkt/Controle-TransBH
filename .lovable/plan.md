@@ -1,49 +1,40 @@
 
 
-## Ajustar legibilidade do cabeçalho dos documentos
+## Melhorar legibilidade dos títulos na lista de Contratos & Orçamentos
 
 ### Problema
 
-No cabeçalho escuro do documento (faixa azul-marinho no topo), três textos estão com legibilidade ruim:
+Na aba **Contratos & Orçamentos** (`/documents`), cada linha mostra o título do documento (ex.: "Orçamento de Transporte — Padrão", "Contrato de Transporte de Veículos") com fonte pequena e o badge de tipo (Orçamento/Contrato) ao lado em uppercase com `text-[10px]` e tracking largo. O resultado fica apagado e difícil de ler tanto na visão "Por cliente" quanto na "Lista".
 
-1. **"TransBH"** — usa `font-display` (Bebas Neue) com peso bold e tracking apertado, o que comprime as letras e prejudica a leitura no fundo escuro.
-2. **"Transporte de Veículos"** — `text-xs` em uppercase com `tracking-[0.18em]` (espaçamento muito largo entre letras pequenas).
-3. **"Orçamento" / "Contrato"** — mesmo problema: fonte pequena, uppercase, tracking largo demais, dificultando leitura.
+### Mudanças em `src/components/.../DocRow` (dentro de `src/routes/documents.tsx`, linhas 577–598)
 
-### Mudança proposta em `src/components/DocumentView.tsx` (linhas 38–63 — bloco do cabeçalho)
+1. **Ícone do documento** (esquerda)
+   - Subir de `h-10 w-10` para `h-11 w-11` para acompanhar o título maior.
+   - Aumentar o ícone interno de `h-5 w-5` para `h-5.5 w-5.5` (manter `h-5 w-5` se 5.5 não existir no Tailwind — usar `h-6 w-6`).
 
-**Logo / nome da empresa:**
-- Trocar `font-display` por `font-sans` para evitar compressão da Bebas Neue.
-- Aumentar de `text-2xl` para `text-3xl`.
-- Manter `font-bold` e cor `text-primary` (âmbar).
-- Adicionar `tracking-tight` em vez de tracking padrão para um nome curto ficar coeso mas legível.
+2. **Título do documento** (`<h3>`, linha 584)
+   - Trocar `font-semibold truncate` por `text-lg md:text-xl font-bold text-foreground truncate leading-tight`.
+   - Resultado: passa de ~14px peso semibold para 18–20px peso bold, com cor primária do texto (sem opacidade), mantendo truncamento.
 
-**Etiqueta "Transporte de Veículos" (subtítulo da logo):**
-- Remover uppercase e tracking largo.
-- Trocar `text-xs uppercase tracking-[0.18em]` por `text-sm font-medium`.
-- Manter `text-white/80`.
+3. **Badge "Orçamento" / "Contrato"** (linha 585)
+   - Substituir `text-[10px] uppercase tracking-wider` por `text-xs font-semibold` (sem uppercase, sem tracking exagerado).
+   - Manter `px-2 py-0.5 rounded bg-muted`, mas adicionar `text-foreground/80` para garantir contraste.
 
-**Etiqueta "Orçamento" / "Contrato" (canto direito):**
-- Remover uppercase e tracking largo.
-- Trocar `text-xs uppercase tracking-[0.18em]` por `text-sm font-semibold`.
-- Manter `text-white/80`.
+4. **Badge "Aceito {data}"** (linha 589) — para manter consistência visual
+   - Mesma troca: `text-[10px] uppercase tracking-wider` → `text-xs font-semibold` (preservando cores emerald e ícone).
 
-**Data (logo abaixo da etiqueta):**
-- Manter `text-base font-medium`, sem alteração — já está legível.
-
-### Resultado esperado
-
-- "TransBH" maior e com letras mais abertas (sem usar a fonte display estreita).
-- "Transporte de Veículos", "Orçamento" e "Contrato" passam de uppercase comprimido com tracking largo para texto normal (case original) em tamanho `sm`, ficando muito mais fáceis de ler.
+5. **Linha de metadados (data · valor)** (linha 594)
+   - Subir de `text-sm text-muted-foreground` para `text-sm text-foreground/70` (mais contraste, mesmo tamanho).
 
 ### Fora do escopo
 
-- Não altero os títulos das seções internas (Cliente, Valores etc.) — esses já foram ajustados na rodada anterior.
-- Não mexo no PDF gerado por `jsPDF` em `d.$token.tsx`, apenas na visualização HTML compartilhada (`DocumentView`), que serve tanto o preview interno quanto o link público.
+- Não altero o cabeçalho do grupo "Por cliente" (nome do cliente já está legível em `font-semibold`).
+- Não mexo no `DocumentView` (preview/visualização do documento aberto), já ajustado nas rodadas anteriores.
+- Sem mudanças em `DocumentPreviewDialog`, geração de PDF ou rota pública `/d/$token`.
 
 ### Como validar
 
-1. Abrir `/documents` e clicar em qualquer documento para ver o preview.
-2. Conferir o cabeçalho escuro: nome da empresa grande e legível, subtítulo e etiqueta de tipo de documento sem espaçamento exagerado.
-3. Abrir um link público `/d/<token>` e confirmar a mesma melhoria.
+1. Abrir `/documents`.
+2. Conferir a visão "Por cliente": expandir um cliente e verificar que os títulos dos documentos estão grandes, em negrito e o badge de tipo legível em case normal.
+3. Alternar para a visão "Lista" e confirmar a mesma melhoria.
 
