@@ -415,13 +415,21 @@ function DocumentsPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          setEditingDoc(null);
+          setStep("template");
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-display text-2xl">
-              {step === "template" ? "Escolha um modelo" : `Novo ${docType === "budget" ? "Orçamento" : "Contrato"}`}
+              {editingDoc
+                ? `Editar ${editingDoc.doc_type === "budget" ? "Orçamento" : "Contrato"}`
+                : step === "template" ? "Escolha um modelo" : `Novo ${docType === "budget" ? "Orçamento" : "Contrato"}`}
             </DialogTitle>
-            {step === "template" && (
+            {!editingDoc && step === "template" && (
               <p className="text-sm text-muted-foreground">
                 Selecione um modelo pré-pronto. Depois você só preenche os dados do cliente e do veículo.
               </p>
