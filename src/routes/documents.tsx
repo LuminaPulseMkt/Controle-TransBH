@@ -608,15 +608,20 @@ function DocumentsPage() {
 
 function DocRow({
   d,
+  canEdit,
+  onEdit,
   onPreview,
   onPDF,
   onWhatsApp,
 }: {
   d: Document;
+  canEdit?: boolean;
+  onEdit?: () => void;
   onPreview: () => void;
   onPDF: () => void;
   onWhatsApp: () => void;
 }) {
+  const isAcceptedBudget = d.doc_type === "budget" && !!d.accepted_at;
   return (
     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
       <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
@@ -644,6 +649,17 @@ function DocRow({
         <Button size="sm" variant="outline" onClick={onPreview}>
           <Eye className="h-4 w-4 mr-1" /> Visualizar
         </Button>
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onEdit}
+            disabled={isAcceptedBudget}
+            title={isAcceptedBudget ? "Orçamento já aceito — não pode ser editado" : "Editar documento"}
+          >
+            <Pencil className="h-4 w-4 mr-1" /> Editar
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={onPDF}>
           <Download className="h-4 w-4 mr-1" /> PDF
         </Button>
