@@ -404,6 +404,8 @@ function DocumentsPage() {
             <Card key={d.id} className="p-0 overflow-hidden">
               <DocRow
                 d={d}
+                canEdit={isAdmin}
+                onEdit={() => openEdit(d)}
                 onPreview={() => setPreviewDoc(d)}
                 onPDF={() => exportPDF(d)}
                 onWhatsApp={() => shareWhatsApp(d)}
