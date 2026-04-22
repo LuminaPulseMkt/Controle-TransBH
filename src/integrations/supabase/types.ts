@@ -138,6 +138,11 @@ export type Database = {
       }
       documents: {
         Row: {
+          accepted_at: string | null
+          accepted_contract_id: string | null
+          accepted_ip: string | null
+          accepted_receivable_id: string | null
+          accepted_transport_id: string | null
           body: Json
           client_document: string | null
           client_email: string | null
@@ -156,6 +161,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_contract_id?: string | null
+          accepted_ip?: string | null
+          accepted_receivable_id?: string | null
+          accepted_transport_id?: string | null
           body?: Json
           client_document?: string | null
           client_email?: string | null
@@ -174,6 +184,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          accepted_contract_id?: string | null
+          accepted_ip?: string | null
+          accepted_receivable_id?: string | null
+          accepted_transport_id?: string | null
           body?: Json
           client_document?: string | null
           client_email?: string | null
@@ -192,6 +207,27 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_accepted_contract_id_fkey"
+            columns: ["accepted_contract_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_accepted_receivable_id_fkey"
+            columns: ["accepted_receivable_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_accepted_transport_id_fkey"
+            columns: ["accepted_transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documents_transport_id_fkey"
             columns: ["transport_id"]
