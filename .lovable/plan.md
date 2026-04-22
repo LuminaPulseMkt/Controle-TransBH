@@ -1,40 +1,61 @@
 
 
-## Melhorar legibilidade dos títulos na lista de Contratos & Orçamentos
+## Editar contratos e orçamentos já gerados
 
-### Problema
+### Comportamento
 
-Na aba **Contratos & Orçamentos** (`/documents`), cada linha mostra o título do documento (ex.: "Orçamento de Transporte — Padrão", "Contrato de Transporte de Veículos") com fonte pequena e o badge de tipo (Orçamento/Contrato) ao lado em uppercase com `text-[10px]` e tracking largo. O resultado fica apagado e difícil de ler tanto na visão "Por cliente" quanto na "Lista".
+Adicionar um botão **Editar** em cada linha da lista de documentos (`/documents`) que reabre o mesmo formulário usado na criação, pré-preenchido com os dados atuais. Ao salvar, o documento é atualizado em vez de um novo ser criado.
 
-### Mudanças em `src/components/.../DocRow` (dentro de `src/routes/documents.tsx`, linhas 577–598)
+### Permissões
 
-1. **Ícone do documento** (esquerda)
-   - Subir de `h-10 w-10` para `h-11 w-11` para acompanhar o título maior.
-   - Aumentar o ícone interno de `h-5 w-5` para `h-5.5 w-5.5` (manter `h-5 w-5` se 5.5 não existir no Tailwind — usar `h-6 w-6`).
+A política RLS `Admins update documents` só permite `UPDATE` para administradores. Logo:
 
-2. **Título do documento** (`<h3>`, linha 584)
-   - Trocar `font-semibold truncate` por `text-lg md:text-xl font-bold text-foreground truncate leading-tight`.
-   - Resultado: passa de ~14px peso semibold para 18–20px peso bold, com cor primária do texto (sem opacidade), mantendo truncamento.
+- O botão **Editar** só aparece para usuários `isAdmin`.
+- Não-admins continuam vendo apenas Visualizar / PDF / WhatsApp.
 
-3. **Badge "Orçamento" / "Contrato"** (linha 585)
-   - Substituir `text-[10px] uppercase tracking-wider` por `text-xs font-semibold` (sem uppercase, sem tracking exagerado).
-   - Manter `px-2 py-0.5 rounded bg-muted`, mas adicionar `text-foreground/80` para garantir contraste.
+### Bloqueio de edição em orçamentos aceitos
 
-4. **Badge "Aceito {data}"** (linha 589) — para manter consistência visual
-   - Mesma troca: `text-[10px] uppercase tracking-wider` → `text-xs font-semibold` (preservando cores emerald e ícone).
+Um orçamento aceito (`accepted_at` preenchido) já gerou contrato + transporte + cobrança. Editar valores depois disso quebra a rastreabilidade. Regra:
 
-5. **Linha de metadados (data · valor)** (linha 594)
-   - Subir de `text-sm text-muted-foreground` para `text-sm text-foreground/70` (mais contraste, mesmo tamanho).
+- Se `doc_type === "budget"` e `accepted_at != null` → botão Editar fica **desabilitado** com tooltip "Orçamento já aceito — não pode ser editado".
+- Contratos podem ser editados livremente (por admin).
+
+### Mudanças em `src/routes/documents.tsx`
+
+1. **Novo estado** `editingDoc: Document | null` ao lado de `previewDoc`.
+2. **Nova função `openEdit(d: Document)`**:
+   - Define `docType = d.doc_type`.
+   - Faz `setForm({...})` populando todos os campos a partir de `d` e `d.body` (origin, destination, vehicle, service_value, insurance, extra, notes — convertendo números para string).
+   - Define `setEditingDoc(d)`, `setStep("form")` (pula a tela de modelos) e `setOpen(true)`.
+3. **Refator de `save()`**:
+   - Se `editingDoc` existir: `supabase.from("documents").update({ ... }).eq("id", editingDoc.id)`.
+   - Senão: mantém o `insert` atual.
+   - Em ambos os casos: limpa `editingDoc` ao fechar e recarrega a lista.
+   - Mensagens: "Documento atualizado." vs "Documento criado.".
+4. **Reset ao fechar**: no `onOpenChange` do `Dialog`, quando fechar, zerar `editingDoc` e voltar `step` para `"template"`.
+5. **Título do diálogo**: "Editar {Orçamento|Contrato}" quando `editingDoc` estiver presente.
+6. **Esconder a faixa "Trocar modelo"** no modo edição (não faz sentido trocar modelo de um doc existente — só edita os campos).
+7. **Em `DocRow`**: adicionar prop `onEdit?: () => void` e prop `canEdit: boolean`. Quando `canEdit` for true, renderizar antes do botão PDF:
+   ```
+   <Button size="sm" variant="outline" onClick={onEdit} disabled={isAcceptedBudget}>
+     <Pencil className="h-4 w-4 mr-1" /> Editar
+   </Button>
+   ```
+   Com `title` explicativo quando desabilitado.
+8. **Passar `onEdit={() => openEdit(d)}` e `canEdit={isAdmin}`** nas duas renderizações de `DocRow` (visão "Por cliente" e visão "Lista").
 
 ### Fora do escopo
 
-- Não altero o cabeçalho do grupo "Por cliente" (nome do cliente já está legível em `font-semibold`).
-- Não mexo no `DocumentView` (preview/visualização do documento aberto), já ajustado nas rodadas anteriores.
-- Sem mudanças em `DocumentPreviewDialog`, geração de PDF ou rota pública `/d/$token`.
+- Não altero o schema do banco — RLS e colunas já suportam tudo.
+- Não toco no `DocumentPreviewDialog`, `DocumentView`, `CustomTemplateDialog`, geração de PDF nem na rota pública `/d/$token`.
+- Não adiciono histórico/auditoria de edições (pode ser uma melhoria futura se você quiser).
+- Não permito alterar `doc_type` (orçamento ↔ contrato) — apenas os campos do formulário.
 
 ### Como validar
 
-1. Abrir `/documents`.
-2. Conferir a visão "Por cliente": expandir um cliente e verificar que os títulos dos documentos estão grandes, em negrito e o badge de tipo legível em case normal.
-3. Alternar para a visão "Lista" e confirmar a mesma melhoria.
+1. Logado como administrador, abrir `/documents`.
+2. Em qualquer documento não-aceito, clicar **Editar** → confere que o diálogo abre direto no formulário com todos os valores preenchidos.
+3. Alterar título, valores ou observações e salvar → toast "Documento atualizado." e a lista reflete a mudança (valor total, data permanece a original).
+4. Em um orçamento já aceito, conferir que o botão Editar está desabilitado com tooltip explicativo.
+5. Logado como colaborador (não-admin), conferir que o botão Editar não aparece.
 
