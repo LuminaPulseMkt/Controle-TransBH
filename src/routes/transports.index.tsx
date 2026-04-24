@@ -29,7 +29,7 @@ import { Plus, Search, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
-export const Route = createFileRoute("/transports")({
+export const Route = createFileRoute("/transports/")({
   component: () => (
     <AuthGate>
       <TransportsPage />
