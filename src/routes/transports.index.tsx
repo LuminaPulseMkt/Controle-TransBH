@@ -97,9 +97,10 @@ const emptyForm = {
 function TransportsPage() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const initialSearch = Route.useSearch();
   const [items, setItems] = useState<Transport[] | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialSearch.status ?? "all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState(emptyForm);
