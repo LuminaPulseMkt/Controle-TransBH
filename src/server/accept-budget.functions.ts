@@ -78,11 +78,34 @@ export const acceptBudget = createServerFn({ method: "POST" })
           .select("public_token")
           .eq("id", budget.accepted_contract_id)
           .maybeSingle();
+
+        let prevReceivable: { amount: number; due_date: string } | null = null;
+        let prevVehicle: { plate: string; brand: string | null; model: string | null } | null = null;
+        if (budget.accepted_receivable_id) {
+          const { data: r } = await supabaseAdmin
+            .from("receivables")
+            .select("amount, due_date")
+            .eq("id", budget.accepted_receivable_id)
+            .maybeSingle();
+          if (r) prevReceivable = { amount: Number(r.amount), due_date: r.due_date };
+        }
+        if (budget.accepted_transport_id) {
+          const { data: tr } = await supabaseAdmin
+            .from("transports")
+            .select("vehicle_plate, vehicle_brand, vehicle_model")
+            .eq("id", budget.accepted_transport_id)
+            .maybeSingle();
+          if (tr) prevVehicle = { plate: tr.vehicle_plate, brand: tr.vehicle_brand, model: tr.vehicle_model };
+        }
+
         return {
           ok: true as const,
           already: true,
           contract_token: existingContract?.public_token ?? null,
           accepted_at: budget.accepted_at,
+          receivable: prevReceivable,
+          vehicle: prevVehicle,
+          client_name: budget.client_name,
         };
       }
 
