@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransportStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
-import { Plus, Search, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Plus, Search, Loader2, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
@@ -62,6 +62,11 @@ interface Transport {
   created_at: string;
 }
 
+interface ExistingPhoto {
+  id: string;
+  photo_url: string;
+}
+
 const emptyForm = {
   vehicle_plate: "",
   vehicle_brand: "",
@@ -93,7 +98,12 @@ function TransportsPage() {
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+
+  // Multi-photo state
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [extraPhotoUrls, setExtraPhotoUrls] = useState<string[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -122,13 +132,21 @@ function TransportsPage() {
     });
   }, [items, search, statusFilter]);
 
+  const resetPhotoState = () => {
+    setPendingFiles([]);
+    setExtraPhotoUrls([]);
+    setExistingPhotos([]);
+    setUploadProgress(null);
+  };
+
   const openNew = () => {
     setEditing(null);
     setForm(emptyForm);
+    resetPhotoState();
     setOpen(true);
   };
 
-  const openEdit = (t: Transport) => {
+  const openEdit = async (t: Transport) => {
     setEditing(t);
     setForm({
       vehicle_plate: t.vehicle_plate,
@@ -151,23 +169,81 @@ function TransportsPage() {
       notes: t.notes ?? "",
       photo_url: t.photo_url ?? "",
     });
+    setPendingFiles([]);
+    setExtraPhotoUrls([]);
+    setUploadProgress(null);
+
+    // Load existing gallery
+    const { data, error } = await supabase
+      .from("transport_photos")
+      .select("id, photo_url")
+      .eq("transport_id", t.id)
+      .order("created_at", { ascending: true });
+    if (error) {
+      toast.error(error.message);
+      setExistingPhotos([]);
+    } else {
+      setExistingPhotos(data ?? []);
+    }
     setOpen(true);
   };
 
-  const onPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const path = `${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-    const { error } = await supabase.storage.from("transport-photos").upload(path, file);
-    if (error) {
-      toast.error(error.message);
-      setUploading(false);
-      return;
+  const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setPendingFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
+  const removePending = (idx: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const removeExtra = (url: string) => {
+    setExtraPhotoUrls((prev) => prev.filter((u) => u !== url));
+    if (form.photo_url === url) {
+      setForm((f) => ({ ...f, photo_url: "" }));
     }
-    const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
-    setForm((f) => ({ ...f, photo_url: data.publicUrl }));
-    setUploading(false);
+  };
+
+  const removeExisting = async (photo: ExistingPhoto) => {
+    if (!confirm("Remover esta foto?")) return;
+    const { error } = await supabase.from("transport_photos").delete().eq("id", photo.id);
+    if (error) return toast.error(error.message);
+    setExistingPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+    if (form.photo_url === photo.photo_url) {
+      setForm((f) => ({ ...f, photo_url: "" }));
+    }
+    toast.success("Foto removida.");
+  };
+
+  const uploadPending = async (): Promise<string[]> => {
+    if (pendingFiles.length === 0) return [];
+    const total = pendingFiles.length;
+    setUploadProgress({ done: 0, total });
+    const uploaded: string[] = [];
+    let failed = 0;
+
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      const safeName = file.name.replace(/\s+/g, "_");
+      const path = `${user?.id ?? "anon"}/${Date.now()}-${i}-${safeName}`;
+      const { error } = await supabase.storage.from("transport-photos").upload(path, file);
+      if (error) {
+        failed++;
+      } else {
+        const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
+        uploaded.push(data.publicUrl);
+      }
+      setUploadProgress({ done: i + 1, total });
+    }
+
+    if (failed > 0) {
+      toast.error(`${failed} de ${total} upload(s) falharam.`);
+    }
+    setPendingFiles([]);
+    setUploadProgress(null);
+    return uploaded;
   };
 
   const save = async () => {
@@ -175,21 +251,68 @@ function TransportsPage() {
       return toast.error("Preencha placa, cliente, origem e destino.");
     }
     setBusy(true);
+
+    // 1. Upload new files first
+    let newlyUploaded: string[] = [];
+    try {
+      newlyUploaded = await uploadPending();
+    } catch (err: any) {
+      setBusy(false);
+      return toast.error(err?.message ?? "Erro no upload de fotos.");
+    }
+    const allExtras = [...extraPhotoUrls, ...newlyUploaded];
+
+    // 2. Determine cover photo
+    const cover =
+      form.photo_url ||
+      existingPhotos[0]?.photo_url ||
+      allExtras[0] ||
+      "";
+
     const payload = {
       ...form,
+      photo_url: cover || null,
       vehicle_year: form.vehicle_year ? Number(form.vehicle_year) : null,
       estimated_delivery: form.estimated_delivery || null,
       vehicle_type: form.vehicle_type as any,
       status: form.status as any,
       created_by: user?.id ?? null,
     };
-    const { error } = editing
-      ? await supabase.from("transports").update(payload).eq("id", editing.id)
-      : await supabase.from("transports").insert(payload);
+
+    // 3. Save transport
+    let transportId = editing?.id;
+    if (editing) {
+      const { error } = await supabase.from("transports").update(payload).eq("id", editing.id);
+      if (error) {
+        setBusy(false);
+        return toast.error(error.message);
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("transports")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) {
+        setBusy(false);
+        return toast.error(error.message);
+      }
+      transportId = data.id;
+    }
+
+    // 4. Insert new photo rows in transport_photos
+    if (transportId && allExtras.length > 0) {
+      const rows = allExtras.map((url) => ({ transport_id: transportId!, photo_url: url }));
+      const { error: photoErr } = await supabase.from("transport_photos").insert(rows);
+      if (photoErr) {
+        toast.error(`Transporte salvo, mas falhou ao registrar fotos: ${photoErr.message}`);
+      }
+    }
+
     setBusy(false);
-    if (error) return toast.error(error.message);
     toast.success(editing ? "Transporte atualizado." : "Transporte criado.");
     setOpen(false);
+    setExtraPhotoUrls([]);
     void load();
   };
 
@@ -390,28 +513,192 @@ function TransportsPage() {
               <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
 
-            <Field label="Foto do veículo" full>
-              <div className="flex items-center gap-3">
-                <Input type="file" accept="image/*" onChange={onPhotoChange} disabled={uploading} />
-                {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {form.photo_url && (
-                  <a href={form.photo_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs underline flex items-center gap-1">
-                    <ImageIcon className="h-3 w-3" /> ver
-                  </a>
-                )}
-              </div>
+            <Field label="Fotos do veículo" full>
+              <PhotoManager
+                existing={existingPhotos}
+                extras={extraPhotoUrls}
+                pending={pendingFiles}
+                cover={form.photo_url}
+                onSetCover={(url) => setForm((f) => ({ ...f, photo_url: url }))}
+                onRemoveExisting={removeExisting}
+                onRemoveExtra={removeExtra}
+                onRemovePending={removePending}
+                onFilesSelected={onFilesSelected}
+                disabled={busy}
+              />
+              {uploadProgress && (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Enviando {uploadProgress.done} de {uploadProgress.total}…
+                </p>
+              )}
             </Field>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
             <Button onClick={save} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {uploadProgress ? `Enviando ${uploadProgress.done}/${uploadProgress.total}…` : "Salvando…"}
+                </>
+              ) : pendingFiles.length > 0 ? (
+                `Salvar e enviar ${pendingFiles.length} foto(s)`
+              ) : (
+                "Salvar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppLayout>
+  );
+}
+
+function PhotoManager({
+  existing,
+  extras,
+  pending,
+  cover,
+  onSetCover,
+  onRemoveExisting,
+  onRemoveExtra,
+  onRemovePending,
+  onFilesSelected,
+  disabled,
+}: {
+  existing: ExistingPhoto[];
+  extras: string[];
+  pending: File[];
+  cover: string;
+  onSetCover: (url: string) => void;
+  onRemoveExisting: (p: ExistingPhoto) => void;
+  onRemoveExtra: (url: string) => void;
+  onRemovePending: (idx: number) => void;
+  onFilesSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}) {
+  // Object URLs for pending file previews
+  const [pendingUrls, setPendingUrls] = useState<string[]>([]);
+  useEffect(() => {
+    const urls = pending.map((f) => URL.createObjectURL(f));
+    setPendingUrls(urls);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [pending]);
+
+  const totalCount = existing.length + extras.length + pending.length;
+
+  return (
+    <div className="space-y-3">
+      {totalCount > 0 && (
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+          {existing.map((p) => (
+            <PhotoTile
+              key={`ex-${p.id}`}
+              src={p.photo_url}
+              isCover={cover === p.photo_url}
+              onSetCover={() => onSetCover(p.photo_url)}
+              onRemove={() => onRemoveExisting(p)}
+              label="Salva"
+            />
+          ))}
+          {extras.map((url) => (
+            <PhotoTile
+              key={`extra-${url}`}
+              src={url}
+              isCover={cover === url}
+              onSetCover={() => onSetCover(url)}
+              onRemove={() => onRemoveExtra(url)}
+              label="Pronta"
+            />
+          ))}
+          {pending.map((file, idx) => (
+            <PhotoTile
+              key={`p-${idx}-${file.name}`}
+              src={pendingUrls[idx] ?? ""}
+              isCover={false}
+              onRemove={() => onRemovePending(idx)}
+              label={`${(file.size / 1024).toFixed(0)} KB`}
+              pending
+            />
+          ))}
+        </div>
+      )}
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={onFilesSelected}
+          disabled={disabled}
+          className="hidden"
+        />
+        <span className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent transition-colors">
+          <Upload className="h-4 w-4" />
+          Adicionar foto(s)
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {totalCount === 0 ? "Nenhuma foto adicionada" : `${totalCount} foto(s) no total`}
+        </span>
+      </label>
+    </div>
+  );
+}
+
+function PhotoTile({
+  src,
+  isCover,
+  onSetCover,
+  onRemove,
+  label,
+  pending,
+}: {
+  src: string;
+  isCover: boolean;
+  onSetCover?: () => void;
+  onRemove: () => void;
+  label?: string;
+  pending?: boolean;
+}) {
+  return (
+    <div className="relative group rounded-md overflow-hidden border border-border bg-muted aspect-square">
+      {src ? (
+        <img src={src} alt="foto veículo" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">…</div>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-1 right-1 bg-background/90 hover:bg-destructive hover:text-destructive-foreground rounded-full p-1 shadow"
+        title="Remover"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      {isCover && (
+        <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded">
+          Capa
+        </span>
+      )}
+      {!isCover && onSetCover && !pending && (
+        <button
+          type="button"
+          onClick={onSetCover}
+          className="absolute bottom-1 left-1 bg-background/90 hover:bg-primary hover:text-primary-foreground text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          Capa
+        </button>
+      )}
+      {label && (
+        <span className="absolute bottom-1 right-1 bg-background/90 text-[10px] px-1.5 py-0.5 rounded">
+          {label}
+        </span>
+      )}
+    </div>
   );
 }
 
