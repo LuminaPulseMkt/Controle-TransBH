@@ -321,7 +321,7 @@ function TransportsPage() {
     if (!editing && form.client_name) {
       // Após criar, vai direto para as cobranças do cliente
       navigate({
-        to: "/financial/client/$name",
+        to: "/financial/clients/$name",
         params: { name: encodeURIComponent(form.client_name) },
       });
       return;

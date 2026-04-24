@@ -20,7 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 import { Route as DTokenRouteImport } from './routes/d.$token'
-import { Route as FinancialClientNameRouteImport } from './routes/financial.client.$name'
+import { Route as FinancialClientsNameRouteImport } from './routes/financial.clients.$name'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -77,9 +77,9 @@ const DTokenRoute = DTokenRouteImport.update({
   path: '/d/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FinancialClientNameRoute = FinancialClientNameRouteImport.update({
-  id: '/client/$name',
-  path: '/client/$name',
+const FinancialClientsNameRoute = FinancialClientsNameRouteImport.update({
+  id: '/clients/$name',
+  path: '/clients/$name',
   getParentRoute: () => FinancialRoute,
 } as any)
 
@@ -95,7 +95,7 @@ export interface FileRoutesByFullPath {
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/transports/': typeof TransportsIndexRoute
-  '/financial/client/$name': typeof FinancialClientNameRoute
+  '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,7 +109,7 @@ export interface FileRoutesByTo {
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/transports': typeof TransportsIndexRoute
-  '/financial/client/$name': typeof FinancialClientNameRoute
+  '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,7 +124,7 @@ export interface FileRoutesById {
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/transports/': typeof TransportsIndexRoute
-  '/financial/client/$name': typeof FinancialClientNameRoute
+  '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,7 +140,7 @@ export interface FileRouteTypes {
     | '/d/$token'
     | '/transports/$id'
     | '/transports/'
-    | '/financial/client/$name'
+    | '/financial/clients/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,7 +154,7 @@ export interface FileRouteTypes {
     | '/d/$token'
     | '/transports/$id'
     | '/transports'
-    | '/financial/client/$name'
+    | '/financial/clients/$name'
   id:
     | '__root__'
     | '/'
@@ -168,7 +168,7 @@ export interface FileRouteTypes {
     | '/d/$token'
     | '/transports/$id'
     | '/transports/'
-    | '/financial/client/$name'
+    | '/financial/clients/$name'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -263,22 +263,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/financial/client/$name': {
-      id: '/financial/client/$name'
-      path: '/client/$name'
-      fullPath: '/financial/client/$name'
-      preLoaderRoute: typeof FinancialClientNameRouteImport
+    '/financial/clients/$name': {
+      id: '/financial/clients/$name'
+      path: '/clients/$name'
+      fullPath: '/financial/clients/$name'
+      preLoaderRoute: typeof FinancialClientsNameRouteImport
       parentRoute: typeof FinancialRoute
     }
   }
 }
 
 interface FinancialRouteChildren {
-  FinancialClientNameRoute: typeof FinancialClientNameRoute
+  FinancialClientsNameRoute: typeof FinancialClientsNameRoute
 }
 
 const FinancialRouteChildren: FinancialRouteChildren = {
-  FinancialClientNameRoute: FinancialClientNameRoute,
+  FinancialClientsNameRoute: FinancialClientsNameRoute,
 }
 
 const FinancialRouteWithChildren = FinancialRoute._addFileChildren(
