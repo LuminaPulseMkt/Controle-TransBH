@@ -1,50 +1,58 @@
 
 
-## Adicionar campos Placa e Cor no formulário de Contratos/Orçamentos
+## Upload de múltiplas fotos no detalhe do Transporte
+
+### Comportamento atual
+
+Em `/transports/:id`, o formulário de "Adicionar foto" aceita apenas **um arquivo por vez**: o input não tem `multiple`, o estado guarda um único `File`, e o upload faz um único `insert`. Para enviar 5 fotos é preciso repetir o processo 5 vezes.
 
 ### O que muda
 
-Hoje o formulário tem apenas um campo livre **Veículo** (ex.: "Honda Civic 2020 — ABC1D23"). Vou separar **Placa** e **Cor** em campos dedicados, mantendo o campo Veículo (descrição/modelo) — assim a placa fica padronizada e a cor fica visível tanto no documento quanto no PDF.
+Permitir selecionar **várias imagens de uma vez**, mostrar a lista de arquivos pendentes (com miniatura + nome + tamanho) antes de enviar, possibilitar remover qualquer arquivo da fila antes do upload e enviar todos em paralelo com feedback de progresso. As fotos já enviadas continuam aparecendo na galeria como hoje.
 
-### Mudanças em `src/routes/documents.tsx`
+### Mudanças em `src/routes/transports.$id.tsx`
 
-1. **Estado do formulário** (`form`, ~linha 76): adicionar dois campos:
-   - `vehicle_plate: ""`
-   - `vehicle_color: ""`
+1. **Estado** (linhas 78–80):
+   - Trocar `pendingFile: File | null` por `pendingFiles: File[]`.
+   - Manter `caption` (legenda única aplicada a todos os arquivos do lote — opcional).
+   - Adicionar `uploadProgress: { done: number; total: number }` para mostrar "Enviando 2 de 5…".
 
-2. **`openEdit()`** (~linha 155): popular os novos campos a partir de `d.body.vehicle_plate` e `d.body.vehicle_color`.
+2. **Input de arquivo** (linha 252):
+   - Adicionar atributo `multiple` ao `<Input type="file">`.
+   - Trocar handler para acumular arquivos: `setPendingFiles(prev => [...prev, ...Array.from(e.target.files ?? [])])` — assim o usuário pode clicar em "Escolher" várias vezes e ir somando.
+   - Limpar o `value` do input após seleção para permitir re-selecionar o mesmo arquivo se removido.
 
-3. **`save()`** (~linha 206): incluir `vehicle_plate` (uppercase) e `vehicle_color` no objeto `body` salvo no JSONB.
+3. **Nova lista de pré-visualização** (acima do input):
+   - Renderizar grid pequeno (3–6 colunas) com miniatura via `URL.createObjectURL(file)`, nome truncado, tamanho em KB e botão ✕ para remover daquele lote.
+   - Mostrar contador "X arquivo(s) selecionado(s)".
+   - Garantir `URL.revokeObjectURL` no unmount/remoção para evitar leak.
 
-4. **Layout do formulário** (~linhas 547–550): substituir o bloco atual por uma grade com 3 inputs:
-   - **Veículo** (md:col-span-2) — descrição/modelo, placeholder "Honda Civic 2020"
-   - **Placa** — `uppercase font-mono`, `maxLength={8}`, placeholder "ABC1D23"
-   - **Cor** — placeholder "Prata"
+4. **`uploadPhoto()`** (linhas 111–127): renomear para `uploadPhotos()` e refatorar:
+   - Validar `pendingFiles.length > 0`.
+   - Iterar em paralelo (`Promise.allSettled`) sobre cada arquivo, chamando `storage.upload` + `transport_photos.insert` por item.
+   - Atualizar `uploadProgress` conforme cada um termina.
+   - Ao final: toast com total de sucessos/falhas (ex.: "5 fotos adicionadas." ou "4 enviadas, 1 falhou: <motivo>").
+   - Limpar `pendingFiles`, `caption`, `uploadProgress` e recarregar a galeria.
 
-5. **`exportPDF()`** (~linhas 270): após `Veículo:`, imprimir também `Placa:` e `Cor:` se preenchidos.
-
-### Mudanças em `src/components/DocumentView.tsx`
-
-Na seção "Detalhes do Serviço" (~linhas 77–83), incluir os novos campos quando preenchidos:
-- `{body.vehicle_plate && <Field label="Placa" value={body.vehicle_plate} />}`
-- `{body.vehicle_color && <Field label="Cor" value={body.vehicle_color} />}`
-
-E adicionar `body.vehicle_plate || body.vehicle_color` à condição que decide se a seção é renderizada.
+5. **Botão Enviar**: label dinâmico "Enviar (N)" e indicador de progresso quando `uploading`.
 
 ### Compatibilidade
 
-- Documentos antigos sem `vehicle_plate`/`vehicle_color` continuam funcionando — os campos só aparecem no preview/PDF se estiverem preenchidos.
-- Não muda o schema do banco: os novos campos vivem dentro do JSONB `documents.body` (mesmo lugar de `vehicle`, `origin`, etc.). Sem migrações necessárias.
+- Schema do banco e bucket `transport-photos` já suportam múltiplas linhas por transporte (a galeria atual já lista N fotos). Sem migrações.
+- A foto principal (`transport.photo_url`) e a remoção individual continuam funcionando sem alteração.
 
 ### Fora do escopo
 
-- Não toco em `CustomTemplateDialog`, geração via `d.$token.tsx` (a rota pública usa o mesmo `DocumentView`, herda automaticamente).
-- Não copio a placa/cor para a tabela `transports` ao aceitar um orçamento (pode ser uma melhoria futura, se desejar).
+- Não adiciono compressão/redimensionamento client-side das imagens.
+- Não permito legendas individuais por arquivo no lote (uma legenda compartilhada para o batch — manter simples). Caso queira, é trivial estender depois.
+- Não toco em RLS, bucket nem em outras telas.
 
 ### Como validar
 
-1. Abrir `/documents` → criar novo orçamento ou contrato → conferir os 3 campos (Veículo, Placa, Cor) no formulário.
-2. Salvar e clicar em **Visualizar** → conferir Placa e Cor na seção "Detalhes do Serviço".
-3. Exportar PDF → conferir as linhas Placa e Cor logo abaixo de Veículo.
-4. Editar um documento existente sem placa/cor → preencher e salvar → confirma persistência.
+1. Abrir `/transports/:id`, ir até "Adicionar foto".
+2. Clicar em escolher arquivos e selecionar 3+ imagens — confirmar que aparecem como cartões em pré-visualização com miniatura, nome e botão de remover.
+3. Adicionar mais arquivos em uma segunda seleção — confirmar que somam à lista existente.
+4. Remover um da fila com o ✕ — confirmar que some da pré-visualização.
+5. Clicar **Enviar (N)** — ver indicador "Enviando X de N…", toast de sucesso e galeria recarregada com todas as novas fotos.
+6. Forçar um erro (ex.: arquivo enorme) — confirmar que o toast mostra parcial sucesso/falha sem perder os enviados.
 
