@@ -1,71 +1,115 @@
+## Ajustes na aba Transporte e fluxo pós-aceite
 
-## Corrigir botão "Detalhes" + upload múltiplo no diálogo de Transporte
+Três mudanças, todas em arquivos já existentes — sem migrações nem novas tabelas.
 
-### Problema 1 — botão Detalhes não funciona
+---
 
-`src/routes/transports.tsx` registra a rota `/transports` com o componente da lista, **sem `<Outlet />`**. No `routeTree.gen.ts` (linhas 69–73), `/transports/$id` é registrada como **filha** de `/transports`. Resultado: ao clicar em "Detalhes" e ir para `/transports/<id>`, o React Router renderiza o pai (a lista) e nunca chega a montar o filho — visualmente parece que nada acontece.
+### 1. Reordenar formulário "Novo/Editar Transporte" — veículo primeiro
 
-**Correção:** transformar a rota da lista em `transports.index.tsx` para que pai e filho fiquem como **rotas irmãs** sob `/transports` e `/transports/$id`.
+Hoje, no diálogo de `Novo Transporte` em `/transports`, o primeiro campo é a Placa, mas o nome do veículo (Marca/Modelo) só aparece depois. Você relatou que ao abrir Detalhes o "nome do veículo" não aparece corretamente.
 
-1. **Renomear** `src/routes/transports.tsx` → `src/routes/transports.index.tsx` (sem mudar o conteúdo do componente, exceto os ajustes do problema 2 abaixo).
-2. O TanStack Router Vite plugin regenera `routeTree.gen.ts` automaticamente — não edito esse arquivo.
-3. Após o rename: `/transports` (lista) e `/transports/$id` (detalhe) ficam independentes; o `<Link to="/transports/$id">` já existente passa a funcionar.
+Olhando `transports.$id.tsx`, o cabeçalho de Detalhes mostra:
+- Linha grande: **placa** (`vehicle_plate`)
+- Subtítulo: `marca + modelo + ano` (só aparece se foram preenchidos)
 
-### Problema 2 — upload múltiplo no diálogo de Novo/Editar Transporte
+Ou seja, se a pessoa criar o transporte sem preencher Marca/Modelo, o nome some. A correção é deixar o bloco de identificação do veículo em primeiro lugar e visualmente em destaque, para que sempre seja preenchido.
 
-Hoje o input de foto no diálogo aceita só **um arquivo**, faz upload imediato e guarda apenas a URL em `form.photo_url`. Para anexar várias fotos, o usuário precisa abrir o detalhe (que está quebrado).
+**Reorganização do diálogo (`src/routes/transports.index.tsx`):**
 
-**Correção em `transports.index.tsx` (após o rename):**
+Nova ordem dos campos:
+1. **Identificação do veículo** (em destaque, no topo): Marca, Modelo, Placa, Tipo, Ano, Cor — nessa sequência
+2. **Cliente**: Nome*, CPF/CNPJ, Telefone
+3. **Rota**: Cidade origem*, UF*, Cidade destino*, UF*
+4. **Logística**: Entrega estimada, Status, Motorista
+5. **Observações**
+6. **Fotos do veículo** (PhotoManager já existente)
 
-1. **Estado novo** (junto com `form` e `uploading`):
-   - `pendingFiles: File[]` — fila de arquivos selecionados aguardando upload.
-   - `extraPhotoUrls: string[]` — URLs já enviadas durante esta sessão do diálogo (vão para `transport_photos` no save).
-   - `existingPhotos: { id: string; photo_url: string }[]` — fotos já salvas em `transport_photos` quando estiver editando, para o usuário ver e poder remover.
+Marca e Modelo não vão ficar marcados como obrigatórios no banco (não posso mudar `NOT NULL` sem migração e quebraria dados antigos), mas serão validados no `save()` com toast: "Informe ao menos a marca ou modelo do veículo".
 
-2. **Carregar fotos existentes ao editar**: dentro de `openEdit(t)`, fazer `select` em `transport_photos` filtrando por `transport_id = t.id` e popular `existingPhotos`. Ao abrir "Novo", zerar tudo.
+---
 
-3. **Substituir `onPhotoChange`** por dois handlers:
-   - `onFilesSelected`: adiciona `Array.from(e.target.files)` a `pendingFiles` (acumula entre seleções) e limpa `e.target.value`.
-   - `removePending(file)`: remove do array.
-   - `removeExisting(photo)`: deleta a linha de `transport_photos` e atualiza `existingPhotos` (também tenta remover do storage por melhor higiene, ignorando falha).
-   - `removeExtra(url)`: remove de `extraPhotoUrls` (não bate no banco — ainda não foi salvo).
+### 2. Upload de múltiplos arquivos por vez
 
-4. **UI no diálogo** (substituir o bloco "Foto do veículo"):
-   - Grade pequena (ex.: `grid-cols-3 md:grid-cols-4 gap-2`) mostrando:
-     - **Existentes** (somente em edição) com botão ✕.
-     - **Já enviadas nesta sessão** (`extraPhotoUrls`) com botão ✕.
-     - **Pendentes** (`pendingFiles`) com miniatura via `URL.createObjectURL` + nome truncado + ✕.
-   - A primeira foto da lista combinada vira "capa" (badge "Capa") — define `form.photo_url`.
-   - Input `<Input type="file" multiple accept="image/*" />` com label "Adicionar fotos".
+Já está implementado tanto no diálogo de criar/editar (PhotoManager com `<input multiple>`) quanto na página de Detalhes (`pendingFiles[]` + `Promise.allSettled`). Vou apenas:
+- Confirmar visualmente que o input do diálogo aceita seleção múltipla (já aceita — `multiple` está na linha 634).
+- Garantir que o texto do botão deixe isso explícito: "Adicionar fotos (várias permitidas)".
 
-5. **Refator do upload**: nova função `uploadPending()` chamada **dentro de `save()`**, antes do `insert/update` do transporte:
-   - Se `pendingFiles.length > 0`, faz `Promise.allSettled` de uploads para `transport-photos`, coleta as URLs públicas, acumula em `extraPhotoUrls`. Mostra toast resumido em caso de falhas parciais.
-   - Limpa `pendingFiles`.
+Nada de lógica nova aqui — só reforço de UX.
 
-6. **`save()` atualizado**:
-   - Roda `uploadPending()` primeiro.
-   - Define `form.photo_url` como a primeira da lista combinada (existentes + extras), se ainda vazio.
-   - Insere/atualiza o transporte normalmente.
-   - **Após** sucesso: para cada URL em `extraPhotoUrls` que ainda não está em `existingPhotos`, faz `insert` em `transport_photos` com `transport_id` recém-criado/editado (no caso de novo, usar o `id` retornado pelo `.select().single()`).
-   - Recarrega a lista, fecha o diálogo, limpa estado.
+---
 
-7. **Indicador de progresso** no botão Salvar quando estiver fazendo upload em lote ("Enviando 2/5… / Salvando…").
+### 3. Após aceitar orçamento / criar transporte → ir para cobranças do cliente
 
-### Compatibilidade
+Hoje:
+- Admin cria transporte manualmente em `/transports` → fica na lista de transportes.
+- Cliente aceita orçamento em `/d/{token}` → vê card "Ver contrato gerado" (link para o contrato).
 
-- Schema atual já suporta múltiplas fotos: `transport_photos` (transport_id, photo_url, caption) + bucket público `transport-photos`. **Sem migrações.**
-- A coluna `transports.photo_url` continua sendo usada como capa.
-- Detalhe (`transports.$id.tsx`) já lista as fotos de `transport_photos` e mantém seu próprio uploader em lote (já implementado anteriormente) — sem mudanças nesse arquivo.
+Você quer que **ambos** os fluxos terminem mostrando as cobranças do cliente, com cliente, veículo e valor faltante.
 
-### Fora do escopo
+#### 3a. Nova rota `src/routes/financial.client.$name.tsx` (admin)
 
-- Não mudo RLS, bucket nem o componente de detalhe.
-- Não adiciono compressão/redimensionamento.
-- Sem legenda individual por foto no diálogo (mantém o fluxo simples; legendas detalhadas continuam disponíveis na página de detalhe).
+Página filtrada que mostra:
+- Cabeçalho: nome do cliente
+- Cartão resumo: total cobrado, total pago, **valor faltante** (`pending + overdue`)
+- Tabela enxuta com colunas: Veículo (placa + marca/modelo do `transport_id` vinculado), Descrição, Vencimento, Valor, Status, Ação "Marcar pago"
 
-### Como validar
+Carrega:
+```ts
+supabase.from("receivables")
+  .select("*, transports(vehicle_plate, vehicle_brand, vehicle_model)")
+  .eq("client_name", name)
+  .order("due_date");
+```
 
-1. Abrir `/transports` → clicar **Detalhes** em qualquer linha → deve abrir `/transports/<id>` com as informações completas (antes, ficava preso na lista).
-2. Clicar **Novo Transporte** → no campo de fotos, selecionar 3 imagens → ver as 3 miniaturas, com a primeira marcada como "Capa" → remover uma → salvar → confirmar que a lista mostra a capa e a página de detalhe lista as outras 2 fotos.
-3. **Editar** um transporte existente → confirmar que as fotos já enviadas aparecem na grade e podem ser removidas individualmente → adicionar mais 2 → salvar → confirmar persistência (capa + galeria).
-4. Forçar erro de upload (arquivo muito grande) → confirmar toast com sucesso parcial e que o transporte ainda é salvo com as fotos que deram certo.
+A rota usa `AuthGate adminOnly` (mesmo padrão de `/financial`).
+
+#### 3b. Redirecionar admin após salvar Novo Transporte
+
+No `save()` de `transports.index.tsx`, ao final do fluxo de **criação** (não de edição), em vez de só fechar o diálogo e recarregar a lista:
+
+```ts
+toast.success("Transporte criado.");
+setOpen(false);
+navigate({ to: "/financial/client/$name", params: { name: form.client_name } });
+```
+
+Para edição, mantém comportamento atual (fecha e recarrega).
+
+#### 3c. Cliente após aceitar orçamento público
+
+Em `src/components/AcceptBudgetCard.tsx`, depois do aceite bem-sucedido, em vez (ou além) do link "Ver contrato gerado", mostrar um card:
+
+```
+Cobrança gerada
+Cliente: João Silva
+Veículo: Honda Civic — ABC1D23
+Valor a pagar: R$ 4.500,00
+Vencimento: 01/05/2026
+[Ver detalhes do contrato]
+```
+
+A `acceptBudget` server-fn já cria o `receivable` e retorna `contract_token`. Vou estender o retorno para incluir também `receivable: { amount, due_date }` e `vehicle: { plate, brand, model }` (lidos do transporte recém-criado), e o card renderiza essas informações sem precisar de nova chamada.
+
+Cliente público **não** vai para `/financial/client/...` (rota admin protegida) — vê o resumo direto no próprio card.
+
+---
+
+### Arquivos alterados
+
+| Arquivo | Mudança |
+|---|---|
+| `src/routes/transports.index.tsx` | Reordenar campos do diálogo, validar marca/modelo, navegar para `/financial/client/$name` ao criar |
+| `src/routes/financial.client.$name.tsx` | **Novo** — lista de receivables filtrada por cliente com veículo e valor faltante |
+| `src/components/AcceptBudgetCard.tsx` | Mostrar card de cobrança (cliente, veículo, valor) após aceite |
+| `src/server/accept-budget.functions.ts` | Retornar `receivable` + `vehicle` no payload do aceite |
+
+Sem migrações no banco. Sem novos buckets. Sem novas dependências.
+
+### Como testar
+
+1. Abrir `/transports` → "Novo Transporte" → confirmar que o primeiro bloco do formulário é o veículo (Marca, Modelo, Placa…).
+2. Tentar salvar sem marca nem modelo → toast de erro.
+3. Salvar com tudo preenchido → vai direto para `/financial/client/{nome}` mostrando a tabela de cobranças desse cliente.
+4. Em Detalhes do transporte, confirmar que marca/modelo aparecem no cabeçalho.
+5. No diálogo, selecionar 3 fotos de uma vez → todas aparecem em miniatura e são salvas juntas ao clicar Salvar.
+6. Em uma página `/d/{token}` de orçamento, aceitar → ver card "Cobrança gerada" com cliente, veículo e valor.
