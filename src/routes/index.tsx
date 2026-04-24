@@ -149,6 +149,8 @@ function DashboardPage() {
             value={stats ? String(stats.inProgress) : null}
             icon={Truck}
             tone="default"
+            to="/transports"
+            search={{ status: "in_transit" }}
           />
           {isAdmin && (
             <>
@@ -157,12 +159,15 @@ function DashboardPage() {
                 value={stats ? brl(stats.pendingReceivables) : null}
                 icon={Wallet}
                 tone="default"
+                to="/financial"
+                search={{ tab: "receivables", status: "pending" }}
               />
               <KpiCard
                 label="Vencidos"
                 value={stats ? String(stats.overdueCount) : null}
                 icon={AlertTriangle}
                 tone={stats && stats.overdueCount > 0 ? "danger" : "default"}
+                to="/collections"
               />
               <KpiCard
                 label="Receita do mês"
@@ -173,6 +178,8 @@ function DashboardPage() {
                 }
                 icon={TrendingUp}
                 tone="success"
+                to="/financial"
+                search={{ tab: "reports" }}
               />
             </>
           )}
