@@ -29,7 +29,12 @@ import { Plus, Search, Loader2, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
+type TransportsSearch = { status?: string };
+
 export const Route = createFileRoute("/transports/")({
+  validateSearch: (s: Record<string, unknown>): TransportsSearch => ({
+    status: typeof s.status === "string" ? s.status : undefined,
+  }),
   component: () => (
     <AuthGate>
       <TransportsPage />
@@ -92,9 +97,10 @@ const emptyForm = {
 function TransportsPage() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const initialSearch = Route.useSearch();
   const [items, setItems] = useState<Transport[] | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialSearch.status ?? "all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState(emptyForm);

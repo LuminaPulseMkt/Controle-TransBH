@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
@@ -40,6 +40,7 @@ interface Stats {
 function DashboardPage() {
   const { isAdmin } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     void loadStats();
@@ -148,6 +149,8 @@ function DashboardPage() {
             value={stats ? String(stats.inProgress) : null}
             icon={Truck}
             tone="default"
+            to="/transports"
+            search={{ status: "in_transit" }}
           />
           {isAdmin && (
             <>
@@ -156,12 +159,15 @@ function DashboardPage() {
                 value={stats ? brl(stats.pendingReceivables) : null}
                 icon={Wallet}
                 tone="default"
+                to="/financial"
+                search={{ tab: "receivables", status: "pending" }}
               />
               <KpiCard
                 label="Vencidos"
                 value={stats ? String(stats.overdueCount) : null}
                 icon={AlertTriangle}
                 tone={stats && stats.overdueCount > 0 ? "danger" : "default"}
+                to="/collections"
               />
               <KpiCard
                 label="Receita do mês"
@@ -172,6 +178,8 @@ function DashboardPage() {
                 }
                 icon={TrendingUp}
                 tone="success"
+                to="/financial"
+                search={{ tab: "reports" }}
               />
             </>
           )}
@@ -179,10 +187,16 @@ function DashboardPage() {
 
         {/* Chart */}
         {isAdmin && (
-          <Card className="p-5">
+          <Card
+            className="p-5 cursor-pointer transition-all hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5"
+            onClick={() => navigate({ to: "/financial", search: { tab: "reports" } as any })}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-display text-xl">Receita vs Despesas</h2>
-              <span className="text-xs text-muted-foreground">Últimos 6 meses</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">Últimos 6 meses</span>
+                <span className="text-xs text-primary font-medium">Ver detalhes →</span>
+              </div>
             </div>
             <div className="h-72">
               {stats ? (
@@ -244,9 +258,26 @@ function DashboardPage() {
                   </thead>
                   <tbody>
                     {stats.recentTransports.map((t) => (
-                      <tr key={t.id} className="border-b border-border/50 hover:bg-muted/40">
-                        <td className="px-2 py-2 font-mono text-xs">{t.code}</td>
-                        <td className="px-2 py-2">{t.client_name}</td>
+                      <tr
+                        key={t.id}
+                        className="border-b border-border/50 hover:bg-muted/40 cursor-pointer transition-colors"
+                        onClick={() => navigate({ to: "/transports/$id", params: { id: t.id } })}
+                      >
+                        <td className="px-2 py-2 font-mono text-xs text-primary">{t.code}</td>
+                        <td className="px-2 py-2">
+                          {isAdmin ? (
+                            <Link
+                              to="/financial/clients/$name"
+                              params={{ name: encodeURIComponent(t.client_name) }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:text-primary hover:underline"
+                            >
+                              {t.client_name}
+                            </Link>
+                          ) : (
+                            t.client_name
+                          )}
+                        </td>
                         <td className="px-2 py-2 font-mono uppercase">{t.vehicle_plate}</td>
                         <td className="px-2 py-2 text-muted-foreground text-xs">
                           {t.origin_city} → {t.destination_city}
@@ -275,19 +306,28 @@ function KpiCard({
   value,
   icon: Icon,
   tone,
+  to,
+  search,
 }: {
   label: string;
   value: string | null;
   icon: any;
   tone: "default" | "success" | "danger";
+  to?: string;
+  search?: Record<string, string>;
 }) {
   const toneStyles = {
     default: "text-primary",
     success: "text-success",
     danger: "text-destructive",
   }[tone];
-  return (
-    <Card className="p-5 relative overflow-hidden">
+
+  const inner = (
+    <Card
+      className={`p-5 relative overflow-hidden h-full ${
+        to ? "cursor-pointer transition-all hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5" : ""
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
@@ -302,6 +342,14 @@ function KpiCard({
         </div>
       </div>
     </Card>
+  );
+
+  if (!to) return inner;
+
+  return (
+    <Link to={to as any} search={search as any} className="block">
+      {inner}
+    </Link>
   );
 }
 

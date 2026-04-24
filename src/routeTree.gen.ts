@@ -68,9 +68,9 @@ const TransportsIndexRoute = TransportsIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransportsIdRoute = TransportsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => TransportsRoute,
+  id: '/transports/$id',
+  path: '/transports/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DTokenRoute = DTokenRouteImport.update({
   id: '/d/$token',
@@ -181,6 +181,7 @@ export interface RootRouteChildren {
   SocialRoute: typeof SocialRoute
   UsersRoute: typeof UsersRoute
   DTokenRoute: typeof DTokenRoute
+  TransportsIdRoute: typeof TransportsIdRoute
   TransportsIndexRoute: typeof TransportsIndexRoute
 }
 
@@ -251,10 +252,10 @@ declare module '@tanstack/react-router' {
     }
     '/transports/$id': {
       id: '/transports/$id'
-      path: '/$id'
+      path: '/transports/$id'
       fullPath: '/transports/$id'
       preLoaderRoute: typeof TransportsIdRouteImport
-      parentRoute: typeof TransportsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/d/$token': {
       id: '/d/$token'
@@ -295,6 +296,7 @@ const rootRouteChildren: RootRouteChildren = {
   SocialRoute: SocialRoute,
   UsersRoute: UsersRoute,
   DTokenRoute: DTokenRoute,
+  TransportsIdRoute: TransportsIdRoute,
   TransportsIndexRoute: TransportsIndexRoute,
 }
 export const routeTree = rootRouteImport

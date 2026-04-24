@@ -22,7 +22,13 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+type FinancialSearch = { tab?: string; status?: string };
+
 export const Route = createFileRoute("/financial")({
+  validateSearch: (s: Record<string, unknown>): FinancialSearch => ({
+    tab: typeof s.tab === "string" ? s.tab : undefined,
+    status: typeof s.status === "string" ? s.status : undefined,
+  }),
   component: () => (
     <AuthGate adminOnly>
       <FinancialPage />
@@ -52,9 +58,13 @@ interface Payable {
 }
 
 function FinancialPage() {
+  const search = Route.useSearch();
+  const initialTab = search.tab && ["receivables", "payables", "reports"].includes(search.tab)
+    ? search.tab
+    : "receivables";
   return (
     <AppLayout title="Financeiro">
-      <Tabs defaultValue="receivables">
+      <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
           <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
@@ -62,7 +72,7 @@ function FinancialPage() {
         </TabsList>
 
         <TabsContent value="receivables" className="mt-4">
-          <ReceivablesTab />
+          <ReceivablesTab initialStatus={search.status} />
         </TabsContent>
         <TabsContent value="payables" className="mt-4">
           <PayablesTab />
@@ -75,11 +85,11 @@ function FinancialPage() {
   );
 }
 
-function ReceivablesTab() {
+function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [items, setItems] = useState<Receivable[] | null>(null);
   const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialStatus ?? "all");
   const [form, setForm] = useState({
     client_name: "",
     client_phone: "",
