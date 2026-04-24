@@ -551,30 +551,33 @@ function TransportsPage() {
               </Field>
             </div>
 
-            <Field label="Observações" full>
-              <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </Field>
+            <div className="space-y-4">
+              <Field label="Observações">
+                <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </Field>
 
-            <Field label="Fotos do veículo" full>
-              <PhotoManager
-                existing={existingPhotos}
-                extras={extraPhotoUrls}
-                pending={pendingFiles}
-                cover={form.photo_url}
-                onSetCover={(url) => setForm((f) => ({ ...f, photo_url: url }))}
-                onRemoveExisting={removeExisting}
-                onRemoveExtra={removeExtra}
-                onRemovePending={removePending}
-                onFilesSelected={onFilesSelected}
-                disabled={busy}
-              />
-              {uploadProgress && (
-                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Enviando {uploadProgress.done} de {uploadProgress.total}…
-                </p>
-              )}
-            </Field>
+              <Field label="Fotos do veículo (selecione várias de uma vez)">
+                <PhotoManager
+                  existing={existingPhotos}
+                  extras={extraPhotoUrls}
+                  pending={pendingFiles}
+                  cover={form.photo_url}
+                  onSetCover={(url) => setForm((f) => ({ ...f, photo_url: url }))}
+                  onRemoveExisting={removeExisting}
+                  onRemoveExtra={removeExtra}
+                  onRemovePending={removePending}
+                  onFilesSelected={onFilesSelected}
+                  disabled={busy}
+                />
+                {uploadProgress && (
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Enviando {uploadProgress.done} de {uploadProgress.total}…
+                  </p>
+                )}
+              </Field>
+            </div>
+
           </div>
 
           <DialogFooter>
