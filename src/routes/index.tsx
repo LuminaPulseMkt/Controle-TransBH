@@ -187,10 +187,16 @@ function DashboardPage() {
 
         {/* Chart */}
         {isAdmin && (
-          <Card className="p-5">
+          <Card
+            className="p-5 cursor-pointer transition-all hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5"
+            onClick={() => navigate({ to: "/financial", search: { tab: "reports" } as any })}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-display text-xl">Receita vs Despesas</h2>
-              <span className="text-xs text-muted-foreground">Últimos 6 meses</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">Últimos 6 meses</span>
+                <span className="text-xs text-primary font-medium">Ver detalhes →</span>
+              </div>
             </div>
             <div className="h-72">
               {stats ? (
@@ -252,9 +258,26 @@ function DashboardPage() {
                   </thead>
                   <tbody>
                     {stats.recentTransports.map((t) => (
-                      <tr key={t.id} className="border-b border-border/50 hover:bg-muted/40">
-                        <td className="px-2 py-2 font-mono text-xs">{t.code}</td>
-                        <td className="px-2 py-2">{t.client_name}</td>
+                      <tr
+                        key={t.id}
+                        className="border-b border-border/50 hover:bg-muted/40 cursor-pointer transition-colors"
+                        onClick={() => navigate({ to: "/transports/$id", params: { id: t.id } })}
+                      >
+                        <td className="px-2 py-2 font-mono text-xs text-primary">{t.code}</td>
+                        <td className="px-2 py-2">
+                          {isAdmin ? (
+                            <Link
+                              to="/financial/clients/$name"
+                              params={{ name: encodeURIComponent(t.client_name) }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:text-primary hover:underline"
+                            >
+                              {t.client_name}
+                            </Link>
+                          ) : (
+                            t.client_name
+                          )}
+                        </td>
                         <td className="px-2 py-2 font-mono uppercase">{t.vehicle_plate}</td>
                         <td className="px-2 py-2 text-muted-foreground text-xs">
                           {t.origin_city} → {t.destination_city}
