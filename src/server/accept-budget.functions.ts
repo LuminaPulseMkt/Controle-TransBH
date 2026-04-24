@@ -194,7 +194,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
           description: `Aceite do orçamento "${budget.title}"`,
           transport_id: transport.id,
         })
-        .select("id")
+        .select("id, amount, due_date")
         .single();
 
       if (recvErr || !receivable) {
@@ -230,6 +230,9 @@ export const acceptBudget = createServerFn({ method: "POST" })
         already: false,
         contract_token: contract.public_token,
         accepted_at: new Date().toISOString(),
+        receivable: { amount: Number(receivable.amount), due_date: receivable.due_date },
+        vehicle: { plate: plate, brand: null as string | null, model: body.vehicle ?? null },
+        client_name: budget.client_name,
       };
     } catch (err) {
       console.error("[acceptBudget] unhandled at stage:", stage, err);
