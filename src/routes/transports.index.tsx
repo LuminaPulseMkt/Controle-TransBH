@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
@@ -91,6 +91,7 @@ const emptyForm = {
 
 function TransportsPage() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Transport[] | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
