@@ -322,13 +322,74 @@ function TransportDetailPage() {
               )}
             </div>
 
-            <div className="border-t border-border/50 pt-4 space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Adicionar foto</Label>
+            <div className="border-t border-border/50 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Adicionar fotos</Label>
+                {pendingFiles.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {pendingFiles.length} {pendingFiles.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}
+                  </span>
+                )}
+              </div>
+
+              {pendingFiles.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {pendingFiles.map((file, idx) => {
+                    const url = previewUrls.get(file);
+                    return (
+                      <div key={`${file.name}-${idx}`} className="relative group rounded-lg border border-border/50 overflow-hidden bg-muted">
+                        <div className="aspect-square">
+                          {url && <img src={url} alt={file.name} className="h-full w-full object-cover" />}
+                        </div>
+                        <div className="px-1.5 py-1 text-[10px] leading-tight">
+                          <div className="truncate font-medium" title={file.name}>{file.name}</div>
+                          <div className="text-muted-foreground">{formatSize(file.size)}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePending(file)}
+                          disabled={uploading}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-background/90 backdrop-blur flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground transition disabled:opacity-50"
+                          aria-label="Remover da fila"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                <Input type="file" accept="image/*" onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)} />
-                <Input placeholder="Legenda (opcional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
-                <Button onClick={uploadPhoto} disabled={uploading || !pendingFile}>
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ImagePlus className="h-4 w-4 mr-1" /> Enviar</>}
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length > 0) setPendingFiles((prev) => [...prev, ...files]);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                />
+                <Input
+                  placeholder="Legenda (opcional, aplicada a todas)"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  disabled={uploading}
+                />
+                <Button onClick={uploadPhotos} disabled={uploading || pendingFiles.length === 0}>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : "Enviando…"}
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="h-4 w-4 mr-1" /> Enviar{pendingFiles.length > 0 ? ` (${pendingFiles.length})` : ""}
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
