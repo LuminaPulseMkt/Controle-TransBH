@@ -22,7 +22,13 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+type FinancialSearch = { tab?: string; status?: string };
+
 export const Route = createFileRoute("/financial")({
+  validateSearch: (s: Record<string, unknown>): FinancialSearch => ({
+    tab: typeof s.tab === "string" ? s.tab : undefined,
+    status: typeof s.status === "string" ? s.status : undefined,
+  }),
   component: () => (
     <AuthGate adminOnly>
       <FinancialPage />
