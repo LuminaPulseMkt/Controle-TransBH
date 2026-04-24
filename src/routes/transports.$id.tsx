@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -84,7 +84,32 @@ function TransportDetailPage() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState("");
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
+
+  // Manage preview URLs lifecycle to avoid leaks
+  useEffect(() => {
+    setPreviewUrls((prev) => {
+      const next = new Map<File, string>();
+      pendingFiles.forEach((f) => {
+        next.set(f, prev.get(f) ?? URL.createObjectURL(f));
+      });
+      // Revoke removed
+      prev.forEach((url, file) => {
+        if (!next.has(file)) URL.revokeObjectURL(url);
+      });
+      return next;
+    });
+  }, [pendingFiles]);
+
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = async () => {
     const [t, p, r] = await Promise.all([
@@ -108,22 +133,58 @@ function TransportDetailPage() {
     void load();
   };
 
-  const uploadPhoto = async () => {
-    if (!pendingFile) return toast.error("Selecione uma imagem.");
+  const uploadPhotos = async () => {
+    if (pendingFiles.length === 0) return toast.error("Selecione ao menos uma imagem.");
     if (!transport || transport === "missing") return;
     setUploading(true);
-    const path = `${user?.id}/${transport.id}/${Date.now()}-${pendingFile.name.replace(/\s+/g, "_")}`;
-    const up = await supabase.storage.from("transport-photos").upload(path, pendingFile);
-    if (up.error) { toast.error(up.error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
-    const { error } = await supabase.from("transport_photos").insert({
-      transport_id: transport.id, photo_url: data.publicUrl, caption: caption || null,
-    });
+    const total = pendingFiles.length;
+    setUploadProgress({ done: 0, total });
+    let done = 0;
+
+    const results = await Promise.allSettled(
+      pendingFiles.map(async (file) => {
+        const path = `${user?.id}/${transport.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/\s+/g, "_")}`;
+        const up = await supabase.storage.from("transport-photos").upload(path, file);
+        if (up.error) throw new Error(up.error.message);
+        const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
+        const { error } = await supabase.from("transport_photos").insert({
+          transport_id: transport.id, photo_url: data.publicUrl, caption: caption || null,
+        });
+        if (error) throw new Error(error.message);
+        done += 1;
+        setUploadProgress({ done, total });
+      }),
+    );
+
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.length - ok;
     setUploading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Foto adicionada.");
-    setPendingFile(null); setCaption("");
+    setUploadProgress(null);
+
+    if (failed === 0) {
+      toast.success(`${ok} ${ok === 1 ? "foto adicionada" : "fotos adicionadas"}.`);
+    } else if (ok === 0) {
+      const firstErr = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
+      toast.error(`Falha ao enviar ${failed} ${failed === 1 ? "foto" : "fotos"}: ${firstErr?.reason?.message ?? "erro desconhecido"}`);
+    } else {
+      const firstErr = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
+      toast.warning(`${ok} enviadas, ${failed} falharam: ${firstErr?.reason?.message ?? "erro desconhecido"}`);
+    }
+
+    setPendingFiles([]);
+    setCaption("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
     void load();
+  };
+
+  const removePending = (file: File) => {
+    setPendingFiles((prev) => prev.filter((f) => f !== file));
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const removePhoto = async (photo: Photo) => {
@@ -261,13 +322,74 @@ function TransportDetailPage() {
               )}
             </div>
 
-            <div className="border-t border-border/50 pt-4 space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Adicionar foto</Label>
+            <div className="border-t border-border/50 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Adicionar fotos</Label>
+                {pendingFiles.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {pendingFiles.length} {pendingFiles.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}
+                  </span>
+                )}
+              </div>
+
+              {pendingFiles.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {pendingFiles.map((file, idx) => {
+                    const url = previewUrls.get(file);
+                    return (
+                      <div key={`${file.name}-${idx}`} className="relative group rounded-lg border border-border/50 overflow-hidden bg-muted">
+                        <div className="aspect-square">
+                          {url && <img src={url} alt={file.name} className="h-full w-full object-cover" />}
+                        </div>
+                        <div className="px-1.5 py-1 text-[10px] leading-tight">
+                          <div className="truncate font-medium" title={file.name}>{file.name}</div>
+                          <div className="text-muted-foreground">{formatSize(file.size)}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePending(file)}
+                          disabled={uploading}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-background/90 backdrop-blur flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground transition disabled:opacity-50"
+                          aria-label="Remover da fila"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                <Input type="file" accept="image/*" onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)} />
-                <Input placeholder="Legenda (opcional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
-                <Button onClick={uploadPhoto} disabled={uploading || !pendingFile}>
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ImagePlus className="h-4 w-4 mr-1" /> Enviar</>}
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length > 0) setPendingFiles((prev) => [...prev, ...files]);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                />
+                <Input
+                  placeholder="Legenda (opcional, aplicada a todas)"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  disabled={uploading}
+                />
+                <Button onClick={uploadPhotos} disabled={uploading || pendingFiles.length === 0}>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : "Enviando…"}
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="h-4 w-4 mr-1" /> Enviar{pendingFiles.length > 0 ? ` (${pendingFiles.length})` : ""}
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
