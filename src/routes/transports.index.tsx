@@ -29,8 +29,10 @@ import { Plus, Search, Loader2, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
+type TransportsSearch = { status?: string };
+
 export const Route = createFileRoute("/transports/")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): TransportsSearch => ({
     status: typeof s.status === "string" ? s.status : undefined,
   }),
   component: () => (
