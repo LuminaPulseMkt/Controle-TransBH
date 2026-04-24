@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -84,7 +84,32 @@ function TransportDetailPage() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState("");
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
+
+  // Manage preview URLs lifecycle to avoid leaks
+  useEffect(() => {
+    setPreviewUrls((prev) => {
+      const next = new Map<File, string>();
+      pendingFiles.forEach((f) => {
+        next.set(f, prev.get(f) ?? URL.createObjectURL(f));
+      });
+      // Revoke removed
+      prev.forEach((url, file) => {
+        if (!next.has(file)) URL.revokeObjectURL(url);
+      });
+      return next;
+    });
+  }, [pendingFiles]);
+
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = async () => {
     const [t, p, r] = await Promise.all([
@@ -108,22 +133,58 @@ function TransportDetailPage() {
     void load();
   };
 
-  const uploadPhoto = async () => {
-    if (!pendingFile) return toast.error("Selecione uma imagem.");
+  const uploadPhotos = async () => {
+    if (pendingFiles.length === 0) return toast.error("Selecione ao menos uma imagem.");
     if (!transport || transport === "missing") return;
     setUploading(true);
-    const path = `${user?.id}/${transport.id}/${Date.now()}-${pendingFile.name.replace(/\s+/g, "_")}`;
-    const up = await supabase.storage.from("transport-photos").upload(path, pendingFile);
-    if (up.error) { toast.error(up.error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
-    const { error } = await supabase.from("transport_photos").insert({
-      transport_id: transport.id, photo_url: data.publicUrl, caption: caption || null,
-    });
+    const total = pendingFiles.length;
+    setUploadProgress({ done: 0, total });
+    let done = 0;
+
+    const results = await Promise.allSettled(
+      pendingFiles.map(async (file) => {
+        const path = `${user?.id}/${transport.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/\s+/g, "_")}`;
+        const up = await supabase.storage.from("transport-photos").upload(path, file);
+        if (up.error) throw new Error(up.error.message);
+        const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
+        const { error } = await supabase.from("transport_photos").insert({
+          transport_id: transport.id, photo_url: data.publicUrl, caption: caption || null,
+        });
+        if (error) throw new Error(error.message);
+        done += 1;
+        setUploadProgress({ done, total });
+      }),
+    );
+
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.length - ok;
     setUploading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Foto adicionada.");
-    setPendingFile(null); setCaption("");
+    setUploadProgress(null);
+
+    if (failed === 0) {
+      toast.success(`${ok} ${ok === 1 ? "foto adicionada" : "fotos adicionadas"}.`);
+    } else if (ok === 0) {
+      const firstErr = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
+      toast.error(`Falha ao enviar ${failed} ${failed === 1 ? "foto" : "fotos"}: ${firstErr?.reason?.message ?? "erro desconhecido"}`);
+    } else {
+      const firstErr = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
+      toast.warning(`${ok} enviadas, ${failed} falharam: ${firstErr?.reason?.message ?? "erro desconhecido"}`);
+    }
+
+    setPendingFiles([]);
+    setCaption("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
     void load();
+  };
+
+  const removePending = (file: File) => {
+    setPendingFiles((prev) => prev.filter((f) => f !== file));
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const removePhoto = async (photo: Photo) => {
