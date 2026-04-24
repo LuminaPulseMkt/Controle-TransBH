@@ -40,6 +40,7 @@ interface Stats {
 function DashboardPage() {
   const { isAdmin } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     void loadStats();
