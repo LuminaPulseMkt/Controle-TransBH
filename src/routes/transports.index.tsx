@@ -248,6 +248,9 @@ function TransportsPage() {
   };
 
   const save = async () => {
+    if (!form.vehicle_brand && !form.vehicle_model) {
+      return toast.error("Informe ao menos a marca ou o modelo do veículo.");
+    }
     if (!form.vehicle_plate || !form.client_name || !form.origin_city || !form.destination_city) {
       return toast.error("Preencha placa, cliente, origem e destino.");
     }
@@ -314,6 +317,15 @@ function TransportsPage() {
     toast.success(editing ? "Transporte atualizado." : "Transporte criado.");
     setOpen(false);
     setExtraPhotoUrls([]);
+
+    if (!editing && form.client_name) {
+      // Após criar, vai direto para as cobranças do cliente
+      navigate({
+        to: "/financial/client/$name",
+        params: { name: encodeURIComponent(form.client_name) },
+      });
+      return;
+    }
     void load();
   };
 
