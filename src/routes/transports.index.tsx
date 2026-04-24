@@ -30,6 +30,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/transports/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    status: typeof s.status === "string" ? s.status : undefined,
+  }),
   component: () => (
     <AuthGate>
       <TransportsPage />
