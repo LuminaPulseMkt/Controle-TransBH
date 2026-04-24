@@ -11,7 +11,7 @@ import { brl, dateBR } from "@/lib/format";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/financial/client/$name")({
+export const Route = createFileRoute("/financial/clients/$name")({
   component: () => (
     <AuthGate adminOnly>
       <ClientReceivablesPage />
