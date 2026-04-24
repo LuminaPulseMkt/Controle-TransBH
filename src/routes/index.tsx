@@ -306,19 +306,28 @@ function KpiCard({
   value,
   icon: Icon,
   tone,
+  to,
+  search,
 }: {
   label: string;
   value: string | null;
   icon: any;
   tone: "default" | "success" | "danger";
+  to?: string;
+  search?: Record<string, string>;
 }) {
   const toneStyles = {
     default: "text-primary",
     success: "text-success",
     danger: "text-destructive",
   }[tone];
-  return (
-    <Card className="p-5 relative overflow-hidden">
+
+  const inner = (
+    <Card
+      className={`p-5 relative overflow-hidden h-full ${
+        to ? "cursor-pointer transition-all hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5" : ""
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
@@ -333,6 +342,14 @@ function KpiCard({
         </div>
       </div>
     </Card>
+  );
+
+  if (!to) return inner;
+
+  return (
+    <Link to={to as any} search={search as any} className="block">
+      {inner}
+    </Link>
   );
 }
 
