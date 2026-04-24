@@ -456,71 +456,100 @@ function TransportsPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Placa *">
-              <Input
-                value={form.vehicle_plate}
-                onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
-                className="uppercase font-mono"
-              />
-            </Field>
-            <Field label="Tipo">
-              <Select value={form.vehicle_type} onValueChange={(v) => setForm({ ...form, vehicle_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="car">Carro</SelectItem>
-                  <SelectItem value="motorcycle">Moto</SelectItem>
-                  <SelectItem value="truck">Caminhão</SelectItem>
-                  <SelectItem value="machinery">Maquinário</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Marca">
-              <Input value={form.vehicle_brand} onChange={(e) => setForm({ ...form, vehicle_brand: e.target.value })} />
-            </Field>
-            <Field label="Modelo">
-              <Input value={form.vehicle_model} onChange={(e) => setForm({ ...form, vehicle_model: e.target.value })} />
-            </Field>
-            <Field label="Cor">
-              <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} />
-            </Field>
+          <div className="space-y-5">
+            {/* Identificação do veículo */}
+            <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+              <div className="text-xs uppercase tracking-wider text-primary font-semibold mb-3">
+                Identificação do veículo
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Marca *">
+                  <Input
+                    value={form.vehicle_brand}
+                    onChange={(e) => setForm({ ...form, vehicle_brand: e.target.value })}
+                    placeholder="Ex.: Honda"
+                  />
+                </Field>
+                <Field label="Modelo *">
+                  <Input
+                    value={form.vehicle_model}
+                    onChange={(e) => setForm({ ...form, vehicle_model: e.target.value })}
+                    placeholder="Ex.: Civic"
+                  />
+                </Field>
+                <Field label="Placa *">
+                  <Input
+                    value={form.vehicle_plate}
+                    onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
+                    className="uppercase font-mono"
+                  />
+                </Field>
+                <Field label="Tipo">
+                  <Select value={form.vehicle_type} onValueChange={(v) => setForm({ ...form, vehicle_type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="car">Carro</SelectItem>
+                      <SelectItem value="motorcycle">Moto</SelectItem>
+                      <SelectItem value="truck">Caminhão</SelectItem>
+                      <SelectItem value="machinery">Maquinário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Ano">
+                  <Input
+                    type="number"
+                    value={form.vehicle_year}
+                    onChange={(e) => setForm({ ...form, vehicle_year: e.target.value })}
+                  />
+                </Field>
+                <Field label="Cor">
+                  <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} />
+                </Field>
+              </div>
+            </section>
 
-            <Field label="Cidade origem *">
-              <Input value={form.origin_city} onChange={(e) => setForm({ ...form, origin_city: e.target.value })} />
-            </Field>
-            <Field label="UF origem *">
-              <Input maxLength={2} value={form.origin_state} onChange={(e) => setForm({ ...form, origin_state: e.target.value.toUpperCase() })} />
-            </Field>
-            <Field label="Cidade destino *">
-              <Input value={form.destination_city} onChange={(e) => setForm({ ...form, destination_city: e.target.value })} />
-            </Field>
-            <Field label="UF destino *">
-              <Input maxLength={2} value={form.destination_state} onChange={(e) => setForm({ ...form, destination_state: e.target.value.toUpperCase() })} />
-            </Field>
+            {/* Cliente + Rota + Logística + Observações */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Cliente *">
+                <Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+              </Field>
+              <Field label="CPF/CNPJ">
+                <Input value={form.client_document} onChange={(e) => setForm({ ...form, client_document: e.target.value })} />
+              </Field>
+              <Field label="Telefone">
+                <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+              </Field>
+              <Field label="Motorista">
+                <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />
+              </Field>
 
-            <Field label="Cliente *">
-              <Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
-            </Field>
-            <Field label="CPF/CNPJ">
-              <Input value={form.client_document} onChange={(e) => setForm({ ...form, client_document: e.target.value })} />
-            </Field>
-            <Field label="Telefone">
-              <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
-            </Field>
+              <Field label="Cidade origem *">
+                <Input value={form.origin_city} onChange={(e) => setForm({ ...form, origin_city: e.target.value })} />
+              </Field>
+              <Field label="UF origem *">
+                <Input maxLength={2} value={form.origin_state} onChange={(e) => setForm({ ...form, origin_state: e.target.value.toUpperCase() })} />
+              </Field>
+              <Field label="Cidade destino *">
+                <Input value={form.destination_city} onChange={(e) => setForm({ ...form, destination_city: e.target.value })} />
+              </Field>
+              <Field label="UF destino *">
+                <Input maxLength={2} value={form.destination_state} onChange={(e) => setForm({ ...form, destination_state: e.target.value.toUpperCase() })} />
+              </Field>
 
-            <Field label="Entrega estimada">
-              <Input type="date" value={form.estimated_delivery} onChange={(e) => setForm({ ...form, estimated_delivery: e.target.value })} />
-            </Field>
-            <Field label="Status">
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(transportStatusLabel).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+              <Field label="Entrega estimada">
+                <Input type="date" value={form.estimated_delivery} onChange={(e) => setForm({ ...form, estimated_delivery: e.target.value })} />
+              </Field>
+              <Field label="Status">
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(transportStatusLabel).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
 
             <Field label="Observações" full>
               <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
