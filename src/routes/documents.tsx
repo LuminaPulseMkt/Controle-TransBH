@@ -188,7 +188,6 @@ function DocumentsPage() {
       title: tpl.defaults.title,
       template: tpl.templateKey,
       service_value: tpl.defaults.service_value,
-      insurance: tpl.defaults.insurance,
       extra: tpl.defaults.extra,
       notes: tpl.defaults.notes,
     });
@@ -201,7 +200,6 @@ function DocumentsPage() {
       title: docType === "budget" ? "Orçamento" : "Contrato de Transporte",
       template: "standard",
       service_value: "",
-      insurance: "",
       extra: "",
       notes: "",
     });
@@ -214,11 +212,13 @@ function DocumentsPage() {
     const body = {
       origin: form.origin,
       destination: form.destination,
+      pickup_date: form.pickup_date || null,
+      delivery_date: form.delivery_date || null,
+      client_address: form.client_address || null,
       vehicle: form.vehicle,
       vehicle_plate: form.vehicle_plate.toUpperCase(),
       vehicle_color: form.vehicle_color,
       service_value: Number(form.service_value) || 0,
-      insurance: Number(form.insurance) || 0,
       extra: Number(form.extra) || 0,
       notes: form.notes,
     };
