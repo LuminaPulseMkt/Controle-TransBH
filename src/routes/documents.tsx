@@ -506,7 +506,7 @@ function DocumentsPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">{tpl.description}</div>
                         <div className="mt-2 text-xs text-primary font-medium">
-                          Sugerido: {brl(Number(tpl.defaults.service_value) + Number(tpl.defaults.insurance) + Number(tpl.defaults.extra))}
+                          Sugerido: {brl(Number(tpl.defaults.service_value) + Number(tpl.defaults.extra))}
                         </div>
                       </button>
                     </div>
