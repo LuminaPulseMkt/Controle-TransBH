@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransportStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
-import { Plus, Search, Loader2, X, Upload } from "lucide-react";
+import { Plus, Search, Loader2, X, Upload, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
@@ -64,6 +64,8 @@ interface Transport {
   status: string;
   notes: string | null;
   photo_url: string | null;
+  current_location: string | null;
+  location_updated_at: string | null;
   created_at: string;
 }
 
@@ -92,6 +94,8 @@ const emptyForm = {
   status: "pending",
   notes: "",
   photo_url: "",
+  current_location: "",
+  location_note: "",
 };
 
 function TransportsPage() {
@@ -175,6 +179,8 @@ function TransportsPage() {
       status: t.status,
       notes: t.notes ?? "",
       photo_url: t.photo_url ?? "",
+      current_location: t.current_location ?? "",
+      location_note: "",
     });
     setPendingFiles([]);
     setExtraPhotoUrls([]);
@@ -253,12 +259,31 @@ function TransportsPage() {
     return uploaded;
   };
 
-  const save = async () => {
+  const buildWhatsAppMessage = (t: { code: string; vehicle_plate: string; client_name: string; estimated_delivery: string | null }, location: string) => {
+    const eta = t.estimated_delivery ? `Previsão de entrega: ${dateBR(t.estimated_delivery)}.` : "";
+    return `Olá ${t.client_name}, atualização do transporte ${t.code} (${t.vehicle_plate}): seu veículo está em *${location}*. ${eta} — TransBH`;
+  };
+
+  const sendWhatsApp = (phone: string | null, message: string) => {
+    const digits = (phone ?? "").replace(/\D/g, "");
+    if (!digits) {
+      toast.error("Cliente sem telefone cadastrado para WhatsApp.");
+      return false;
+    }
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    return true;
+  };
+
+  const save = async (notifyWhatsApp = false) => {
     if (!form.vehicle_brand && !form.vehicle_model) {
       return toast.error("Informe ao menos a marca ou o modelo do veículo.");
     }
     if (!form.vehicle_plate || !form.client_name || !form.origin_city || !form.destination_city) {
       return toast.error("Preencha placa, cliente, origem e destino.");
+    }
+    if (notifyWhatsApp && !form.current_location.trim()) {
+      return toast.error("Preencha a localização atual antes de notificar o cliente.");
     }
     setBusy(true);
 
@@ -279,9 +304,21 @@ function TransportsPage() {
       allExtras[0] ||
       "";
 
+    // Detect location change to bump location_updated_at
+    const trimmedLocation = form.current_location.trim();
+    const prevLocation = (editing?.current_location ?? "").trim();
+    const locationChanged = trimmedLocation !== prevLocation;
+
+    // Strip non-column field location_note before sending to DB
+    const { location_note, ...formForDb } = form;
+
     const payload = {
-      ...form,
+      ...formForDb,
       photo_url: cover || null,
+      current_location: trimmedLocation || null,
+      location_updated_at: locationChanged && trimmedLocation
+        ? new Date().toISOString()
+        : editing?.location_updated_at ?? null,
       vehicle_year: form.vehicle_year ? Number(form.vehicle_year) : null,
       estimated_delivery: form.estimated_delivery || null,
       vehicle_type: form.vehicle_type as any,
@@ -319,8 +356,31 @@ function TransportsPage() {
       }
     }
 
+    // 5. Insert location history row when location changed
+    if (transportId && locationChanged && trimmedLocation) {
+      const { error: locErr } = await supabase.from("transport_location_updates").insert({
+        transport_id: transportId,
+        location: trimmedLocation,
+        note: location_note?.trim() || null,
+        created_by: user?.id ?? null,
+      });
+      if (locErr) {
+        toast.error(`Localização não pôde ser registrada no histórico: ${locErr.message}`);
+      }
+    }
+
     setBusy(false);
     toast.success(editing ? "Transporte atualizado." : "Transporte criado.");
+
+    // 6. Notify client via WhatsApp if requested
+    if (notifyWhatsApp && transportId && trimmedLocation) {
+      const code = editing?.code ?? form.vehicle_plate;
+      sendWhatsApp(form.client_phone, buildWhatsAppMessage(
+        { code, vehicle_plate: form.vehicle_plate, client_name: form.client_name, estimated_delivery: form.estimated_delivery || null },
+        trimmedLocation,
+      ));
+    }
+
     setOpen(false);
     setExtraPhotoUrls([]);
 
@@ -558,6 +618,39 @@ function TransportsPage() {
             </div>
 
             <div className="space-y-4">
+              {/* Rastreio / Localização */}
+              <section className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-wider text-primary font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4" /> Rastreio / Localização atual
+                  </div>
+                  {editing?.location_updated_at && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Última atualização: {new Date(editing.location_updated_at).toLocaleString("pt-BR")}
+                    </span>
+                  )}
+                </div>
+                <Field label="Onde o veículo está agora">
+                  <Input
+                    value={form.current_location}
+                    onChange={(e) => setForm({ ...form, current_location: e.target.value })}
+                    placeholder="Ex.: BR-381, km 412 — Betim/MG"
+                  />
+                </Field>
+                <Field label="Comentário do motorista (opcional)">
+                  <Textarea
+                    rows={2}
+                    value={form.location_note}
+                    onChange={(e) => setForm({ ...form, location_note: e.target.value })}
+                    placeholder="Ex.: parada técnica de 30min, retomando viagem em seguida."
+                  />
+                </Field>
+                <p className="text-[11px] text-muted-foreground">
+                  Ao salvar com uma nova localização, o histórico é registrado automaticamente.
+                  Use o botão <strong>"Salvar e notificar"</strong> abaixo para enviar a atualização ao cliente via WhatsApp.
+                </p>
+              </section>
+
               <Field label="Observações">
                 <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </Field>
@@ -586,9 +679,24 @@ function TransportsPage() {
 
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
-            <Button onClick={save} disabled={busy}>
+            <Button
+              variant="secondary"
+              onClick={() => save(true)}
+              disabled={busy || !form.current_location.trim() || !form.client_phone}
+              title={
+                !form.current_location.trim()
+                  ? "Preencha a localização atual"
+                  : !form.client_phone
+                  ? "Cliente sem telefone cadastrado"
+                  : "Salva e abre WhatsApp do cliente com a atualização"
+              }
+            >
+              <Send className="h-4 w-4 mr-1" />
+              Salvar e notificar cliente
+            </Button>
+            <Button onClick={() => save(false)} disabled={busy}>
               {busy ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

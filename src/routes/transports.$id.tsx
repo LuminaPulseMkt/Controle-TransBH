@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
 import {
   ArrowLeft, Upload, Loader2, Trash2, CheckCircle2,
-  Truck, Package, XCircle, Clock, ImagePlus,
+  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,8 +66,17 @@ interface Transport {
   status: string;
   notes: string | null;
   photo_url: string | null;
+  current_location: string | null;
+  location_updated_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface LocationUpdate {
+  id: string;
+  location: string;
+  note: string | null;
+  created_at: string;
 }
 
 interface Photo { id: string; photo_url: string; caption: string | null; created_at: string; }
@@ -82,6 +91,10 @@ function TransportDetailPage() {
   const [transport, setTransport] = useState<Transport | null | "missing">(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
+  const [locationUpdates, setLocationUpdates] = useState<LocationUpdate[]>([]);
+  const [newLocation, setNewLocation] = useState("");
+  const [newLocationNote, setNewLocationNote] = useState("");
+  const [savingLocation, setSavingLocation] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState("");
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -112,15 +125,17 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r] = await Promise.all([
+    const [t, p, r, loc] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
+      supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
     ]);
     if (!t.data) { setTransport("missing"); return; }
     setTransport(t.data as Transport);
     setPhotos((p.data ?? []) as Photo[]);
     setReceivables((r.data ?? []) as Receivable[]);
+    setLocationUpdates((loc.data ?? []) as LocationUpdate[]);
   };
 
   useEffect(() => { void load(); }, [id]);
@@ -130,6 +145,55 @@ function TransportDetailPage() {
     const { error } = await supabase.from("transports").update({ status: status as Transport["status"] as any }).eq("id", transport.id);
     if (error) return toast.error(error.message);
     toast.success(`Status: ${transportStatusLabel[status] ?? status}`);
+    void load();
+  };
+
+  const buildWhatsAppMessage = (location: string) => {
+    if (!transport || transport === "missing") return "";
+    const eta = transport.estimated_delivery ? `Previsão de entrega: ${dateBR(transport.estimated_delivery)}.` : "";
+    return `Olá ${transport.client_name}, atualização do transporte ${transport.code} (${transport.vehicle_plate}): seu veículo está em *${location}*. ${eta} — TransBH`;
+  };
+
+  const sendWhatsApp = (location: string) => {
+    if (!transport || transport === "missing") return;
+    const digits = (transport.client_phone ?? "").replace(/\D/g, "");
+    if (!digits) {
+      toast.error("Cliente sem telefone cadastrado para WhatsApp.");
+      return;
+    }
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(buildWhatsAppMessage(location))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const addLocationUpdate = async (notify: boolean) => {
+    if (!transport || transport === "missing") return;
+    const trimmed = newLocation.trim();
+    if (!trimmed) return toast.error("Informe a localização atual.");
+    setSavingLocation(true);
+
+    const nowIso = new Date().toISOString();
+    const { error: tErr } = await supabase
+      .from("transports")
+      .update({ current_location: trimmed, location_updated_at: nowIso })
+      .eq("id", transport.id);
+    if (tErr) {
+      setSavingLocation(false);
+      return toast.error(tErr.message);
+    }
+
+    const { error: hErr } = await supabase.from("transport_location_updates").insert({
+      transport_id: transport.id,
+      location: trimmed,
+      note: newLocationNote.trim() || null,
+      created_by: user?.id ?? null,
+    });
+    if (hErr) toast.error(`Histórico não registrado: ${hErr.message}`);
+
+    setSavingLocation(false);
+    toast.success("Localização atualizada.");
+    setNewLocation("");
+    setNewLocationNote("");
+    if (notify) sendWhatsApp(trimmed);
     void load();
   };
 
@@ -278,6 +342,93 @@ function TransportDetailPage() {
                 <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")}>
                   <XCircle className="h-4 w-4 mr-1" /> Cancelar
                 </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* Tracking / current location */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <h3 className="text-display text-xl">Rastreio</h3>
+              </div>
+              {t.location_updated_at && (
+                <span className="text-xs text-muted-foreground">
+                  Atualizado em {new Date(t.location_updated_at).toLocaleString("pt-BR")}
+                </span>
+              )}
+            </div>
+
+            {t.current_location ? (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 mb-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Localização atual</div>
+                <div className="font-medium">{t.current_location}</div>
+                <div className="mt-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => sendWhatsApp(t.current_location ?? "")}
+                    disabled={!t.client_phone}
+                    title={t.client_phone ? "Abre WhatsApp do cliente" : "Cliente sem telefone cadastrado"}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Enviar atualização ao cliente
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-3">Nenhuma localização registrada ainda.</p>
+            )}
+
+            <div className="space-y-2 mb-4">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Registrar nova localização</Label>
+              <Input
+                value={newLocation}
+                onChange={(e) => setNewLocation(e.target.value)}
+                placeholder="Ex.: BR-381, km 412 — Betim/MG"
+                disabled={savingLocation}
+              />
+              <Input
+                value={newLocationNote}
+                onChange={(e) => setNewLocationNote(e.target.value)}
+                placeholder="Comentário do motorista (opcional)"
+                disabled={savingLocation}
+              />
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={() => addLocationUpdate(false)}
+                  disabled={savingLocation || !newLocation.trim()}
+                >
+                  {savingLocation ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MapPin className="h-4 w-4 mr-1" />}
+                  Salvar localização
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => addLocationUpdate(true)}
+                  disabled={savingLocation || !newLocation.trim() || !t.client_phone}
+                  title={!t.client_phone ? "Cliente sem telefone cadastrado" : "Salva e abre WhatsApp do cliente"}
+                >
+                  <Send className="h-4 w-4 mr-1" /> Salvar e notificar cliente
+                </Button>
+              </div>
+            </div>
+
+            {locationUpdates.length > 0 && (
+              <div className="border-t border-border/50 pt-3">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Histórico</div>
+                <ol className="space-y-2">
+                  {locationUpdates.map((u) => (
+                    <li key={u.id} className="text-sm border-l-2 border-primary/40 pl-3">
+                      <div className="font-medium">{u.location}</div>
+                      {u.note && <div className="text-xs text-muted-foreground italic">{u.note}</div>}
+                      <div className="text-[11px] text-muted-foreground">
+                        {new Date(u.created_at).toLocaleString("pt-BR")}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
             )}
           </Card>

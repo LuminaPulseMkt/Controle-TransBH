@@ -388,6 +388,41 @@ export type Database = {
           },
         ]
       }
+      transport_location_updates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          location: string
+          note: string | null
+          transport_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location: string
+          note?: string | null
+          transport_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string
+          note?: string | null
+          transport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_location_updates_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_photos: {
         Row: {
           caption: string | null
@@ -428,11 +463,13 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          current_location: string | null
           destination_city: string
           destination_state: string
           driver_name: string | null
           estimated_delivery: string | null
           id: string
+          location_updated_at: string | null
           notes: string | null
           origin_city: string
           origin_state: string
@@ -454,11 +491,13 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          current_location?: string | null
           destination_city: string
           destination_state: string
           driver_name?: string | null
           estimated_delivery?: string | null
           id?: string
+          location_updated_at?: string | null
           notes?: string | null
           origin_city: string
           origin_state: string
@@ -480,11 +519,13 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          current_location?: string | null
           destination_city?: string
           destination_state?: string
           driver_name?: string | null
           estimated_delivery?: string | null
           id?: string
+          location_updated_at?: string | null
           notes?: string | null
           origin_city?: string
           origin_state?: string
