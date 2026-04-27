@@ -138,13 +138,14 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
-  const markPaid = async (id: string) => {
-    const { error } = await supabase
-      .from("receivables")
-      .update({ status: "paid", paid_at: new Date().toISOString().slice(0, 10) })
-      .eq("id", id);
+  const updateStatus = async (id: string, newStatus: "pending" | "partial" | "paid") => {
+    const patch: { status: typeof newStatus; paid_at: string | null } = {
+      status: newStatus,
+      paid_at: newStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
+    };
+    const { error } = await supabase.from("receivables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("Marcado como pago.");
+    toast.success("Status atualizado.");
     void load();
   };
 
