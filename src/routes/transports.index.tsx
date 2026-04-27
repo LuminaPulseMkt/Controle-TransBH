@@ -825,4 +825,30 @@ function Field({ label, children, full }: { label: string; children: React.React
   );
 }
 
+function PaymentSelect({
+  value,
+  onChange,
+}: {
+  value: "paid" | "partial" | "pending";
+  onChange: (next: "paid" | "pending") => void;
+}) {
+  const styles: Record<string, string> = {
+    paid: "border-success/40 text-success bg-success/10",
+    partial: "border-info/40 text-info bg-info/10",
+    pending: "border-border text-muted-foreground bg-muted",
+  };
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as "paid" | "pending")}>
+      <SelectTrigger className={`h-7 w-[130px] text-xs uppercase tracking-wider font-medium ${styles[value]}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="pending">Pendente</SelectItem>
+        {value === "partial" && <SelectItem value="partial" disabled>Pago parcial</SelectItem>}
+        <SelectItem value="paid">Pago</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
 void brl;
