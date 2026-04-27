@@ -200,39 +200,42 @@ function TransportDetailPage() {
   const uploadPhotos = async () => {
     if (pendingFiles.length === 0) return toast.error("Selecione ao menos uma imagem.");
     if (!transport || transport === "missing") return;
+    const t = transport;
     setUploading(true);
     const total = pendingFiles.length;
     setUploadProgress({ done: 0, total });
-    let done = 0;
+    let ok = 0;
+    let failed = 0;
+    let firstErrMessage = "";
 
-    const results = await Promise.allSettled(
-      pendingFiles.map(async (file) => {
-        const path = `${user?.id}/${transport.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/\s+/g, "_")}`;
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      try {
+        const path = `${user?.id}/${t.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/\s+/g, "_")}`;
         const up = await supabase.storage.from("transport-photos").upload(path, file);
         if (up.error) throw new Error(up.error.message);
         const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
         const { error } = await supabase.from("transport_photos").insert({
-          transport_id: transport.id, photo_url: data.publicUrl, caption: caption || null,
+          transport_id: t.id, photo_url: data.publicUrl, caption: caption || null,
         });
         if (error) throw new Error(error.message);
-        done += 1;
-        setUploadProgress({ done, total });
-      }),
-    );
+        ok += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstErrMessage) firstErrMessage = err?.message ?? "erro desconhecido";
+      }
+      setUploadProgress({ done: i + 1, total });
+    }
 
-    const ok = results.filter((r) => r.status === "fulfilled").length;
-    const failed = results.length - ok;
     setUploading(false);
     setUploadProgress(null);
 
     if (failed === 0) {
       toast.success(`${ok} ${ok === 1 ? "foto adicionada" : "fotos adicionadas"}.`);
     } else if (ok === 0) {
-      const firstErr = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
-      toast.error(`Falha ao enviar ${failed} ${failed === 1 ? "foto" : "fotos"}: ${firstErr?.reason?.message ?? "erro desconhecido"}`);
+      toast.error(`Falha ao enviar ${failed} ${failed === 1 ? "foto" : "fotos"}: ${firstErrMessage}`);
     } else {
-      const firstErr = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
-      toast.warning(`${ok} enviadas, ${failed} falharam: ${firstErr?.reason?.message ?? "erro desconhecido"}`);
+      toast.warning(`${ok} enviadas, ${failed} falharam: ${firstErrMessage}`);
     }
 
     setPendingFiles([]);
