@@ -196,6 +196,8 @@ function TransportDetailPage() {
     if (notify) sendWhatsApp(trimmed);
     void load();
   };
+
+  const uploadPhotos = async () => {
     if (pendingFiles.length === 0) return toast.error("Selecione ao menos uma imagem.");
     if (!transport || transport === "missing") return;
     setUploading(true);
