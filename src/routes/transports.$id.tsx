@@ -148,7 +148,54 @@ function TransportDetailPage() {
     void load();
   };
 
-  const uploadPhotos = async () => {
+  const buildWhatsAppMessage = (location: string) => {
+    if (!transport || transport === "missing") return "";
+    const eta = transport.estimated_delivery ? `Previsão de entrega: ${dateBR(transport.estimated_delivery)}.` : "";
+    return `Olá ${transport.client_name}, atualização do transporte ${transport.code} (${transport.vehicle_plate}): seu veículo está em *${location}*. ${eta} — TransBH`;
+  };
+
+  const sendWhatsApp = (location: string) => {
+    if (!transport || transport === "missing") return;
+    const digits = (transport.client_phone ?? "").replace(/\D/g, "");
+    if (!digits) {
+      toast.error("Cliente sem telefone cadastrado para WhatsApp.");
+      return;
+    }
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(buildWhatsAppMessage(location))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const addLocationUpdate = async (notify: boolean) => {
+    if (!transport || transport === "missing") return;
+    const trimmed = newLocation.trim();
+    if (!trimmed) return toast.error("Informe a localização atual.");
+    setSavingLocation(true);
+
+    const nowIso = new Date().toISOString();
+    const { error: tErr } = await supabase
+      .from("transports")
+      .update({ current_location: trimmed, location_updated_at: nowIso })
+      .eq("id", transport.id);
+    if (tErr) {
+      setSavingLocation(false);
+      return toast.error(tErr.message);
+    }
+
+    const { error: hErr } = await supabase.from("transport_location_updates").insert({
+      transport_id: transport.id,
+      location: trimmed,
+      note: newLocationNote.trim() || null,
+      created_by: user?.id ?? null,
+    });
+    if (hErr) toast.error(`Histórico não registrado: ${hErr.message}`);
+
+    setSavingLocation(false);
+    toast.success("Localização atualizada.");
+    setNewLocation("");
+    setNewLocationNote("");
+    if (notify) sendWhatsApp(trimmed);
+    void load();
+  };
     if (pendingFiles.length === 0) return toast.error("Selecione ao menos uma imagem.");
     if (!transport || transport === "missing") return;
     setUploading(true);
