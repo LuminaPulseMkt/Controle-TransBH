@@ -179,6 +179,8 @@ function TransportsPage() {
       status: t.status,
       notes: t.notes ?? "",
       photo_url: t.photo_url ?? "",
+      current_location: t.current_location ?? "",
+      location_note: "",
     });
     setPendingFiles([]);
     setExtraPhotoUrls([]);
