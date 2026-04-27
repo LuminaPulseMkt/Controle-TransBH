@@ -460,6 +460,7 @@ function TransportsPage() {
                   <th className="px-4 py-3">Rota</th>
                   <th className="px-4 py-3">Entrega</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Pagamento</th>
                   <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
@@ -486,6 +487,12 @@ function TransportsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs">{dateBR(t.estimated_delivery)}</td>
                     <td className="px-4 py-3"><TransportStatusBadge status={t.status} /></td>
+                    <td className="px-4 py-3">
+                      <PaymentSelect
+                        value={paymentByTransport[t.id] ?? "pending"}
+                        onChange={(next) => setTransportPaymentStatus(t, next)}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <Button asChild variant="ghost" size="sm">
                         <Link to="/transports/$id" params={{ id: t.id }}>Detalhes</Link>
