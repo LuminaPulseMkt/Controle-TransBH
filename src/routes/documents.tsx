@@ -145,7 +145,7 @@ function DocumentsPage() {
     setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const total = useMemo(() => {
-    const s = (Number(form.service_value) || 0) + (Number(form.insurance) || 0) + (Number(form.extra) || 0);
+    const s = (Number(form.service_value) || 0) + (Number(form.extra) || 0);
     return s;
   }, [form]);
 
