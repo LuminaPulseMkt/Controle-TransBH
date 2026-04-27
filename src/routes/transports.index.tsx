@@ -112,6 +112,36 @@ function TransportsPage() {
   const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
+  const [paymentByTransport, setPaymentByTransport] = useState<Record<string, "paid" | "partial" | "pending">>({});
+
+  const loadPayments = async (transportIds: string[]) => {
+    if (transportIds.length === 0) return;
+    const { data, error } = await supabase
+      .from("receivables")
+      .select("transport_id, status")
+      .in("transport_id", transportIds);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const map: Record<string, { total: number; paid: number }> = {};
+    (data ?? []).forEach((r: { transport_id: string | null; status: string }) => {
+      if (!r.transport_id) return;
+      if (!map[r.transport_id]) map[r.transport_id] = { total: 0, paid: 0 };
+      map[r.transport_id].total++;
+      if (r.status === "paid") map[r.transport_id].paid++;
+    });
+    const result: Record<string, "paid" | "partial" | "pending"> = {};
+    transportIds.forEach((id) => {
+      const m = map[id];
+      if (!m || m.total === 0) result[id] = "pending";
+      else if (m.paid === 0) result[id] = "pending";
+      else if (m.paid >= m.total) result[id] = "paid";
+      else result[id] = "partial";
+    });
+    setPaymentByTransport(result);
+  };
+
   const load = async () => {
     const { data, error } = await supabase
       .from("transports")
@@ -119,6 +149,32 @@ function TransportsPage() {
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setItems(data ?? []);
+    await loadPayments((data ?? []).map((t) => t.id));
+  };
+
+  const setTransportPaymentStatus = async (
+    transport: Transport,
+    next: "paid" | "pending",
+  ) => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (next === "paid") {
+      const { error } = await supabase
+        .from("receivables")
+        .update({ status: "paid", paid_at: today })
+        .eq("transport_id", transport.id)
+        .neq("status", "paid");
+      if (error) return toast.error(error.message);
+      toast.success("Cobranças marcadas como pagas.");
+    } else {
+      const { error } = await supabase
+        .from("receivables")
+        .update({ status: "pending", paid_at: null })
+        .eq("transport_id", transport.id)
+        .neq("status", "pending");
+      if (error) return toast.error(error.message);
+      toast.success("Cobranças voltaram para pendente.");
+    }
+    setPaymentByTransport((prev) => ({ ...prev, [transport.id]: next }));
   };
 
   useEffect(() => { void load(); }, []);
