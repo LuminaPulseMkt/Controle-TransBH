@@ -346,6 +346,93 @@ function TransportDetailPage() {
             )}
           </Card>
 
+          {/* Tracking / current location */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <h3 className="text-display text-xl">Rastreio</h3>
+              </div>
+              {t.location_updated_at && (
+                <span className="text-xs text-muted-foreground">
+                  Atualizado em {new Date(t.location_updated_at).toLocaleString("pt-BR")}
+                </span>
+              )}
+            </div>
+
+            {t.current_location ? (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 mb-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Localização atual</div>
+                <div className="font-medium">{t.current_location}</div>
+                <div className="mt-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => sendWhatsApp(t.current_location ?? "")}
+                    disabled={!t.client_phone}
+                    title={t.client_phone ? "Abre WhatsApp do cliente" : "Cliente sem telefone cadastrado"}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Enviar atualização ao cliente
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-3">Nenhuma localização registrada ainda.</p>
+            )}
+
+            <div className="space-y-2 mb-4">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Registrar nova localização</Label>
+              <Input
+                value={newLocation}
+                onChange={(e) => setNewLocation(e.target.value)}
+                placeholder="Ex.: BR-381, km 412 — Betim/MG"
+                disabled={savingLocation}
+              />
+              <Input
+                value={newLocationNote}
+                onChange={(e) => setNewLocationNote(e.target.value)}
+                placeholder="Comentário do motorista (opcional)"
+                disabled={savingLocation}
+              />
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={() => addLocationUpdate(false)}
+                  disabled={savingLocation || !newLocation.trim()}
+                >
+                  {savingLocation ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MapPin className="h-4 w-4 mr-1" />}
+                  Salvar localização
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => addLocationUpdate(true)}
+                  disabled={savingLocation || !newLocation.trim() || !t.client_phone}
+                  title={!t.client_phone ? "Cliente sem telefone cadastrado" : "Salva e abre WhatsApp do cliente"}
+                >
+                  <Send className="h-4 w-4 mr-1" /> Salvar e notificar cliente
+                </Button>
+              </div>
+            </div>
+
+            {locationUpdates.length > 0 && (
+              <div className="border-t border-border/50 pt-3">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Histórico</div>
+                <ol className="space-y-2">
+                  {locationUpdates.map((u) => (
+                    <li key={u.id} className="text-sm border-l-2 border-primary/40 pl-3">
+                      <div className="font-medium">{u.location}</div>
+                      {u.note && <div className="text-xs text-muted-foreground italic">{u.note}</div>}
+                      <div className="text-[11px] text-muted-foreground">
+                        {new Date(u.created_at).toLocaleString("pt-BR")}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </Card>
+
           {/* Photo gallery */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
