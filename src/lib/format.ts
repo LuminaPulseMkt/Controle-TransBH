@@ -19,6 +19,7 @@ export const transportStatusLabel: Record<string, string> = {
 
 export const paymentStatusLabel: Record<string, string> = {
   paid: "Pago",
+  partial: "Pago Parcial",
   pending: "Pendente",
   overdue: "Vencido",
   negotiated: "Negociado",

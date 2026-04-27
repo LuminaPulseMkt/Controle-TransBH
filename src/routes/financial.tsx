@@ -138,13 +138,14 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
-  const markPaid = async (id: string) => {
-    const { error } = await supabase
-      .from("receivables")
-      .update({ status: "paid", paid_at: new Date().toISOString().slice(0, 10) })
-      .eq("id", id);
+  const updateStatus = async (id: string, newStatus: "pending" | "partial" | "paid") => {
+    const patch: { status: typeof newStatus; paid_at: string | null } = {
+      status: newStatus,
+      paid_at: newStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
+    };
+    const { error } = await supabase.from("receivables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("Marcado como pago.");
+    toast.success("Status atualizado.");
     void load();
   };
 
@@ -191,9 +192,19 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                   <td className="px-4 py-3 text-xs">{dateBR(r.due_date)}</td>
                   <td className="px-4 py-3"><PaymentStatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-right">
-                    {r.status !== "paid" && (
-                      <Button variant="ghost" size="sm" onClick={() => markPaid(r.id)}>Marcar pago</Button>
-                    )}
+                    <Select
+                      value={["pending", "partial", "paid"].includes(r.status) ? r.status : ""}
+                      onValueChange={(v) => updateStatus(r.id, v as "pending" | "partial" | "paid")}
+                    >
+                      <SelectTrigger className="h-8 w-36 ml-auto text-xs">
+                        <SelectValue placeholder="Alterar status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="partial">Pago Parcial</SelectItem>
+                        <SelectItem value="paid">Pago</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                 </tr>
               ))}

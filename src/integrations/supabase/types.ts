@@ -541,7 +541,7 @@ export type Database = {
       app_role: "administrator" | "collaborator"
       contract_template: "standard" | "fragile" | "express"
       document_type: "budget" | "contract"
-      payment_status: "paid" | "pending" | "overdue" | "negotiated"
+      payment_status: "paid" | "pending" | "overdue" | "negotiated" | "partial"
       transport_status: "pending" | "in_transit" | "delivered" | "cancelled"
       vehicle_type: "car" | "motorcycle" | "truck" | "machinery"
     }
@@ -674,7 +674,7 @@ export const Constants = {
       app_role: ["administrator", "collaborator"],
       contract_template: ["standard", "fragile", "express"],
       document_type: ["budget", "contract"],
-      payment_status: ["paid", "pending", "overdue", "negotiated"],
+      payment_status: ["paid", "pending", "overdue", "negotiated", "partial"],
       transport_status: ["pending", "in_transit", "delivered", "cancelled"],
       vehicle_type: ["car", "motorcycle", "truck", "machinery"],
     },

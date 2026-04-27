@@ -10,6 +10,7 @@ const transportStyles: Record<string, string> = {
 
 const paymentStyles: Record<string, string> = {
   paid: "bg-success/15 text-success border-success/40",
+  partial: "bg-warning/15 text-warning border-warning/40",
   pending: "bg-muted text-muted-foreground border-border",
   overdue: "bg-destructive/15 text-destructive border-destructive/40",
   negotiated: "bg-info/15 text-info border-info/40",
