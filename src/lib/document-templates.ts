@@ -67,7 +67,7 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
     defaults: {
       title: "Orçamento de Transporte — Entrega Expressa",
       service_value: "2200",
-      insurance: "200",
+      insurance: "0",
       extra: "300",
       notes:
         "Entrega expressa em até 48h após confirmação.\n" +
