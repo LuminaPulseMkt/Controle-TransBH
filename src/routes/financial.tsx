@@ -192,9 +192,19 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                   <td className="px-4 py-3 text-xs">{dateBR(r.due_date)}</td>
                   <td className="px-4 py-3"><PaymentStatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-right">
-                    {r.status !== "paid" && (
-                      <Button variant="ghost" size="sm" onClick={() => markPaid(r.id)}>Marcar pago</Button>
-                    )}
+                    <Select
+                      value={["pending", "partial", "paid"].includes(r.status) ? r.status : ""}
+                      onValueChange={(v) => updateStatus(r.id, v as "pending" | "partial" | "paid")}
+                    >
+                      <SelectTrigger className="h-8 w-36 ml-auto text-xs">
+                        <SelectValue placeholder="Alterar status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="partial">Pago Parcial</SelectItem>
+                        <SelectItem value="paid">Pago</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                 </tr>
               ))}
