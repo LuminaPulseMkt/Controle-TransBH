@@ -259,12 +259,31 @@ function TransportsPage() {
     return uploaded;
   };
 
-  const save = async () => {
+  const buildWhatsAppMessage = (t: { code: string; vehicle_plate: string; client_name: string; estimated_delivery: string | null }, location: string) => {
+    const eta = t.estimated_delivery ? `Previsão de entrega: ${dateBR(t.estimated_delivery)}.` : "";
+    return `Olá ${t.client_name}, atualização do transporte ${t.code} (${t.vehicle_plate}): seu veículo está em *${location}*. ${eta} — TransBH`;
+  };
+
+  const sendWhatsApp = (phone: string | null, message: string) => {
+    const digits = (phone ?? "").replace(/\D/g, "");
+    if (!digits) {
+      toast.error("Cliente sem telefone cadastrado para WhatsApp.");
+      return false;
+    }
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    return true;
+  };
+
+  const save = async (notifyWhatsApp = false) => {
     if (!form.vehicle_brand && !form.vehicle_model) {
       return toast.error("Informe ao menos a marca ou o modelo do veículo.");
     }
     if (!form.vehicle_plate || !form.client_name || !form.origin_city || !form.destination_city) {
       return toast.error("Preencha placa, cliente, origem e destino.");
+    }
+    if (notifyWhatsApp && !form.current_location.trim()) {
+      return toast.error("Preencha a localização atual antes de notificar o cliente.");
     }
     setBusy(true);
 
@@ -285,9 +304,21 @@ function TransportsPage() {
       allExtras[0] ||
       "";
 
+    // Detect location change to bump location_updated_at
+    const trimmedLocation = form.current_location.trim();
+    const prevLocation = (editing?.current_location ?? "").trim();
+    const locationChanged = trimmedLocation !== prevLocation;
+
+    // Strip non-column field location_note before sending to DB
+    const { location_note, ...formForDb } = form;
+
     const payload = {
-      ...form,
+      ...formForDb,
       photo_url: cover || null,
+      current_location: trimmedLocation || null,
+      location_updated_at: locationChanged && trimmedLocation
+        ? new Date().toISOString()
+        : editing?.location_updated_at ?? null,
       vehicle_year: form.vehicle_year ? Number(form.vehicle_year) : null,
       estimated_delivery: form.estimated_delivery || null,
       vehicle_type: form.vehicle_type as any,
@@ -325,8 +356,31 @@ function TransportsPage() {
       }
     }
 
+    // 5. Insert location history row when location changed
+    if (transportId && locationChanged && trimmedLocation) {
+      const { error: locErr } = await supabase.from("transport_location_updates").insert({
+        transport_id: transportId,
+        location: trimmedLocation,
+        note: location_note?.trim() || null,
+        created_by: user?.id ?? null,
+      });
+      if (locErr) {
+        toast.error(`Localização não pôde ser registrada no histórico: ${locErr.message}`);
+      }
+    }
+
     setBusy(false);
     toast.success(editing ? "Transporte atualizado." : "Transporte criado.");
+
+    // 6. Notify client via WhatsApp if requested
+    if (notifyWhatsApp && transportId && trimmedLocation) {
+      const code = editing?.code ?? form.vehicle_plate;
+      sendWhatsApp(form.client_phone, buildWhatsAppMessage(
+        { code, vehicle_plate: form.vehicle_plate, client_name: form.client_name, estimated_delivery: form.estimated_delivery || null },
+        trimmedLocation,
+      ));
+    }
+
     setOpen(false);
     setExtraPhotoUrls([]);
 
