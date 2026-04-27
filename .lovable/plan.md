@@ -1,59 +1,42 @@
-# Campo de rastreio no editar transporte + envio ao cliente
+# Ajustes no formulário de Orçamento
 
-Adicionar um campo **"Localização atual"** (rastreio) no diálogo de edição da aba Transportes, com histórico simples e botão para enviar a atualização ao cliente pelo WhatsApp.
+Na aba Documentos > Orçamento (e também Contrato, para manter consistência), vamos:
 
-## O que muda
+1. **Remover** o campo **Seguro**.
+2. **Adicionar** dois novos campos: **Coleta** (data) e **Entrega** (data) — datas previstas de retirada e entrega do veículo.
+3. **Adicionar** um campo opcional **Endereço** nos dados do cliente.
 
-### 1. Banco de dados (migration)
+Nada disso exige migration: tudo é salvo no JSON `body` da tabela `documents` (ou em `client_document` para texto livre — vamos usar `body.client_address` para evitar confusão com CPF/CNPJ).
 
-Adicionar duas colunas em `public.transports`:
-- `current_location text` — última posição informada (ex.: "BR-381, km 412 — Betim/MG").
-- `location_updated_at timestamptz` — quando foi atualizada (definido automaticamente quando `current_location` muda).
+## Mudanças por arquivo
 
-E criar uma tabela de histórico (opcional mas útil para timeline):
-```sql
-create table public.transport_location_updates (
-  id uuid primary key default gen_random_uuid(),
-  transport_id uuid not null references public.transports(id) on delete cascade,
-  location text not null,
-  note text,
-  created_by uuid,
-  created_at timestamptz not null default now()
-);
-alter table public.transport_location_updates enable row level security;
--- mesmas policies de transports: authenticated view/insert, admin delete
-```
+### `src/routes/documents.tsx`
+- Estado `form`: remover `insurance`; adicionar `client_address`, `pickup_date`, `delivery_date`.
+- `total = service_value + extra` (sem seguro).
+- `openEdit`: ler `body.client_address`, `body.pickup_date`, `body.delivery_date` ao popular o form; ignorar `insurance`.
+- `save`: gravar os novos campos em `body`; não enviar mais `insurance`.
+- UI:
+  - Na seção "Dados do cliente", adicionar `Input` "Endereço (opcional)" abaixo do e-mail, ocupando `md:col-span-2`.
+  - Remover o bloco `<Label>Seguro</Label> <Input ... />`.
+  - Adicionar dois novos campos lado a lado: `Coleta` (`type="date"`) e `Entrega` (`type="date"`), perto de Origem/Destino.
+- `exportPDF`: remover linha "Seguro"; adicionar "Endereço", "Coleta" e "Entrega" quando preenchidos.
+- `pickTemplate` / `startBlank`: parar de setar `insurance`.
 
-### 2. Diálogo de edição (`src/routes/transports.index.tsx`)
+### `src/lib/document-templates.ts`
+- Manter o campo `insurance` no tipo (compatibilidade com modelos customizados antigos no banco), mas zerar nos defaults dos modelos fixos para não aparecer em novos orçamentos.
+- Remover menções a "Seguro com cobertura ampla incluso." nas notes do template **Orçamento Veículo Frágil** (manter só nas cláusulas de Contrato, que continuam relevantes).
 
-Na seção de edição (perto de "Observações"), adicionar um bloco **"Rastreio / Localização atual"** com:
-- `Input` "Localização atual" (preenche `current_location`).
-- `Textarea` curto "Comentário do motorista" (opcional, vai pro histórico).
-- Texto auxiliar mostrando "Última atualização: <data/hora>".
-- Botão **"Salvar e notificar cliente no WhatsApp"** que:
-  1. Salva o transporte normalmente (já atualiza `current_location` e `location_updated_at`).
-  2. Insere uma linha em `transport_location_updates`.
-  3. Abre `https://wa.me/<telefone>?text=<mensagem>` numa nova aba com mensagem pronta:
-     > Olá {cliente}, atualização do transporte {código} ({placa}): seu veículo está em **{localização}**. Previsão de entrega: {data}. — TransBH
-  4. Desabilitado se `client_phone` estiver vazio (com tooltip explicando).
+### `src/components/DocumentView.tsx`
+- Remover (ou condicionar a `false`) a linha que mostra "Seguro" no preview, já que orçamentos novos não terão mais esse valor.
+- Adicionar exibição de "Endereço", "Coleta" e "Entrega" quando presentes em `body`.
 
-O botão "Salvar" normal continua existindo — o novo botão fica ao lado, só dispara WhatsApp se a localização foi preenchida.
+### `src/components/CustomTemplateDialog.tsx`
+- Remover o campo "Seguro sugerido" do diálogo de criação de modelo customizado (segue a mesma decisão do form principal). O insert continua enviando `insurance: 0` para satisfazer a coluna `not null` da tabela `document_templates`.
 
-### 3. Página de detalhes (`src/routes/transports.$id.tsx`)
+### `src/routes/d.$token.tsx`
+- No PDF público, remover a linha "Seguro" e adicionar as linhas de Endereço, Coleta e Entrega quando presentes (mesmo padrão do `exportPDF` em documents.tsx).
 
-Adicionar um pequeno card **"Rastreio"** mostrando:
-- `current_location` em destaque + `location_updated_at`.
-- Lista (timeline) das últimas atualizações de `transport_location_updates`.
-- Botão "Enviar última localização ao cliente" (mesma mensagem de WhatsApp).
-
-### 4. Format/labels
-
-Sem mudanças em `src/lib/format.ts` — só usar `dateBR` + um helper local pra hora.
-
-## Arquivos alterados
-- nova migration Supabase (coluna `current_location`, `location_updated_at`, tabela `transport_location_updates` + RLS).
-- `src/routes/transports.index.tsx` — campo no form, lógica de salvar histórico, botão WhatsApp.
-- `src/routes/transports.$id.tsx` — card de rastreio + timeline + botão WhatsApp.
-
-## Observação importante
-O envio é via **link `wa.me` aberto no navegador** (mesmo padrão já usado em `collections.tsx`). Não há envio automático server-side — o usuário confirma o envio no WhatsApp Web/app. Se você quiser envio **automático** (sem abrir o WhatsApp), precisaríamos integrar Twilio ou WhatsApp Business API; me avise que faço como passo seguinte.
+## Observações
+- Não há mudança de banco. A coluna `insurance` em `document_templates` permanece (com default `0`); apenas paramos de exibi-la no UI.
+- Documentos antigos que tenham `body.insurance > 0` deixarão de mostrar essa linha no preview/PDF — se preferir manter para histórico, me avise que faço uma exibição condicional só para documentos antigos.
+- Os campos de data (`Coleta`/`Entrega`) são opcionais; se vazios, não aparecem no PDF nem no preview.

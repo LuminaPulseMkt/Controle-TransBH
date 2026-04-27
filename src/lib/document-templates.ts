@@ -51,11 +51,10 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
     defaults: {
       title: "Orçamento de Transporte — Veículo Frágil",
       service_value: "2800",
-      insurance: "450",
+      insurance: "0",
       extra: "150",
       notes:
         "Inclui transporte com cinta especial e cobertura de carroceria.\n" +
-        "Seguro com cobertura ampla incluso.\n" +
         "Validade da proposta: 7 dias.",
     },
   },
@@ -68,7 +67,7 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
     defaults: {
       title: "Orçamento de Transporte — Entrega Expressa",
       service_value: "2200",
-      insurance: "200",
+      insurance: "0",
       extra: "300",
       notes:
         "Entrega expressa em até 48h após confirmação.\n" +

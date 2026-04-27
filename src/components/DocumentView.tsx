@@ -72,21 +72,23 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
           {doc.client_document && <Field label="CPF/CNPJ" value={doc.client_document} />}
           {doc.client_phone && <Field label="Telefone" value={doc.client_phone} />}
           {doc.client_email && <Field label="E-mail" value={doc.client_email} />}
+          {body.client_address && <Field label="Endereço" value={body.client_address} />}
         </Section>
 
-        {(body.vehicle || body.vehicle_plate || body.vehicle_color || body.origin || body.destination) && (
+        {(body.vehicle || body.vehicle_plate || body.vehicle_color || body.origin || body.destination || body.pickup_date || body.delivery_date) && (
           <Section title="Detalhes do Serviço">
             {body.vehicle && <Field label="Veículo" value={body.vehicle} />}
             {body.vehicle_plate && <Field label="Placa" value={body.vehicle_plate} />}
             {body.vehicle_color && <Field label="Cor" value={body.vehicle_color} />}
             {body.origin && <Field label="Origem" value={body.origin} />}
             {body.destination && <Field label="Destino" value={body.destination} />}
+            {body.pickup_date && <Field label="Coleta" value={new Date(body.pickup_date + "T12:00:00").toLocaleDateString("pt-BR")} />}
+            {body.delivery_date && <Field label="Entrega" value={new Date(body.delivery_date + "T12:00:00").toLocaleDateString("pt-BR")} />}
           </Section>
         )}
 
         <Section title="Valores">
           <Field label="Frete" value={brl(body.service_value ?? 0)} />
-          {body.insurance ? <Field label="Seguro" value={brl(body.insurance)} /> : null}
           {body.extra ? <Field label="Adicionais" value={brl(body.extra)} /> : null}
           <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
             <span className="text-base font-semibold">Total</span>

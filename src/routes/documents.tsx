@@ -79,14 +79,16 @@ function DocumentsPage() {
     client_document: "",
     client_phone: "",
     client_email: "",
+    client_address: "",
     template: "standard",
     origin: "",
     destination: "",
+    pickup_date: "",
+    delivery_date: "",
     vehicle: "",
     vehicle_plate: "",
     vehicle_color: "",
     service_value: "",
-    insurance: "",
     extra: "",
     notes: "",
   });
@@ -143,7 +145,7 @@ function DocumentsPage() {
     setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const total = useMemo(() => {
-    const s = (Number(form.service_value) || 0) + (Number(form.insurance) || 0) + (Number(form.extra) || 0);
+    const s = (Number(form.service_value) || 0) + (Number(form.extra) || 0);
     return s;
   }, [form]);
 
@@ -163,14 +165,16 @@ function DocumentsPage() {
       client_document: d.client_document ?? "",
       client_phone: d.client_phone ?? "",
       client_email: d.client_email ?? "",
+      client_address: d.body?.client_address ?? "",
       template: (d.template as string) ?? "standard",
       origin: d.body?.origin ?? "",
       destination: d.body?.destination ?? "",
+      pickup_date: d.body?.pickup_date ?? "",
+      delivery_date: d.body?.delivery_date ?? "",
       vehicle: d.body?.vehicle ?? "",
       vehicle_plate: d.body?.vehicle_plate ?? "",
       vehicle_color: d.body?.vehicle_color ?? "",
       service_value: d.body?.service_value != null ? String(d.body.service_value) : "",
-      insurance: d.body?.insurance != null ? String(d.body.insurance) : "",
       extra: d.body?.extra != null ? String(d.body.extra) : "",
       notes: d.body?.notes ?? "",
     });
@@ -184,7 +188,6 @@ function DocumentsPage() {
       title: tpl.defaults.title,
       template: tpl.templateKey,
       service_value: tpl.defaults.service_value,
-      insurance: tpl.defaults.insurance,
       extra: tpl.defaults.extra,
       notes: tpl.defaults.notes,
     });
@@ -197,7 +200,6 @@ function DocumentsPage() {
       title: docType === "budget" ? "Orçamento" : "Contrato de Transporte",
       template: "standard",
       service_value: "",
-      insurance: "",
       extra: "",
       notes: "",
     });
@@ -210,11 +212,13 @@ function DocumentsPage() {
     const body = {
       origin: form.origin,
       destination: form.destination,
+      pickup_date: form.pickup_date || null,
+      delivery_date: form.delivery_date || null,
+      client_address: form.client_address || null,
       vehicle: form.vehicle,
       vehicle_plate: form.vehicle_plate.toUpperCase(),
       vehicle_color: form.vehicle_color,
       service_value: Number(form.service_value) || 0,
-      insurance: Number(form.insurance) || 0,
       extra: Number(form.extra) || 0,
       notes: form.notes,
     };
@@ -268,6 +272,7 @@ function DocumentsPage() {
     if (d.client_document) { doc.text(`Documento: ${d.client_document}`, 14, y); y += 5; }
     if (d.client_phone) { doc.text(`Telefone: ${d.client_phone}`, 14, y); y += 5; }
     if (d.client_email) { doc.text(`E-mail: ${d.client_email}`, 14, y); y += 5; }
+    if (d.body?.client_address) { doc.text(`Endereço: ${d.body.client_address}`, 14, y); y += 5; }
 
     y += 5;
     doc.setFontSize(12);
@@ -278,13 +283,14 @@ function DocumentsPage() {
     if (d.body?.vehicle_color) { doc.text(`Cor: ${d.body.vehicle_color}`, 14, y); y += 5; }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { doc.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
+    if (d.body?.pickup_date) { doc.text(`Coleta: ${dateBR(d.body.pickup_date)}`, 14, y); y += 5; }
+    if (d.body?.delivery_date) { doc.text(`Entrega: ${dateBR(d.body.delivery_date)}`, 14, y); y += 5; }
 
     y += 5;
     doc.setFontSize(12);
     doc.text("Valores", 14, y); y += 6;
     doc.setFontSize(10);
     doc.text(`Frete: ${brl(d.body?.service_value ?? 0)}`, 14, y); y += 5;
-    if (d.body?.insurance) { doc.text(`Seguro: ${brl(d.body.insurance)}`, 14, y); y += 5; }
     if (d.body?.extra) { doc.text(`Adicionais: ${brl(d.body.extra)}`, 14, y); y += 5; }
     doc.setFontSize(14);
     doc.setTextColor(245, 158, 11);
@@ -500,7 +506,7 @@ function DocumentsPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">{tpl.description}</div>
                         <div className="mt-2 text-xs text-primary font-medium">
-                          Sugerido: {brl(Number(tpl.defaults.service_value) + Number(tpl.defaults.insurance) + Number(tpl.defaults.extra))}
+                          Sugerido: {brl(Number(tpl.defaults.service_value) + Number(tpl.defaults.extra))}
                         </div>
                       </button>
                     </div>
@@ -553,6 +559,14 @@ function DocumentsPage() {
                   <Input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
                 </div>
                 <div className="md:col-span-2">
+                  <Label>Endereço (opcional)</Label>
+                  <Input
+                    value={form.client_address}
+                    onChange={(e) => setForm({ ...form, client_address: e.target.value })}
+                    placeholder="Rua, número, bairro, cidade/UF"
+                  />
+                </div>
+                <div className="md:col-span-2">
                   <Label>Veículo</Label>
                   <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020" />
                 </div>
@@ -579,12 +593,16 @@ function DocumentsPage() {
                   <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="São Paulo/SP" />
                 </div>
                 <div>
-                  <Label>Frete</Label>
-                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
+                  <Label>Coleta</Label>
+                  <Input type="date" value={form.pickup_date} onChange={(e) => setForm({ ...form, pickup_date: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Seguro</Label>
-                  <Input type="number" step="0.01" value={form.insurance} onChange={(e) => setForm({ ...form, insurance: e.target.value })} />
+                  <Label>Entrega</Label>
+                  <Input type="date" value={form.delivery_date} onChange={(e) => setForm({ ...form, delivery_date: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Frete</Label>
+                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
                 </div>
                 <div>
                   <Label>Adicionais</Label>

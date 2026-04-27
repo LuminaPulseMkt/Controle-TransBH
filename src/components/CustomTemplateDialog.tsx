@@ -131,11 +131,7 @@ export function CustomTemplateDialog({ open, onOpenChange, kind, editing, onSave
             <Input type="number" step="0.01" value={form.service_value}
               onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
           </div>
-          <div>
-            <Label>Seguro sugerido</Label>
-            <Input type="number" step="0.01" value={form.insurance}
-              onChange={(e) => setForm({ ...form, insurance: e.target.value })} />
-          </div>
+          {/* Seguro removido — frete + adicionais são suficientes */}
           <div>
             <Label>Adicionais sugeridos</Label>
             <Input type="number" step="0.01" value={form.extra}
