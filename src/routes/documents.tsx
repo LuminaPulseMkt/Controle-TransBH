@@ -559,6 +559,14 @@ function DocumentsPage() {
                   <Input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
                 </div>
                 <div className="md:col-span-2">
+                  <Label>Endereço (opcional)</Label>
+                  <Input
+                    value={form.client_address}
+                    onChange={(e) => setForm({ ...form, client_address: e.target.value })}
+                    placeholder="Rua, número, bairro, cidade/UF"
+                  />
+                </div>
+                <div className="md:col-span-2">
                   <Label>Veículo</Label>
                   <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020" />
                 </div>
@@ -585,12 +593,16 @@ function DocumentsPage() {
                   <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="São Paulo/SP" />
                 </div>
                 <div>
-                  <Label>Frete</Label>
-                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
+                  <Label>Coleta</Label>
+                  <Input type="date" value={form.pickup_date} onChange={(e) => setForm({ ...form, pickup_date: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Seguro</Label>
-                  <Input type="number" step="0.01" value={form.insurance} onChange={(e) => setForm({ ...form, insurance: e.target.value })} />
+                  <Label>Entrega</Label>
+                  <Input type="date" value={form.delivery_date} onChange={(e) => setForm({ ...form, delivery_date: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Frete</Label>
+                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
                 </div>
                 <div>
                   <Label>Adicionais</Label>
