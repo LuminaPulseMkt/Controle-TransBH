@@ -91,6 +91,10 @@ function TransportDetailPage() {
   const [transport, setTransport] = useState<Transport | null | "missing">(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
+  const [locationUpdates, setLocationUpdates] = useState<LocationUpdate[]>([]);
+  const [newLocation, setNewLocation] = useState("");
+  const [newLocationNote, setNewLocationNote] = useState("");
+  const [savingLocation, setSavingLocation] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState("");
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -121,15 +125,17 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r] = await Promise.all([
+    const [t, p, r, loc] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
+      supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
     ]);
     if (!t.data) { setTransport("missing"); return; }
     setTransport(t.data as Transport);
     setPhotos((p.data ?? []) as Photo[]);
     setReceivables((r.data ?? []) as Receivable[]);
+    setLocationUpdates((loc.data ?? []) as LocationUpdate[]);
   };
 
   useEffect(() => { void load(); }, [id]);
