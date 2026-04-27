@@ -1,45 +1,43 @@
-## Objetivo
+# Editar status na aba Financeiro
 
-Deixar o Dashboard 100% navegável: cada KPI, gráfico e linha da tabela leva ao módulo correspondente já filtrado.
+Adicionar um seletor inline na tabela de **Contas a Receber** permitindo alterar o status de cada cobrança entre **Pendente**, **Pago Parcial** e **Pago** com salvamento imediato no banco.
 
-## Mudanças
+## O que muda
 
-### 1. KPIs clicáveis (`src/routes/index.tsx`)
+### 1. Banco de dados (migration)
+Adicionar o valor `partial` ao enum `payment_status`:
+```sql
+ALTER TYPE public.payment_status ADD VALUE IF NOT EXISTS 'partial';
+```
+Os valores existentes (`paid`, `pending`, `overdue`, `negotiated`) continuam funcionando — nada é removido.
 
-Envolver cada `KpiCard` em `<Link>`:
+### 2. Labels e estilos visuais
+- `src/lib/format.ts` — adicionar `partial: "Pago Parcial"` em `paymentStatusLabel`.
+- `src/components/StatusBadge.tsx` — adicionar estilo amarelo/warning para `partial`:
+  ```ts
+  partial: "bg-warning/15 text-warning border-warning/40"
+  ```
 
-| Card | Destino |
-|---|---|
-| Em andamento | `/transports?status=in_progress` |
-| A receber | `/financial?status=pending` |
-| Vencidos | `/collections` |
-| Receita do mês | `/financial?status=paid&period=month` |
+### 3. Edição inline na tabela (`src/routes/financial.tsx`)
+Substituir a coluna "Status" + botão "Marcar pago" por um **Select inline** com as opções:
+- Pendente
+- Pago Parcial
+- Pago
 
-Adicionar hover state (ring/translate) no `KpiCard` para indicar que é clicável.
+Comportamento:
+- Ao escolher **Pago** → atualiza `status='paid'` e define `paid_at` para hoje.
+- Ao escolher **Pago Parcial** → atualiza `status='partial'`, mantém `paid_at` em branco.
+- Ao escolher **Pendente** → volta `status='pending'` e limpa `paid_at`.
+- Mostra toast de sucesso/erro e recarrega a lista.
+- Se o status atual for `overdue` ou `negotiated`, o select ainda exibe o valor original mas permite mover para uma das três opções principais.
 
-### 2. Gráfico Receita vs Despesas
+O filtro do topo ("Todos / Pago / Pendente / ...") passa a incluir automaticamente "Pago Parcial" pois lê de `paymentStatusLabel`.
 
-Tornar o card inteiro clicável → `/financial`. Adicionar botão "Ver detalhes →" no header do card.
+## Arquivos alterados
+- `supabase` migration (novo valor de enum)
+- `src/lib/format.ts`
+- `src/components/StatusBadge.tsx`
+- `src/routes/financial.tsx` (substituir botão por Select inline na coluna de status)
 
-### 3. Tabela "Transportes recentes"
-
-- Cada linha (`<tr>`) vira clicável → `/transports/$id` usando `useNavigate`, com `cursor-pointer` e hover já existente.
-- Coluna **Cliente**: link para `/financial/clients/$name` (página já existente) com `stopPropagation`.
-- Coluna **Código**: mantém ida para `/transports/$id`.
-
-### 4. Suporte a filtros nas páginas destino
-
-As rotas `/transports`, `/financial` e `/collections` precisam aceitar `search params` (`status`, `period`) via `validateSearch` e aplicar como filtro inicial nas queries Supabase. Se já existirem filtros locais, pré-popular o estado a partir do search param.
-
-## Arquivos editados
-
-- `src/routes/index.tsx` — envolver KPIs e linhas em Link / navegação programática
-- `src/routes/transports.index.tsx` — `validateSearch({status})` + pré-filtro
-- `src/routes/financial.tsx` — `validateSearch({status, period})` + pré-filtro
-- `src/routes/collections.tsx` — confirmar listagem default já mostra vencidos (sem mudança se for o caso)
-
-## Detalhes técnicos
-
-- Usar `Link` do `@tanstack/react-router` (não interpolar params na string `to`).
-- `validateSearch` com schema simples (string opcional) para evitar erros de tipo.
-- Em linhas da tabela: `onClick` no `<tr>` + `e.stopPropagation()` nos sub-links para evitar navegação dupla.
+## Observação
+Não vou alterar a aba **Contas a Pagar** (despesas) — ela não tem status de pagamento no schema atual; só a aba **Contas a Receber** ganha o controle.
