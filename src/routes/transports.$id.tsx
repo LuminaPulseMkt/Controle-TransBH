@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
 import {
   ArrowLeft, Upload, Loader2, Trash2, CheckCircle2,
-  Truck, Package, XCircle, Clock, ImagePlus,
+  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,8 +66,17 @@ interface Transport {
   status: string;
   notes: string | null;
   photo_url: string | null;
+  current_location: string | null;
+  location_updated_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface LocationUpdate {
+  id: string;
+  location: string;
+  note: string | null;
+  created_at: string;
 }
 
 interface Photo { id: string; photo_url: string; caption: string | null; created_at: string; }
