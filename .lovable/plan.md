@@ -1,43 +1,59 @@
-# Editar status na aba Financeiro
+# Campo de rastreio no editar transporte + envio ao cliente
 
-Adicionar um seletor inline na tabela de **Contas a Receber** permitindo alterar o status de cada cobrança entre **Pendente**, **Pago Parcial** e **Pago** com salvamento imediato no banco.
+Adicionar um campo **"Localização atual"** (rastreio) no diálogo de edição da aba Transportes, com histórico simples e botão para enviar a atualização ao cliente pelo WhatsApp.
 
 ## O que muda
 
 ### 1. Banco de dados (migration)
-Adicionar o valor `partial` ao enum `payment_status`:
+
+Adicionar duas colunas em `public.transports`:
+- `current_location text` — última posição informada (ex.: "BR-381, km 412 — Betim/MG").
+- `location_updated_at timestamptz` — quando foi atualizada (definido automaticamente quando `current_location` muda).
+
+E criar uma tabela de histórico (opcional mas útil para timeline):
 ```sql
-ALTER TYPE public.payment_status ADD VALUE IF NOT EXISTS 'partial';
+create table public.transport_location_updates (
+  id uuid primary key default gen_random_uuid(),
+  transport_id uuid not null references public.transports(id) on delete cascade,
+  location text not null,
+  note text,
+  created_by uuid,
+  created_at timestamptz not null default now()
+);
+alter table public.transport_location_updates enable row level security;
+-- mesmas policies de transports: authenticated view/insert, admin delete
 ```
-Os valores existentes (`paid`, `pending`, `overdue`, `negotiated`) continuam funcionando — nada é removido.
 
-### 2. Labels e estilos visuais
-- `src/lib/format.ts` — adicionar `partial: "Pago Parcial"` em `paymentStatusLabel`.
-- `src/components/StatusBadge.tsx` — adicionar estilo amarelo/warning para `partial`:
-  ```ts
-  partial: "bg-warning/15 text-warning border-warning/40"
-  ```
+### 2. Diálogo de edição (`src/routes/transports.index.tsx`)
 
-### 3. Edição inline na tabela (`src/routes/financial.tsx`)
-Substituir a coluna "Status" + botão "Marcar pago" por um **Select inline** com as opções:
-- Pendente
-- Pago Parcial
-- Pago
+Na seção de edição (perto de "Observações"), adicionar um bloco **"Rastreio / Localização atual"** com:
+- `Input` "Localização atual" (preenche `current_location`).
+- `Textarea` curto "Comentário do motorista" (opcional, vai pro histórico).
+- Texto auxiliar mostrando "Última atualização: <data/hora>".
+- Botão **"Salvar e notificar cliente no WhatsApp"** que:
+  1. Salva o transporte normalmente (já atualiza `current_location` e `location_updated_at`).
+  2. Insere uma linha em `transport_location_updates`.
+  3. Abre `https://wa.me/<telefone>?text=<mensagem>` numa nova aba com mensagem pronta:
+     > Olá {cliente}, atualização do transporte {código} ({placa}): seu veículo está em **{localização}**. Previsão de entrega: {data}. — TransBH
+  4. Desabilitado se `client_phone` estiver vazio (com tooltip explicando).
 
-Comportamento:
-- Ao escolher **Pago** → atualiza `status='paid'` e define `paid_at` para hoje.
-- Ao escolher **Pago Parcial** → atualiza `status='partial'`, mantém `paid_at` em branco.
-- Ao escolher **Pendente** → volta `status='pending'` e limpa `paid_at`.
-- Mostra toast de sucesso/erro e recarrega a lista.
-- Se o status atual for `overdue` ou `negotiated`, o select ainda exibe o valor original mas permite mover para uma das três opções principais.
+O botão "Salvar" normal continua existindo — o novo botão fica ao lado, só dispara WhatsApp se a localização foi preenchida.
 
-O filtro do topo ("Todos / Pago / Pendente / ...") passa a incluir automaticamente "Pago Parcial" pois lê de `paymentStatusLabel`.
+### 3. Página de detalhes (`src/routes/transports.$id.tsx`)
+
+Adicionar um pequeno card **"Rastreio"** mostrando:
+- `current_location` em destaque + `location_updated_at`.
+- Lista (timeline) das últimas atualizações de `transport_location_updates`.
+- Botão "Enviar última localização ao cliente" (mesma mensagem de WhatsApp).
+
+### 4. Format/labels
+
+Sem mudanças em `src/lib/format.ts` — só usar `dateBR` + um helper local pra hora.
 
 ## Arquivos alterados
-- `supabase` migration (novo valor de enum)
-- `src/lib/format.ts`
-- `src/components/StatusBadge.tsx`
-- `src/routes/financial.tsx` (substituir botão por Select inline na coluna de status)
+- nova migration Supabase (coluna `current_location`, `location_updated_at`, tabela `transport_location_updates` + RLS).
+- `src/routes/transports.index.tsx` — campo no form, lógica de salvar histórico, botão WhatsApp.
+- `src/routes/transports.$id.tsx` — card de rastreio + timeline + botão WhatsApp.
 
-## Observação
-Não vou alterar a aba **Contas a Pagar** (despesas) — ela não tem status de pagamento no schema atual; só a aba **Contas a Receber** ganha o controle.
+## Observação importante
+O envio é via **link `wa.me` aberto no navegador** (mesmo padrão já usado em `collections.tsx`). Não há envio automático server-side — o usuário confirma o envio no WhatsApp Web/app. Se você quiser envio **automático** (sem abrir o WhatsApp), precisaríamos integrar Twilio ou WhatsApp Business API; me avise que faço como passo seguinte.
