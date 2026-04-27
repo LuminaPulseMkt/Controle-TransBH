@@ -95,6 +95,7 @@ function PublicDocumentPage() {
     if (d.client_document) { pdf.text(`Documento: ${d.client_document}`, 14, y); y += 5; }
     if (d.client_phone) { pdf.text(`Telefone: ${d.client_phone}`, 14, y); y += 5; }
     if (d.client_email) { pdf.text(`E-mail: ${d.client_email}`, 14, y); y += 5; }
+    if (d.body?.client_address) { pdf.text(`Endereço: ${d.body.client_address}`, 14, y); y += 5; }
 
     y += 5;
     pdf.setFontSize(12);
@@ -103,13 +104,14 @@ function PublicDocumentPage() {
     if (d.body?.vehicle) { pdf.text(`Veículo: ${d.body.vehicle}`, 14, y); y += 5; }
     if (d.body?.origin) { pdf.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { pdf.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
+    if (d.body?.pickup_date) { pdf.text(`Coleta: ${new Date(d.body.pickup_date + "T12:00:00").toLocaleDateString("pt-BR")}`, 14, y); y += 5; }
+    if (d.body?.delivery_date) { pdf.text(`Entrega: ${new Date(d.body.delivery_date + "T12:00:00").toLocaleDateString("pt-BR")}`, 14, y); y += 5; }
 
     y += 5;
     pdf.setFontSize(12);
     pdf.text("Valores", 14, y); y += 6;
     pdf.setFontSize(10);
     pdf.text(`Frete: ${brl(d.body?.service_value ?? 0)}`, 14, y); y += 5;
-    if (d.body?.insurance) { pdf.text(`Seguro: ${brl(d.body.insurance)}`, 14, y); y += 5; }
     if (d.body?.extra) { pdf.text(`Adicionais: ${brl(d.body.extra)}`, 14, y); y += 5; }
     pdf.setFontSize(14);
     pdf.setTextColor(245, 158, 11);
