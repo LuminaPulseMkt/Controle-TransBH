@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransportStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
-import { Plus, Search, Loader2, X, Upload } from "lucide-react";
+import { Plus, Search, Loader2, X, Upload, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
@@ -64,6 +64,8 @@ interface Transport {
   status: string;
   notes: string | null;
   photo_url: string | null;
+  current_location: string | null;
+  location_updated_at: string | null;
   created_at: string;
 }
 
@@ -92,6 +94,8 @@ const emptyForm = {
   status: "pending",
   notes: "",
   photo_url: "",
+  current_location: "",
+  location_note: "",
 };
 
 function TransportsPage() {
