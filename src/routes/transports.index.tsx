@@ -618,6 +618,39 @@ function TransportsPage() {
             </div>
 
             <div className="space-y-4">
+              {/* Rastreio / Localização */}
+              <section className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-wider text-primary font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4" /> Rastreio / Localização atual
+                  </div>
+                  {editing?.location_updated_at && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Última atualização: {new Date(editing.location_updated_at).toLocaleString("pt-BR")}
+                    </span>
+                  )}
+                </div>
+                <Field label="Onde o veículo está agora">
+                  <Input
+                    value={form.current_location}
+                    onChange={(e) => setForm({ ...form, current_location: e.target.value })}
+                    placeholder="Ex.: BR-381, km 412 — Betim/MG"
+                  />
+                </Field>
+                <Field label="Comentário do motorista (opcional)">
+                  <Textarea
+                    rows={2}
+                    value={form.location_note}
+                    onChange={(e) => setForm({ ...form, location_note: e.target.value })}
+                    placeholder="Ex.: parada técnica de 30min, retomando viagem em seguida."
+                  />
+                </Field>
+                <p className="text-[11px] text-muted-foreground">
+                  Ao salvar com uma nova localização, o histórico é registrado automaticamente.
+                  Use o botão <strong>"Salvar e notificar"</strong> abaixo para enviar a atualização ao cliente via WhatsApp.
+                </p>
+              </section>
+
               <Field label="Observações">
                 <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </Field>
@@ -646,9 +679,24 @@ function TransportsPage() {
 
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
-            <Button onClick={save} disabled={busy}>
+            <Button
+              variant="secondary"
+              onClick={() => save(true)}
+              disabled={busy || !form.current_location.trim() || !form.client_phone}
+              title={
+                !form.current_location.trim()
+                  ? "Preencha a localização atual"
+                  : !form.client_phone
+                  ? "Cliente sem telefone cadastrado"
+                  : "Salva e abre WhatsApp do cliente com a atualização"
+              }
+            >
+              <Send className="h-4 w-4 mr-1" />
+              Salvar e notificar cliente
+            </Button>
+            <Button onClick={() => save(false)} disabled={busy}>
               {busy ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
