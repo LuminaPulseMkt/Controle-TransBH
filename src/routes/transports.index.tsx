@@ -112,36 +112,6 @@ function TransportsPage() {
   const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
-  const [paymentByTransport, setPaymentByTransport] = useState<Record<string, "paid" | "partial" | "pending">>({});
-
-  const loadPayments = async (transportIds: string[]) => {
-    if (transportIds.length === 0) return;
-    const { data, error } = await supabase
-      .from("receivables")
-      .select("transport_id, status")
-      .in("transport_id", transportIds);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    const map: Record<string, { total: number; paid: number }> = {};
-    (data ?? []).forEach((r: { transport_id: string | null; status: string }) => {
-      if (!r.transport_id) return;
-      if (!map[r.transport_id]) map[r.transport_id] = { total: 0, paid: 0 };
-      map[r.transport_id].total++;
-      if (r.status === "paid") map[r.transport_id].paid++;
-    });
-    const result: Record<string, "paid" | "partial" | "pending"> = {};
-    transportIds.forEach((id) => {
-      const m = map[id];
-      if (!m || m.total === 0) result[id] = "pending";
-      else if (m.paid === 0) result[id] = "pending";
-      else if (m.paid >= m.total) result[id] = "paid";
-      else result[id] = "partial";
-    });
-    setPaymentByTransport(result);
-  };
-
   const load = async () => {
     const { data, error } = await supabase
       .from("transports")
@@ -149,32 +119,6 @@ function TransportsPage() {
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setItems(data ?? []);
-    await loadPayments((data ?? []).map((t) => t.id));
-  };
-
-  const setTransportPaymentStatus = async (
-    transport: Transport,
-    next: "paid" | "pending",
-  ) => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (next === "paid") {
-      const { error } = await supabase
-        .from("receivables")
-        .update({ status: "paid", paid_at: today })
-        .eq("transport_id", transport.id)
-        .neq("status", "paid");
-      if (error) return toast.error(error.message);
-      toast.success("Cobranças marcadas como pagas.");
-    } else {
-      const { error } = await supabase
-        .from("receivables")
-        .update({ status: "pending", paid_at: null })
-        .eq("transport_id", transport.id)
-        .neq("status", "pending");
-      if (error) return toast.error(error.message);
-      toast.success("Cobranças voltaram para pendente.");
-    }
-    setPaymentByTransport((prev) => ({ ...prev, [transport.id]: next }));
   };
 
   useEffect(() => { void load(); }, []);
@@ -460,7 +404,6 @@ function TransportsPage() {
                   <th className="px-4 py-3">Rota</th>
                   <th className="px-4 py-3">Entrega</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Pagamento</th>
                   <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
@@ -487,12 +430,6 @@ function TransportsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs">{dateBR(t.estimated_delivery)}</td>
                     <td className="px-4 py-3"><TransportStatusBadge status={t.status} /></td>
-                    <td className="px-4 py-3">
-                      <PaymentSelect
-                        value={paymentByTransport[t.id] ?? "pending"}
-                        onChange={(next) => setTransportPaymentStatus(t, next)}
-                      />
-                    </td>
                     <td className="px-4 py-3 text-right">
                       <Button asChild variant="ghost" size="sm">
                         <Link to="/transports/$id" params={{ id: t.id }}>Detalhes</Link>
@@ -822,32 +759,6 @@ function Field({ label, children, full }: { label: string; children: React.React
       <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
-  );
-}
-
-function PaymentSelect({
-  value,
-  onChange,
-}: {
-  value: "paid" | "partial" | "pending";
-  onChange: (next: "paid" | "pending") => void;
-}) {
-  const styles: Record<string, string> = {
-    paid: "border-success/40 text-success bg-success/10",
-    partial: "border-info/40 text-info bg-info/10",
-    pending: "border-border text-muted-foreground bg-muted",
-  };
-  return (
-    <Select value={value} onValueChange={(v) => onChange(v as "paid" | "pending")}>
-      <SelectTrigger className={`h-7 w-[130px] text-xs uppercase tracking-wider font-medium ${styles[value]}`}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="pending">Pendente</SelectItem>
-        {value === "partial" && <SelectItem value="partial" disabled>Pago parcial</SelectItem>}
-        <SelectItem value="paid">Pago</SelectItem>
-      </SelectContent>
-    </Select>
   );
 }
 
