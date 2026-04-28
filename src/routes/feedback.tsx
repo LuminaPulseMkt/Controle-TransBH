@@ -1,5 +1,5 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,18 +10,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/transbh-logo.jpeg";
 
-type Search = { ref?: string; client?: string };
-
 export const Route = createFileRoute("/feedback")({
-  validateSearch: (s: Record<string, unknown>): Search => ({
-    ref: typeof s.ref === "string" ? s.ref : undefined,
-    client: typeof s.client === "string" ? s.client : undefined,
-  }),
   component: FeedbackPage,
 });
 
 function FeedbackPage() {
-  const { ref, client } = Route.useSearch();
+  const { ref, client } = useMemo(() => {
+    if (typeof window === "undefined") return { ref: undefined, client: undefined };
+    const p = new URLSearchParams(window.location.search);
+    return { ref: p.get("ref") ?? undefined, client: p.get("client") ?? undefined };
+  }, []);
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
