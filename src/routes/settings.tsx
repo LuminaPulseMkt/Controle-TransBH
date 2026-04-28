@@ -127,6 +127,18 @@ function CompanyTab() {
           <Label>E-mail</Label>
           <Input type="email" value={data.email ?? ""} onChange={(e) => setData({ ...data, email: e.target.value })} />
         </div>
+        <div className="md:col-span-2">
+          <Label>Link Google Reviews</Label>
+          <Input
+            type="url"
+            placeholder="https://g.page/r/..."
+            value={data.google_review_url ?? ""}
+            onChange={(e) => setData({ ...data, google_review_url: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Para onde clientes satisfeitos (4-5 estrelas) serão direcionados.
+          </p>
+        </div>
       </div>
       <div className="mt-4 flex justify-end">
         <Button onClick={save} disabled={busy}>
