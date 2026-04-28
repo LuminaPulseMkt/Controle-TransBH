@@ -14,7 +14,6 @@ import { Route as SocialRouteImport } from './routes/social'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FinancialRouteImport } from './routes/financial'
-import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as IndexRouteImport } from './routes/index'
@@ -46,11 +45,6 @@ const LoginRoute = LoginRouteImport.update({
 const FinancialRoute = FinancialRouteImport.update({
   id: '/financial',
   path: '/financial',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedbackRoute = FeedbackRouteImport.update({
-  id: '/feedback',
-  path: '/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -93,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/collections': typeof CollectionsRoute
   '/documents': typeof DocumentsRoute
-  '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -108,7 +101,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/collections': typeof CollectionsRoute
   '/documents': typeof DocumentsRoute
-  '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -124,7 +116,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/collections': typeof CollectionsRoute
   '/documents': typeof DocumentsRoute
-  '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -141,7 +132,6 @@ export interface FileRouteTypes {
     | '/'
     | '/collections'
     | '/documents'
-    | '/feedback'
     | '/financial'
     | '/login'
     | '/settings'
@@ -156,7 +146,6 @@ export interface FileRouteTypes {
     | '/'
     | '/collections'
     | '/documents'
-    | '/feedback'
     | '/financial'
     | '/login'
     | '/settings'
@@ -171,7 +160,6 @@ export interface FileRouteTypes {
     | '/'
     | '/collections'
     | '/documents'
-    | '/feedback'
     | '/financial'
     | '/login'
     | '/settings'
@@ -187,7 +175,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CollectionsRoute: typeof CollectionsRoute
   DocumentsRoute: typeof DocumentsRoute
-  FeedbackRoute: typeof FeedbackRoute
   FinancialRoute: typeof FinancialRouteWithChildren
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
@@ -233,13 +220,6 @@ declare module '@tanstack/react-router' {
       path: '/financial'
       fullPath: '/financial'
       preLoaderRoute: typeof FinancialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feedback': {
-      id: '/feedback'
-      path: '/feedback'
-      fullPath: '/feedback'
-      preLoaderRoute: typeof FeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -310,7 +290,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CollectionsRoute: CollectionsRoute,
   DocumentsRoute: DocumentsRoute,
-  FeedbackRoute: FeedbackRoute,
   FinancialRoute: FinancialRouteWithChildren,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
@@ -323,3 +302,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
