@@ -243,51 +243,52 @@ function SocialPage() {
                 ))}
               </div>
 
-              {/* Logo - canto superior direito */}
+              {/* Logo - canto superior direito (fundo transparente, maior) */}
               <div style={{
-                position: "absolute", top: 20, right: 20,
-                background: "rgba(255,255,255,0.92)",
-                padding: "8px 12px", borderRadius: 8,
-                boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+                position: "absolute", top: 16, right: 16,
               }}>
                 {logoUrl ? (
                   <img
                     src={logoUrl}
                     alt="Logo"
                     crossOrigin="anonymous"
-                    style={{ height: 64, width: "auto", display: "block", objectFit: "contain" }}
+                    style={{
+                      height: 120, width: "auto", display: "block", objectFit: "contain",
+                      filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
+                    }}
                   />
                 ) : (
                   <div style={{
-                    fontFamily: "Bebas Neue", fontSize: 36, lineHeight: 1,
-                    color: "oklch(0.45 0.18 255)", letterSpacing: 2,
+                    fontFamily: "Bebas Neue", fontSize: 52, lineHeight: 1,
+                    color: "white", letterSpacing: 2,
+                    textShadow: "0 3px 8px rgba(0,0,0,0.6)",
                   }}>
                     TransBH
                   </div>
                 )}
               </div>
 
-              {/* Carimbo - canto inferior direito */}
+              {/* Carimbo - canto inferior direito (menor) */}
               <div style={{
                 position: "absolute",
                 bottom: 70, right: 28,
                 transform: "rotate(-12deg)",
-                border: "4px double #1f5f3a",
-                borderRadius: 10,
-                padding: "10px 18px",
+                border: "3px double #1f5f3a",
+                borderRadius: 8,
+                padding: "7px 14px",
                 background: "rgba(255, 252, 240, 0.92)",
                 color: "#1f5f3a",
                 fontFamily: "Bebas Neue, Impact, sans-serif",
-                fontSize: 36,
+                fontSize: 26,
                 lineHeight: 1,
                 letterSpacing: 2,
                 textAlign: "center",
                 boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
-                width: 280,
+                width: 220,
               }}>
-                <div style={{ fontSize: 12, letterSpacing: 4, marginBottom: 4 }}>★ ★ ★</div>
+                <div style={{ fontSize: 9, letterSpacing: 4, marginBottom: 3 }}>★ ★ ★</div>
                 ENTREGUE<br />COM SUCESSO
-                <div style={{ fontSize: 12, letterSpacing: 4, marginTop: 4 }}>★ ★ ★</div>
+                <div style={{ fontSize: 9, letterSpacing: 4, marginTop: 3 }}>★ ★ ★</div>
               </div>
 
               {/* Rodapé com info */}
