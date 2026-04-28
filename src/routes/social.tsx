@@ -253,7 +253,7 @@ function SocialPage() {
                     alt="Logo"
                     crossOrigin="anonymous"
                     style={{
-                      height: 120, width: "auto", display: "block", objectFit: "contain",
+                      height: 200, width: "auto", display: "block", objectFit: "contain",
                       filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
                     }}
                   />
