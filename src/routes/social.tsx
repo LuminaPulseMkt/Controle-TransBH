@@ -206,7 +206,7 @@ function SocialPage() {
             <div
               ref={cardRef}
               className="w-full aspect-square relative"
-              style={{ background: "#0b0b0b" }}
+              style={{ background: "#0b0b0b", containerType: "size" }}
             >
               {/* Colagem 2x2 */}
               <div
@@ -236,7 +236,7 @@ function SocialPage() {
                         color: "#555", gap: 6,
                       }}>
                         <Camera size={36} />
-                        <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2 }}>sem foto</span>
+                        <span style={{ fontSize: "2.2cqw", textTransform: "uppercase", letterSpacing: 2 }}>sem foto</span>
                       </div>
                     )}
                   </div>
@@ -245,7 +245,7 @@ function SocialPage() {
 
               {/* Logo - canto superior direito (fundo transparente, maior) */}
               <div style={{
-                position: "absolute", top: -8, right: -8,
+                position: "absolute", top: "-2cqw", right: "-2cqw",
               }}>
                 {logoUrl ? (
                   <img
@@ -253,13 +253,13 @@ function SocialPage() {
                     alt="Logo"
                     crossOrigin="anonymous"
                     style={{
-                      height: 200, width: "auto", display: "block", objectFit: "contain",
+                      height: "28cqw", width: "auto", display: "block", objectFit: "contain",
                       filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
                     }}
                   />
                 ) : (
                   <div style={{
-                    fontFamily: "Bebas Neue", fontSize: 52, lineHeight: 1,
+                    fontFamily: "Bebas Neue", fontSize: "10cqw", lineHeight: 1,
                     color: "white", letterSpacing: 2,
                     textShadow: "0 3px 8px rgba(0,0,0,0.6)",
                   }}>
@@ -268,27 +268,27 @@ function SocialPage() {
                 )}
               </div>
 
-              {/* Carimbo - canto inferior direito (menor) */}
+              {/* Carimbo - centro */}
               <div style={{
                 position: "absolute",
                 top: "50%", left: "50%",
                 transform: "translate(-50%, -50%) rotate(-12deg)",
                 border: "3px double #1f5f3a",
-                borderRadius: 8,
-                padding: "7px 14px",
+                borderRadius: "1.6cqw",
+                padding: "1.4cqw 2.8cqw",
                 background: "rgba(255, 252, 240, 0.98)",
                 color: "#1f5f3a",
                 fontFamily: "Bebas Neue, Impact, sans-serif",
-                fontSize: 26,
+                fontSize: "5.5cqw",
                 lineHeight: 1,
                 letterSpacing: 2,
                 textAlign: "center",
                 boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
-                width: 220,
+                width: "42cqw",
               }}>
-                <div style={{ fontSize: 9, letterSpacing: 4, marginBottom: 3 }}>★ ★ ★</div>
+                <div style={{ fontSize: "2cqw", letterSpacing: 4, marginBottom: "0.6cqw" }}>★ ★ ★</div>
                 ENTREGUE<br />COM SUCESSO
-                <div style={{ fontSize: 9, letterSpacing: 4, marginTop: 3 }}>★ ★ ★</div>
+                <div style={{ fontSize: "2cqw", letterSpacing: 4, marginTop: "0.6cqw" }}>★ ★ ★</div>
               </div>
 
               {/* Rodapé com info */}
@@ -297,13 +297,13 @@ function SocialPage() {
                   position: "absolute", bottom: 0, left: 0, right: 0,
                   background: "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0))",
                   color: "white",
-                  padding: "24px 20px 14px 20px",
-                  fontSize: 14,
+                  padding: "5cqw 4cqw 3cqw 4cqw",
+                  fontSize: "2.8cqw",
                 }}>
                   <div style={{ fontWeight: 600 }}>
                     {current.origin_city} → {current.destination_city}
                   </div>
-                  <div style={{ fontSize: 11, fontFamily: "monospace", opacity: 0.8, marginTop: 2 }}>
+                  <div style={{ fontSize: "2.2cqw", fontFamily: "monospace", opacity: 0.8, marginTop: 2 }}>
                     {current.vehicle_plate} · {current.code}
                   </div>
                 </div>
