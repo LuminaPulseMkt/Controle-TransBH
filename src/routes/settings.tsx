@@ -60,6 +60,7 @@ function CompanyTab() {
         whatsapp: data.whatsapp,
         email: data.email,
         logo_url: data.logo_url,
+        google_review_url: data.google_review_url,
       })
       .eq("singleton", true);
     setBusy(false);
