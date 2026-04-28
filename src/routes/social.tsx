@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Instagram, Facebook, MessageCircle, MapPin, Download, Star, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
+import logoTransbh from "@/assets/transbh-logo.jpeg";
 
 export const Route = createFileRoute("/social")({
   component: () => (
@@ -22,23 +23,48 @@ export const Route = createFileRoute("/social")({
   ),
 });
 
+type Transport = {
+  id: string; code: string; client_name: string; vehicle_plate: string;
+  origin_city: string; destination_city: string;
+};
+
 function SocialPage() {
-  const [transports, setTransports] = useState<{ id: string; code: string; client_name: string; vehicle_plate: string; origin_city: string; destination_city: string }[]>([]);
+  const [transports, setTransports] = useState<Transport[]>([]);
   const [selected, setSelected] = useState<string>("");
+  const [photos, setPhotos] = useState<{ id: string; photo_url: string }[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<string>("");
+  const [companyLogo, setCompanyLogo] = useState<string>(logoTransbh);
   const cardRef = useRef<HTMLDivElement>(null);
   const [satisfactionLink, setSatisfactionLink] = useState("");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("transports")
-        .select("id, code, client_name, vehicle_plate, origin_city, destination_city")
-        .eq("status", "delivered")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setTransports(data ?? []);
+      const [{ data: t }, { data: c }] = await Promise.all([
+        supabase
+          .from("transports")
+          .select("id, code, client_name, vehicle_plate, origin_city, destination_city")
+          .eq("status", "delivered")
+          .order("created_at", { ascending: false })
+          .limit(20),
+        supabase.from("company_settings").select("logo_url").maybeSingle(),
+      ]);
+      setTransports(t ?? []);
+      if (c?.logo_url) setCompanyLogo(c.logo_url);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!selected) { setPhotos([]); setSelectedPhoto(""); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("transport_photos")
+        .select("id, photo_url")
+        .eq("transport_id", selected)
+        .order("created_at", { ascending: false });
+      setPhotos(data ?? []);
+      setSelectedPhoto(data?.[0]?.photo_url ?? "");
+    })();
+  }, [selected]);
 
   const current = transports.find((t) => t.id === selected);
 
@@ -110,20 +136,45 @@ function SocialPage() {
       <Card className="p-5 mt-4">
         <h2 className="text-display text-xl mb-3">Card de Entrega Concluída</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Selecione um transporte entregue e gere uma imagem para postar nas redes.
+          Selecione um transporte entregue, escolha a foto de fundo e gere a imagem.
         </p>
         <div className="grid md:grid-cols-2 gap-4 items-start">
-          <div>
-            <Label>Transporte</Label>
-            <Select value={selected} onValueChange={setSelected}>
-              <SelectTrigger><SelectValue placeholder="Escolher entrega" /></SelectTrigger>
-              <SelectContent>
-                {transports.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.code} — {t.client_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={downloadCard} disabled={!current} className="w-full mt-3">
+          <div className="space-y-3">
+            <div>
+              <Label>Transporte</Label>
+              <Select value={selected} onValueChange={setSelected}>
+                <SelectTrigger><SelectValue placeholder="Escolher entrega" /></SelectTrigger>
+                <SelectContent>
+                  {transports.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.code} — {t.client_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {photos.length > 0 ? (
+              <div>
+                <Label>Foto de fundo</Label>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {photos.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedPhoto(p.photo_url)}
+                      className={`relative aspect-square rounded overflow-hidden border-2 transition-all ${
+                        selectedPhoto === p.photo_url ? "border-primary scale-95" : "border-transparent opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <img src={p.photo_url} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : selected ? (
+              <p className="text-xs text-muted-foreground">Este transporte não tem fotos cadastradas. Adicione fotos na página do transporte.</p>
+            ) : null}
+
+            <Button onClick={downloadCard} disabled={!current} className="w-full">
               <Download className="h-4 w-4 mr-1" /> Baixar imagem
             </Button>
           </div>
@@ -131,42 +182,109 @@ function SocialPage() {
           <div className="overflow-hidden rounded-lg">
             <div
               ref={cardRef}
-              className="w-full aspect-square relative"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.18 0.04 255) 0%, oklch(0.22 0.045 255) 100%)",
-                color: "white",
-                padding: "32px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
+              className="w-full aspect-square relative bg-black"
+              style={{ color: "white" }}
             >
-              <div>
-                <div style={{ fontFamily: "Bebas Neue", fontSize: 48, color: "oklch(0.78 0.16 70)", letterSpacing: 2 }}>
-                  TransBH
-                </div>
-                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 3, opacity: 0.6, marginTop: -6 }}>
-                  Transporte de Veículos
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 48 }}>🚗</div>
-                <div style={{ fontFamily: "Bebas Neue", fontSize: 36, lineHeight: 1.1, marginTop: 8 }}>
+              {/* Background photo */}
+              {selectedPhoto ? (
+                <img
+                  src={selectedPhoto}
+                  alt=""
+                  crossOrigin="anonymous"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(135deg, oklch(0.18 0.04 255) 0%, oklch(0.22 0.045 255) 100%)",
+                  }}
+                />
+              )}
+
+              {/* Dark gradient overlay for legibility */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 35%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.85) 100%)",
+                }}
+              />
+
+              {/* Logo top-left */}
+              <img
+                src={companyLogo}
+                alt="TransBH"
+                crossOrigin="anonymous"
+                style={{
+                  position: "absolute",
+                  top: 24,
+                  left: 24,
+                  height: 72,
+                  width: 72,
+                  objectFit: "contain",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.95)",
+                  padding: 6,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                }}
+              />
+
+              {/* Bottom info */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: 24,
+                  right: 24,
+                  bottom: 24,
+                }}
+              >
+                <div style={{ fontFamily: "Bebas Neue", fontSize: 36, lineHeight: 1.1, letterSpacing: 1 }}>
                   ENTREGA REALIZADA<br />COM SUCESSO!
                 </div>
                 {current && (
-                  <div style={{ fontSize: 16, marginTop: 16, opacity: 0.85 }}>
+                  <div style={{ fontSize: 16, marginTop: 10, opacity: 0.95 }}>
                     {current.origin_city} → {current.destination_city}
                   </div>
                 )}
                 {current && (
-                  <div style={{ fontSize: 12, marginTop: 4, fontFamily: "monospace", opacity: 0.55 }}>
+                  <div style={{ fontSize: 12, marginTop: 4, fontFamily: "monospace", opacity: 0.75 }}>
                     {current.vehicle_plate} · {current.code}
                   </div>
                 )}
               </div>
-              <div style={{ borderTop: "1px solid oklch(0.32 0.04 255)", paddingTop: 12, fontSize: 11, opacity: 0.6 }}>
-                @TransBH · transporte com confiança
+
+              {/* Green stamp bottom-right */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 28,
+                  right: 24,
+                  transform: "rotate(-12deg)",
+                  border: "4px double #1f7a3a",
+                  color: "#1f7a3a",
+                  background: "rgba(255,255,255,0.92)",
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  fontFamily: "Bebas Neue, sans-serif",
+                  fontSize: 22,
+                  letterSpacing: 2,
+                  fontWeight: 700,
+                  textAlign: "center",
+                  lineHeight: 1.1,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                  textShadow: "0 0 1px rgba(31,122,58,0.3)",
+                }}
+              >
+                ENTREGUE<br />COM SUCESSO
               </div>
             </div>
           </div>
@@ -184,3 +302,5 @@ function SocialLink({ href, icon: Icon, label, color }: { href: string; icon: an
     </a>
   );
 }
+
+void Input;
