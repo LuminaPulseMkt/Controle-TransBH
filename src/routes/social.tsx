@@ -245,7 +245,7 @@ function SocialPage() {
 
               {/* Logo - canto superior direito (fundo transparente, maior) */}
               <div style={{
-                position: "absolute", top: 16, right: 16,
+                position: "absolute", top: -8, right: -8,
               }}>
                 {logoUrl ? (
                   <img
@@ -271,12 +271,12 @@ function SocialPage() {
               {/* Carimbo - canto inferior direito (menor) */}
               <div style={{
                 position: "absolute",
-                bottom: 70, right: 28,
-                transform: "rotate(-12deg)",
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -50%) rotate(-12deg)",
                 border: "3px double #1f5f3a",
                 borderRadius: 8,
                 padding: "7px 14px",
-                background: "rgba(255, 252, 240, 0.92)",
+                background: "rgba(255, 252, 240, 0.98)",
                 color: "#1f5f3a",
                 fontFamily: "Bebas Neue, Impact, sans-serif",
                 fontSize: 26,

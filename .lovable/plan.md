@@ -1,19 +1,15 @@
 
-# Ajustes no card de entrega
+# Reposicionar logo e carimbo no card
 
-Pequenos ajustes visuais em `src/routes/social.tsx`:
+Ajustes pequenos em `src/routes/social.tsx`:
 
-1. **Logo maior e com fundo transparente**
-   - Remover a "caixinha" branca atrás da logo (background, padding, borda arredondada e box-shadow do container).
-   - Aumentar a altura da logo de **64px → 120px**.
-   - Adicionar `drop-shadow` sutil na própria imagem para destacá-la sobre a foto, sem precisar de fundo.
-   - A logo já está em PNG com fundo removido, então vai aparecer recortada sobre a colagem.
+1. **Logo mais para o canto superior**
+   - Mudar a posição do container da logo de `top: 16, right: 16` para `top: -8, right: -8`, "encostando" mais no canto.
 
-2. **Carimbo "ENTREGUE COM SUCESSO" um pouco menor**
-   - Largura: **280px → 220px**.
-   - Fonte: **36px → 26px**.
-   - Padding interno reduzido: `10px 18px → 7px 14px`.
-   - Borda dupla um pouco mais fina: `4px → 3px`.
-   - Posição (canto inferior direito) e rotação (-12°) mantidas.
+2. **Carimbo mais central, com opacidade maior**
+   - Tirar o posicionamento atual no canto inferior direito (`bottom: 70, right: 28`).
+   - Centralizar no card: `top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg)`.
+   - Aumentar a opacidade do fundo do carimbo: `rgba(255, 252, 240, 0.92)` → `rgba(255, 252, 240, 0.98)` (quase sólido).
+   - Tamanho, fonte, borda e estrelas permanecem iguais.
 
-Sem mudanças em banco, sem mudanças em outras páginas.
+Sem outras mudanças.
