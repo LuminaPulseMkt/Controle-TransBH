@@ -4,13 +4,12 @@ import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Instagram, Facebook, MessageCircle, MapPin, Download, Star, Copy } from "lucide-react";
+import { Instagram, Facebook, MessageCircle, MapPin, Download, Star, Copy, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
 
@@ -22,25 +21,59 @@ export const Route = createFileRoute("/social")({
   ),
 });
 
+type Transport = {
+  id: string; code: string; client_name: string; vehicle_plate: string;
+  origin_city: string; destination_city: string;
+};
+
 function SocialPage() {
-  const [transports, setTransports] = useState<{ id: string; code: string; client_name: string; vehicle_plate: string; origin_city: string; destination_city: string }[]>([]);
+  const [transports, setTransports] = useState<Transport[]>([]);
   const [selected, setSelected] = useState<string>("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [chosen, setChosen] = useState<string[]>([]); // up to 4
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [satisfactionLink, setSatisfactionLink] = useState("");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("transports")
-        .select("id, code, client_name, vehicle_plate, origin_city, destination_city")
-        .eq("status", "delivered")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setTransports(data ?? []);
+      const [{ data: tr }, { data: c }] = await Promise.all([
+        supabase
+          .from("transports")
+          .select("id, code, client_name, vehicle_plate, origin_city, destination_city")
+          .eq("status", "delivered")
+          .order("created_at", { ascending: false })
+          .limit(20),
+        supabase.from("company_settings").select("logo_url").maybeSingle(),
+      ]);
+      setTransports(tr ?? []);
+      setLogoUrl(c?.logo_url ?? null);
     })();
   }, []);
 
+  useEffect(() => {
+    if (!selected) { setPhotos([]); setChosen([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("transport_photos")
+        .select("photo_url")
+        .eq("transport_id", selected)
+        .order("created_at", { ascending: false });
+      const urls = (data ?? []).map((p) => p.photo_url);
+      setPhotos(urls);
+      setChosen(urls.slice(0, 4));
+    })();
+  }, [selected]);
+
   const current = transports.find((t) => t.id === selected);
+
+  const togglePhoto = (url: string) => {
+    setChosen((prev) => {
+      if (prev.includes(url)) return prev.filter((u) => u !== url);
+      if (prev.length >= 4) return [...prev.slice(1), url];
+      return [...prev, url];
+    });
+  };
 
   const downloadCard = async () => {
     if (!cardRef.current) return;
@@ -50,7 +83,7 @@ function SocialPage() {
       link.download = `transbh-entrega-${current?.code ?? "card"}.png`;
       link.href = dataUrl;
       link.click();
-    } catch (e) {
+    } catch {
       toast.error("Falha ao gerar imagem.");
     }
   };
@@ -63,6 +96,9 @@ function SocialPage() {
     void navigator.clipboard.writeText(link);
     toast.success("Link copiado!");
   };
+
+  // Pad chosen to 4 slots (with null for placeholder)
+  const slots: (string | null)[] = [0, 1, 2, 3].map((i) => chosen[i] ?? null);
 
   return (
     <AppLayout title="Social & Marketing">
@@ -110,20 +146,58 @@ function SocialPage() {
       <Card className="p-5 mt-4">
         <h2 className="text-display text-xl mb-3">Card de Entrega Concluída</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Selecione um transporte entregue e gere uma imagem para postar nas redes.
+          Escolha o transporte e selecione até 4 fotos para a colagem.
         </p>
         <div className="grid md:grid-cols-2 gap-4 items-start">
-          <div>
-            <Label>Transporte</Label>
-            <Select value={selected} onValueChange={setSelected}>
-              <SelectTrigger><SelectValue placeholder="Escolher entrega" /></SelectTrigger>
-              <SelectContent>
-                {transports.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.code} — {t.client_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={downloadCard} disabled={!current} className="w-full mt-3">
+          <div className="space-y-3">
+            <div>
+              <Label>Transporte</Label>
+              <Select value={selected} onValueChange={setSelected}>
+                <SelectTrigger><SelectValue placeholder="Escolher entrega" /></SelectTrigger>
+                <SelectContent>
+                  {transports.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.code} — {t.client_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selected && (
+              <div>
+                <Label>Fotos ({chosen.length}/4 selecionadas)</Label>
+                {photos.length === 0 ? (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Este transporte não tem fotos — adicione em Transportes.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {photos.map((url) => {
+                      const idx = chosen.indexOf(url);
+                      const active = idx >= 0;
+                      return (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => togglePhoto(url)}
+                          className={`relative aspect-square rounded overflow-hidden border-2 transition ${
+                            active ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"
+                          }`}
+                        >
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          {active && (
+                            <div className="absolute top-0.5 right-0.5 bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                              {idx + 1}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button onClick={downloadCard} disabled={!current} className="w-full">
               <Download className="h-4 w-4 mr-1" /> Baixar imagem
             </Button>
           </div>
@@ -132,42 +206,107 @@ function SocialPage() {
             <div
               ref={cardRef}
               className="w-full aspect-square relative"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.18 0.04 255) 0%, oklch(0.22 0.045 255) 100%)",
-                color: "white",
-                padding: "32px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
+              style={{ background: "#0b0b0b" }}
             >
-              <div>
-                <div style={{ fontFamily: "Bebas Neue", fontSize: 48, color: "oklch(0.78 0.16 70)", letterSpacing: 2 }}>
-                  TransBH
-                </div>
-                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 3, opacity: 0.6, marginTop: -6 }}>
-                  Transporte de Veículos
-                </div>
+              {/* Colagem 2x2 */}
+              <div
+                style={{
+                  position: "absolute", inset: 0,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateRows: "1fr 1fr",
+                  gap: "4px",
+                  background: "white",
+                }}
+              >
+                {slots.map((url, i) => (
+                  <div key={i} style={{ overflow: "hidden", background: "#1a1a1a", position: "relative" }}>
+                    {url ? (
+                      <img
+                        src={url}
+                        alt=""
+                        crossOrigin="anonymous"
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: "100%", height: "100%",
+                        display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "center",
+                        color: "#555", gap: 6,
+                      }}>
+                        <Camera size={36} />
+                        <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2 }}>sem foto</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div>
-                <div style={{ fontSize: 48 }}>🚗</div>
-                <div style={{ fontFamily: "Bebas Neue", fontSize: 36, lineHeight: 1.1, marginTop: 8 }}>
-                  ENTREGA REALIZADA<br />COM SUCESSO!
-                </div>
-                {current && (
-                  <div style={{ fontSize: 16, marginTop: 16, opacity: 0.85 }}>
+
+              {/* Logo - canto superior direito */}
+              <div style={{
+                position: "absolute", top: 20, right: 20,
+                background: "rgba(255,255,255,0.92)",
+                padding: "8px 12px", borderRadius: 8,
+                boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+              }}>
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    crossOrigin="anonymous"
+                    style={{ height: 64, width: "auto", display: "block", objectFit: "contain" }}
+                  />
+                ) : (
+                  <div style={{
+                    fontFamily: "Bebas Neue", fontSize: 36, lineHeight: 1,
+                    color: "oklch(0.45 0.18 255)", letterSpacing: 2,
+                  }}>
+                    TransBH
+                  </div>
+                )}
+              </div>
+
+              {/* Carimbo - canto inferior direito */}
+              <div style={{
+                position: "absolute",
+                bottom: 70, right: 28,
+                transform: "rotate(-12deg)",
+                border: "4px double #1f5f3a",
+                borderRadius: 10,
+                padding: "10px 18px",
+                background: "rgba(255, 252, 240, 0.92)",
+                color: "#1f5f3a",
+                fontFamily: "Bebas Neue, Impact, sans-serif",
+                fontSize: 36,
+                lineHeight: 1,
+                letterSpacing: 2,
+                textAlign: "center",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+                width: 280,
+              }}>
+                <div style={{ fontSize: 12, letterSpacing: 4, marginBottom: 4 }}>★ ★ ★</div>
+                ENTREGUE<br />COM SUCESSO
+                <div style={{ fontSize: 12, letterSpacing: 4, marginTop: 4 }}>★ ★ ★</div>
+              </div>
+
+              {/* Rodapé com info */}
+              {current && (
+                <div style={{
+                  position: "absolute", bottom: 0, left: 0, right: 0,
+                  background: "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+                  color: "white",
+                  padding: "24px 20px 14px 20px",
+                  fontSize: 14,
+                }}>
+                  <div style={{ fontWeight: 600 }}>
                     {current.origin_city} → {current.destination_city}
                   </div>
-                )}
-                {current && (
-                  <div style={{ fontSize: 12, marginTop: 4, fontFamily: "monospace", opacity: 0.55 }}>
+                  <div style={{ fontSize: 11, fontFamily: "monospace", opacity: 0.8, marginTop: 2 }}>
                     {current.vehicle_plate} · {current.code}
                   </div>
-                )}
-              </div>
-              <div style={{ borderTop: "1px solid oklch(0.32 0.04 255)", paddingTop: 12, fontSize: 11, opacity: 0.6 }}>
-                @TransBH · transporte com confiança
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

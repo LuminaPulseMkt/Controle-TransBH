@@ -52,6 +52,7 @@ export type Database = {
           cnpj: string | null
           created_at: string
           email: string | null
+          google_review_url: string | null
           id: string
           logo_url: string | null
           name: string
@@ -65,6 +66,7 @@ export type Database = {
           cnpj?: string | null
           created_at?: string
           email?: string | null
+          google_review_url?: string | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -78,6 +80,7 @@ export type Database = {
           cnpj?: string | null
           created_at?: string
           email?: string | null
+          google_review_url?: string | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -387,6 +390,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transport_feedback: {
+        Row: {
+          client_name: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          transport_code: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          transport_code?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          transport_code?: string | null
+        }
+        Relationships: []
       }
       transport_location_updates: {
         Row: {

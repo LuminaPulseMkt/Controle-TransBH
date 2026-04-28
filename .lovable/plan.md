@@ -1,87 +1,62 @@
-# Página de Feedback + Card de Entrega com foto
 
-Resolver dois itens em sequência: criar a página `/feedback` que hoje retorna 404, e refazer o card de entrega para usar a foto do carro como fundo, com logo da empresa e carimbo verde de "Entregue com sucesso".
+# Página /feedback + Card de Entrega com colagem de 4 fotos
 
-## 1. Página `/feedback` (corrige 404)
+## 1. Corrigir 404 do link de satisfação
 
-Novo arquivo `src/routes/feedback.tsx`:
+Criar `src/routes/feedback.tsx`:
 
 - Lê `?ref=<código>&client=<nome>` da URL.
-- Mostra: nome do cliente, código do transporte, 5 estrelas para clicar, campo opcional de comentário e botão "Enviar avaliação".
-- **Lógica de redirect (4–5 estrelas)**: ao enviar com nota 4 ou 5, salva e redireciona automaticamente para o Google Reviews da empresa. Notas 1–3 ficam só no formulário interno com agradecimento e (opcional) abertura do WhatsApp para contato.
-- URL do Google Reviews vem do `company_settings.google_review_url` (campo novo — ver migração abaixo). Se não estiver preenchido, mostra apenas tela de "Obrigado" sem redirect.
+- Mostra nome do cliente, código do transporte, 5 estrelas clicáveis, campo de comentário opcional e botão "Enviar avaliação".
+- Ao enviar:
+  - Salva em `transport_feedback` (tabela já existe).
+  - Se nota **4 ou 5** e `company_settings.google_review_url` estiver preenchido, redireciona automaticamente para o Google Reviews.
+  - Se nota **1–3**, mostra tela de "Obrigado pelo retorno" sem redirect.
+- Inclui `errorComponent` e `notFoundComponent` (padrão TanStack).
 
-### Migração
+Em `src/routes/settings.tsx`: adicionar campo "Link Google Reviews" salvando em `company_settings.google_review_url` (coluna já existe).
 
-Adicionar duas colunas em `company_settings`:
-- `google_review_url text` — link público do Google Reviews para redirect.
-- `logo_url` já existe (será usado no card também).
+## 2. Card de Entrega — colagem 2×2 com 4 fotos
 
-Criar tabela nova `transport_feedback` para armazenar avaliações:
+Em `src/routes/social.tsx`, após escolher o transporte:
 
-| coluna | tipo |
-|---|---|
-| id | uuid PK |
-| transport_code | text |
-| client_name | text |
-| rating | int (1–5) |
-| comment | text null |
-| created_at | timestamptz default now() |
+- Buscar até 4 linhas mais recentes de `transport_photos` daquele transporte.
+- Mostrar abaixo do select uma faixa de miniaturas com as fotos disponíveis e checkbox para escolher exatamente quais 4 entram na colagem (pré-seleciona as 4 primeiras).
+- Se houver menos de 4 fotos, preenche os slots vazios com um placeholder escuro com o ícone de câmera + texto "sem foto", para a colagem manter o formato 2×2.
+- Aviso quando não houver nenhuma foto cadastrada: "Este transporte não tem fotos — adicione em Transportes".
 
-RLS:
-- INSERT público (anon + authenticated) — qualquer pessoa com o link pode avaliar.
-- SELECT só para administradores.
-
-### Configurações
-Em `src/routes/settings.tsx` adicionar campo "Link Google Reviews" para o admin colar a URL.
-
-## 2. Foto do carro no card de entrega
-
-Em `src/routes/social.tsx`:
-
-- Ao escolher um transporte, buscar todas as linhas de `transport_photos` daquele transporte.
-- Mostrar uma faixa horizontal de miniaturas abaixo do select. Clique seleciona a foto que vai virar o fundo do card.
-- Se não houver fotos, mostrar aviso "Este transporte não tem fotos cadastradas — adicione em Transportes".
-
-## 3. Redesenho do card
-
-Layout do `cardRef` (1080×1080, mesma proporção atual):
+## 3. Layout novo do card (1080×1080)
 
 ```text
-+-----------------------------------------+
-| [LOGO]                                  |  <- canto sup. esquerdo
-|                                         |
-|         (foto do carro cobrindo         |
-|          todo o fundo, object-fit:      |
-|          cover, com leve gradiente      |
-|          escuro embaixo p/ legibilidade)|
-|                                         |
-| origem → destino                        |
-| placa · código              [ CARIMBO ] |  <- carimbo no canto inf. direito
-+-----------------------------------------+
++---------------------------+---------------------------+
+|                           |                           |
+|        FOTO 1             |        FOTO 2     [LOGO]  |  <- logo canto sup. direito
+|                           |                           |
++---------------------------+---------------------------+
+|                           |                           |
+|        FOTO 3             |        FOTO 4             |
+|                           |              [ CARIMBO ]  |  <- carimbo canto inf. direito
++---------------------------+---------------------------+
+   origem → destino · placa · código (rodapé fino preto translúcido)
 ```
 
 Detalhes:
-- **Foto de fundo**: `<img src={selectedPhoto}>` em `position:absolute; inset:0; width:100%; height:100%; object-fit:cover`.
-- **Overlay**: gradiente escuro só na metade inferior para o texto branco continuar legível.
-- **Logo**: `<img src={company.logo_url}>` no canto superior esquerdo, altura ~60–72px, com leve sombra. Se não houver logo, fallback para o texto "TransBH" em Bebas Neue (atual).
-- **Carimbo "ENTREGUE COM SUCESSO"** no canto inferior direito:
-  - Caixa rotacionada ~-12°, borda dupla verde escura (#1f5f3a), texto verde escuro em maiúsculas, fonte serif/condensed, fundo translúcido branco/cremoso.
-  - Tamanho médio (~280px de largura).
-- Texto de origem→destino e placa permanecem no canto inferior esquerdo, em branco com sombra.
-- Geração da PNG continua via `html-to-image` (`toPng` já em uso) — funciona com `<img>` cross-origin desde que o bucket `transport-photos` seja público (já é).
+- **Grade 2×2**: 4 `<img>` em `object-fit: cover`, separadas por uma linha fina branca de 4px.
+- **Logo**: `<img src={company.logo_url}>` no canto superior direito, ~96px de altura, com leve drop-shadow. Fallback para texto "TransBH" se `logo_url` estiver vazio.
+- **Carimbo "ENTREGUE COM SUCESSO"** no canto inferior direito, sobreposto à colagem:
+  - Caixa rotacionada ~-12°, borda dupla verde escura (#1f5f3a), texto verde escuro em maiúsculas, fonte condensada, fundo branco translúcido.
+  - Largura ~300px (tamanho médio).
+- **Removido**: o emoji 🚗 e o texto grande "ENTREGA REALIZADA COM SUCESSO!" — agora a mensagem fica só no carimbo.
+- **Rodapé**: barra fina preta translúcida na base com `origem → destino · placa · código` em branco para identificação, sem competir com o carimbo.
+- Geração da PNG continua via `html-to-image` (`toPng`), bucket `transport-photos` já é público (CORS ok).
 
 ## 4. Logo da empresa
 
-A logo deve ser cadastrada uma única vez em **Configurações → Empresa** (campo `logo_url` já existe; verificar se o input está exposto — caso não esteja, adicionar upload simples para o bucket `company-assets`). O card lê automaticamente de `company_settings.logo_url`.
-
-> Observação: você mencionou que enviaria a logo agora, mas ela não veio anexada nesta mensagem. Implemento o card com fallback para texto e, assim que você enviar a imagem, faço o upload e a configuro nas configurações da empresa.
+Cadastrada uma vez em **Configurações → Empresa** (campo `logo_url`). O card lê automaticamente. Como a logo ainda não foi anexada nesta mensagem, implemento o card com fallback de texto "TransBH"; quando você enviar a imagem eu faço o upload e configuro.
 
 ## Arquivos alterados
 
 - **novo** `src/routes/feedback.tsx` — página de avaliação + redirect Google.
-- **novo** `supabase/migrations/<timestamp>_feedback_and_logo.sql` — coluna `google_review_url`, tabela `transport_feedback` + RLS.
-- `src/routes/social.tsx` — seletor de fotos + redesenho completo do card.
-- `src/routes/settings.tsx` — campo "Link Google Reviews" (e upload de logo se ainda não houver).
+- `src/routes/social.tsx` — seletor das 4 fotos + novo layout de colagem do card (logo direita, carimbo direita, sem o texto antigo).
+- `src/routes/settings.tsx` — campo "Link Google Reviews".
 
-Sem mudança no card antigo de Link de Satisfação além de continuar apontando para `/feedback` (que agora existe).
+Sem novas migrações: `transport_feedback` e `google_review_url` já existem no banco.
