@@ -104,8 +104,6 @@ function PublicDocumentPage() {
     if (d.body?.vehicle) { pdf.text(`Veículo: ${d.body.vehicle}`, 14, y); y += 5; }
     if (d.body?.origin) { pdf.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { pdf.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
-    if (d.body?.pickup_date) { pdf.text(`Coleta: ${new Date(d.body.pickup_date + "T12:00:00").toLocaleDateString("pt-BR")}`, 14, y); y += 5; }
-    if (d.body?.delivery_date) { pdf.text(`Entrega: ${new Date(d.body.delivery_date + "T12:00:00").toLocaleDateString("pt-BR")}`, 14, y); y += 5; }
 
     y += 5;
     pdf.setFontSize(12);
@@ -113,6 +111,8 @@ function PublicDocumentPage() {
     pdf.setFontSize(10);
     pdf.text(`Frete: ${brl(d.body?.service_value ?? 0)}`, 14, y); y += 5;
     if (d.body?.extra) { pdf.text(`Adicionais: ${brl(d.body.extra)}`, 14, y); y += 5; }
+    if (d.body?.pickup_value) { pdf.text(`Coleta: ${brl(d.body.pickup_value)}`, 14, y); y += 5; }
+    if (d.body?.delivery_value) { pdf.text(`Entrega: ${brl(d.body.delivery_value)}`, 14, y); y += 5; }
     pdf.setFontSize(14);
     pdf.setTextColor(245, 158, 11);
     pdf.text(`TOTAL: ${brl(d.total_amount ?? 0)}`, 14, y + 5);

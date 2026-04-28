@@ -83,8 +83,8 @@ function DocumentsPage() {
     template: "standard",
     origin: "",
     destination: "",
-    pickup_date: "",
-    delivery_date: "",
+    pickup_value: "",
+    delivery_value: "",
     vehicle: "",
     vehicle_plate: "",
     vehicle_color: "",
@@ -145,8 +145,10 @@ function DocumentsPage() {
     setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const total = useMemo(() => {
-    const s = (Number(form.service_value) || 0) + (Number(form.extra) || 0);
-    return s;
+    return (Number(form.service_value) || 0)
+      + (Number(form.extra) || 0)
+      + (Number(form.pickup_value) || 0)
+      + (Number(form.delivery_value) || 0);
   }, [form]);
 
   const openNew = (type: "budget" | "contract") => {
@@ -169,8 +171,8 @@ function DocumentsPage() {
       template: (d.template as string) ?? "standard",
       origin: d.body?.origin ?? "",
       destination: d.body?.destination ?? "",
-      pickup_date: d.body?.pickup_date ?? "",
-      delivery_date: d.body?.delivery_date ?? "",
+      pickup_value: d.body?.pickup_value != null ? String(d.body.pickup_value) : "",
+      delivery_value: d.body?.delivery_value != null ? String(d.body.delivery_value) : "",
       vehicle: d.body?.vehicle ?? "",
       vehicle_plate: d.body?.vehicle_plate ?? "",
       vehicle_color: d.body?.vehicle_color ?? "",
@@ -212,8 +214,8 @@ function DocumentsPage() {
     const body = {
       origin: form.origin,
       destination: form.destination,
-      pickup_date: form.pickup_date || null,
-      delivery_date: form.delivery_date || null,
+      pickup_value: Number(form.pickup_value) || 0,
+      delivery_value: Number(form.delivery_value) || 0,
       client_address: form.client_address || null,
       vehicle: form.vehicle,
       vehicle_plate: form.vehicle_plate.toUpperCase(),
@@ -283,8 +285,6 @@ function DocumentsPage() {
     if (d.body?.vehicle_color) { doc.text(`Cor: ${d.body.vehicle_color}`, 14, y); y += 5; }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { doc.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
-    if (d.body?.pickup_date) { doc.text(`Coleta: ${dateBR(d.body.pickup_date)}`, 14, y); y += 5; }
-    if (d.body?.delivery_date) { doc.text(`Entrega: ${dateBR(d.body.delivery_date)}`, 14, y); y += 5; }
 
     y += 5;
     doc.setFontSize(12);
@@ -292,6 +292,8 @@ function DocumentsPage() {
     doc.setFontSize(10);
     doc.text(`Frete: ${brl(d.body?.service_value ?? 0)}`, 14, y); y += 5;
     if (d.body?.extra) { doc.text(`Adicionais: ${brl(d.body.extra)}`, 14, y); y += 5; }
+    if (d.body?.pickup_value) { doc.text(`Coleta: ${brl(d.body.pickup_value)}`, 14, y); y += 5; }
+    if (d.body?.delivery_value) { doc.text(`Entrega: ${brl(d.body.delivery_value)}`, 14, y); y += 5; }
     doc.setFontSize(14);
     doc.setTextColor(245, 158, 11);
     doc.text(`TOTAL: ${brl(d.total_amount ?? 0)}`, 14, y + 5);
@@ -593,12 +595,12 @@ function DocumentsPage() {
                   <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="São Paulo/SP" />
                 </div>
                 <div>
-                  <Label>Coleta</Label>
-                  <Input type="date" value={form.pickup_date} onChange={(e) => setForm({ ...form, pickup_date: e.target.value })} />
+                  <Label>Coleta (R$)</Label>
+                  <Input type="number" step="0.01" value={form.pickup_value} onChange={(e) => setForm({ ...form, pickup_value: e.target.value })} placeholder="0,00" />
                 </div>
                 <div>
-                  <Label>Entrega</Label>
-                  <Input type="date" value={form.delivery_date} onChange={(e) => setForm({ ...form, delivery_date: e.target.value })} />
+                  <Label>Entrega (R$)</Label>
+                  <Input type="number" step="0.01" value={form.delivery_value} onChange={(e) => setForm({ ...form, delivery_value: e.target.value })} placeholder="0,00" />
                 </div>
                 <div>
                   <Label>Frete</Label>
