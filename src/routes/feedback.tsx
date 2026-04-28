@@ -21,7 +21,7 @@ export const Route = createFileRoute("/feedback")({
 });
 
 function FeedbackPage() {
-  const { ref, client } = useSearch({ from: "/feedback" });
+  const { ref, client } = Route.useSearch();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
