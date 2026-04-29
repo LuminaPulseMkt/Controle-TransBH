@@ -1,50 +1,44 @@
+## Objetivo
 
-# Logo e carimbo proporcionais (mobile e desktop)
+Tornar o fundo do app branco (tema claro) em todas as áreas, mantendo o **menu lateral (sidebar)** com o azul escuro atual.
 
-O card é `aspect-square` (largura = altura), mas hoje a logo (`200px`) e o carimbo (`width: 220px`, `fontSize: 26px`) usam tamanhos fixos em pixels. Em telas pequenas, o card encolhe mas esses elementos não — ficam grandes demais e cortam. A solução é usar unidades relativas ao tamanho do card.
+## Abordagem
 
-## Mudanças em `src/routes/social.tsx`
+O app hoje força tema dark global (classe `dark` no `<body>` em `src/routes/__root.tsx`) e os tokens em `src/styles.css` estão todos em tons escuros. A sidebar usa um conjunto separado de tokens (`--sidebar*`) que já são azul escuro — então basta:
 
-### 1. Container do card define tamanho de fonte base
-No `<div ref={cardRef}>` adicionar `fontSize` proporcional via container query / cqw. Como o card é quadrado, usar `containerType: "size"` e basear medidas em `cqw` (1cqw = 1% da largura do card).
+1. Remover o `dark` do `<body>` e clarear os tokens base.
+2. Manter os tokens `--sidebar*` exatamente como estão (azul escuro).
 
-```tsx
-<div
-  ref={cardRef}
-  className="w-full aspect-square relative"
-  style={{ background: "#0b0b0b", containerType: "size" }}
->
-```
+## Mudanças
 
-### 2. Logo proporcional
-Trocar `height: 200` fixo por `height: "28cqw"` (≈ 28% da largura do card). Em desktop com card de ~500px → ~140px; em mobile com card de ~350px → ~98px. Ajustar posição também em cqw para manter proporção:
+### 1. `src/routes/__root.tsx`
+- Trocar `<body className="dark">` por `<body>` para não forçar dark mode.
 
-```tsx
-<div style={{ position: "absolute", top: "-2cqw", right: "-2cqw" }}>
-  <img ... style={{ height: "28cqw", width: "auto", ... }} />
-</div>
-```
+### 2. `src/styles.css`
+- Reescrever os tokens em `:root` para versão clara:
+  - `--background`: branco puro
+  - `--foreground`: cinza muito escuro (texto)
+  - `--card` / `--popover`: branco (com leve diferença) e foreground escuro
+  - `--muted`: cinza bem claro; `--muted-foreground`: cinza médio
+  - `--secondary` / `--accent`: cinza claro / âmbar (mantém marca)
+  - `--primary`: manter âmbar atual (`oklch(0.78 0.16 70)`) — é a cor da marca
+  - `--border` / `--input`: cinza claro
+  - `--ring`: âmbar (mantém)
+  - Ajustar `--grid-pattern` para linhas cinza muito sutis sobre branco (substituir o tom escuro atual por algo como `oklch(0.9 0.005 255 / 0.6)`).
+- **Manter intactos** os tokens da sidebar (azul escuro):
+  - `--sidebar`, `--sidebar-foreground`, `--sidebar-primary`, `--sidebar-primary-foreground`, `--sidebar-accent`, `--sidebar-accent-foreground`, `--sidebar-border`, `--sidebar-ring`.
+- Remover/neutralizar o bloco `.dark { ... }` (ou deixá-lo igual ao `:root` claro) para que, mesmo se algo aplicar `.dark`, não volte ao escuro.
 
-### 3. Carimbo proporcional
-Substituir tamanhos fixos por cqw:
-- `width: 220` → `width: "42cqw"`
-- `fontSize: 26` → `fontSize: "5.5cqw"`
-- `padding: "7px 14px"` → `padding: "1.4cqw 2.8cqw"`
-- estrelas `fontSize: 9` → `fontSize: "2cqw"`
-- `borderRadius: 8` → `borderRadius: "1.6cqw"`
-- `border: "3px double"` mantém (fica fino, ok)
+### 3. Verificação visual
+Após aplicar, conferir:
+- Header (`AppLayout`): usa `bg-card/50` — ficará branco translúcido sobre branco, ok.
+- Cards, inputs, dialogs (shadcn/ui): seguem tokens automaticamente, devem ficar claros.
+- Sidebar (`AppSidebar` / `ui/sidebar.tsx`): usa `bg-sidebar` e classes `text-sidebar-*` → continua azul escuro com texto claro.
+- `bg-grid` no `<main>`: padrão de grid sutil em cinza claro sobre branco.
+- Página `login.tsx`, `feedback.tsx`, `d.$token.tsx`: revisar se há classes hardcoded escuras (ex: `bg-background bg-grid`) — devem se adaptar automaticamente aos novos tokens.
 
-### 4. Rodapé com info também em cqw
-Para coerência visual em mobile:
-- `padding: "24px 20px 14px"` → `padding: "5cqw 4cqw 3cqw"`
-- `fontSize: 14` → `fontSize: "2.8cqw"`
-- placa/código `fontSize: 11` → `fontSize: "2.2cqw"`
+## Fora de escopo
 
-### 5. Placeholder "sem foto" também escala
-- Ícone Camera `size={36}` → manter (raro caso de uso)
-- `fontSize: 11` → `fontSize: "2.2cqw"`
-
-## Resultado esperado
-A logo, carimbo e rodapé escalam junto com o card, mantendo a mesma proporção visual independente do tamanho da tela. A imagem PNG exportada por `html-to-image` continua nítida porque `pixelRatio: 2` é aplicado sobre o tamanho renderizado real.
-
-Sem outras mudanças.
+- Não alterar o card de redes sociais (`/social`) — ele usa cores fixas (`#0b0b0b`) intencionalmente para o post.
+- Não trocar a cor primária âmbar da marca.
+- Não criar toggle de tema (apenas mudar para claro fixo, mantendo sidebar azul).
