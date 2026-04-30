@@ -21,6 +21,7 @@ import { Plus, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
 type FinancialSearch = { tab?: string; status?: string };
 
@@ -394,38 +395,49 @@ function PayablesTab() {
 
 function ReportsTab() {
   const [data, setData] = useState<{ revenue: number; expenses: number; receivables: Receivable[] } | null>(null);
+  const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
 
   useEffect(() => {
     (async () => {
       const monthStart = new Date();
       monthStart.setDate(1);
       const iso = monthStart.toISOString().slice(0, 10);
-      const [{ data: paid }, { data: pay }, { data: rec }] = await Promise.all([
+      const [{ data: paid }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
         supabase.from("receivables").select("amount, paid_at").eq("status", "paid").gte("paid_at", iso),
         supabase.from("payables").select("amount, expense_date").gte("expense_date", iso),
         supabase.from("receivables").select("*").eq("status", "overdue").order("due_date"),
+        supabase.from("company_settings").select("name,logo_url").maybeSingle(),
       ]);
       const revenue = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
       const expenses = pay?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
       setData({ revenue, expenses, receivables: rec ?? [] });
+      setCompany((comp as any) ?? null);
     })();
   }, []);
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!data) return;
     const doc = new jsPDF();
-    doc.setFontSize(20);
-    doc.text("TransBH — Relatório Financeiro", 14, 20);
+    const logo = await loadLogoDataUrl(company?.logo_url ?? null);
+    let titleX = 14;
+    if (logo) {
+      const targetH = 16;
+      const targetW = Math.min(logo.widthFor(targetH), 50);
+      doc.addImage(logo.dataUrl, "PNG", 14, 8, targetW, targetH);
+      titleX = 14 + targetW + 6;
+    }
+    doc.setFontSize(18);
+    doc.text("Relatório Financeiro", titleX, 20);
     doc.setFontSize(11);
-    doc.text(`Mês: ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`, 14, 28);
-    doc.text(`Receita: ${brl(data.revenue)}`, 14, 38);
-    doc.text(`Despesas: ${brl(data.expenses)}`, 14, 45);
-    doc.text(`Resultado: ${brl(data.revenue - data.expenses)}`, 14, 52);
+    doc.text(`Mês: ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`, 14, 36);
+    doc.text(`Receita: ${brl(data.revenue)}`, 14, 46);
+    doc.text(`Despesas: ${brl(data.expenses)}`, 14, 53);
+    doc.text(`Resultado: ${brl(data.revenue - data.expenses)}`, 14, 60);
 
     if (data.receivables.length) {
-      doc.text("Contas vencidas:", 14, 64);
+      doc.text("Contas vencidas:", 14, 72);
       autoTable(doc, {
-        startY: 68,
+        startY: 76,
         head: [["Cliente", "Valor", "Vencimento", "Dias"]],
         body: data.receivables.map((r) => [
           r.client_name,
