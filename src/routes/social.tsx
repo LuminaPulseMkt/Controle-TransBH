@@ -78,7 +78,15 @@ function SocialPage() {
   const downloadCard = async () => {
     if (!cardRef.current) return;
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true });
+      const node = cardRef.current;
+      const w = node.clientWidth || 1;
+      const pixelRatio = 1080 / w;
+      const dataUrl = await toPng(node, {
+        pixelRatio,
+        canvasWidth: 1080,
+        canvasHeight: 1350,
+        cacheBust: true,
+      });
       const link = document.createElement("a");
       link.download = `transbh-entrega-${current?.code ?? "card"}.png`;
       link.href = dataUrl;
@@ -205,8 +213,8 @@ function SocialPage() {
           <div className="overflow-hidden rounded-lg">
             <div
               ref={cardRef}
-              className="w-full aspect-square relative"
-              style={{ background: "#0b0b0b", containerType: "size" }}
+              className="w-full relative"
+              style={{ background: "#0b0b0b", containerType: "size", aspectRatio: "1080 / 1350" }}
             >
               {/* Colagem 2x2 */}
               <div
