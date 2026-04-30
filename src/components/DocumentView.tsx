@@ -21,6 +21,7 @@ interface CompanyInfo {
   email?: string | null;
   address?: string | null;
   cnpj?: string | null;
+  logo_url?: string | null;
 }
 
 interface Props {
@@ -38,17 +39,27 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
       {/* Cabeçalho estilo papel */}
       <div className="bg-[#0d1b2a] text-white px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded bg-primary/20 text-primary flex items-center justify-center">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="font-sans text-3xl font-bold tracking-tight text-primary">
-              {company?.name || "TransBH"}
-            </div>
-            <div className="text-sm font-medium text-white/80">
-              Transporte de Veículos
-            </div>
-          </div>
+          {company?.logo_url ? (
+            <img
+              src={company.logo_url}
+              alt={company?.name || "Logo"}
+              className="h-14 md:h-16 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
+            />
+          ) : (
+            <>
+              <div className="h-10 w-10 rounded bg-primary/20 text-primary flex items-center justify-center">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-sans text-3xl font-bold tracking-tight text-primary">
+                  {company?.name || "TransBH"}
+                </div>
+                <div className="text-sm font-medium text-white/80">
+                  Transporte de Veículos
+                </div>
+              </div>
+            </>
+          )}
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold text-white/80">
@@ -114,7 +125,15 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
             </div>
             <div className="text-center">
               <div className="border-t border-foreground/40 pt-2 text-sm font-medium text-foreground">
-                {company?.name || "TransBH"}
+                {company?.logo_url ? (
+                  <img
+                    src={company.logo_url}
+                    alt={company?.name || "Logo"}
+                    className="h-8 w-auto object-contain mx-auto mb-1"
+                  />
+                ) : (
+                  company?.name || "TransBH"
+                )}
                 <div className="text-xs uppercase tracking-wider mt-0.5 text-muted-foreground">Contratada</div>
               </div>
             </div>

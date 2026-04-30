@@ -8,6 +8,7 @@ import { Download, FileText } from "lucide-react";
 import { brl, dateBR } from "@/lib/format";
 import jsPDF from "jspdf";
 import { AcceptBudgetCard } from "@/components/AcceptBudgetCard";
+import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
 export const Route = createFileRoute("/d/$token")({
   component: PublicDocumentPage,
@@ -20,6 +21,7 @@ interface CompanyInfo {
   email: string | null;
   address: string | null;
   cnpj: string | null;
+  logo_url: string | null;
 }
 
 function PublicDocumentPage() {
@@ -40,7 +42,7 @@ function PublicDocumentPage() {
           .select("id,doc_type,title,client_name,client_document,client_phone,client_email,total_amount,body,created_at,accepted_at,accepted_contract_id")
           .eq("public_token", token)
           .maybeSingle(),
-        supabase.from("company_settings").select("name,phone,whatsapp,email,address,cnpj").maybeSingle(),
+        supabase.from("company_settings").select("name,phone,whatsapp,email,address,cnpj,logo_url").maybeSingle(),
       ]);
 
       // Se já foi aceito, buscar token público do contrato gerado
@@ -68,15 +70,22 @@ function PublicDocumentPage() {
     };
   }, [token]);
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!doc) return;
     const d = doc;
     const pdf = new jsPDF();
     pdf.setFillColor(13, 27, 42);
     pdf.rect(0, 0, 210, 30, "F");
-    pdf.setTextColor(245, 158, 11);
-    pdf.setFontSize(24);
-    pdf.text(company?.name || "TransBH", 14, 20);
+    const logo = await loadLogoDataUrl(company?.logo_url ?? null);
+    if (logo) {
+      const targetH = 18;
+      const targetW = Math.min(logo.widthFor(targetH), 80);
+      pdf.addImage(logo.dataUrl, "PNG", 14, 6, targetW, targetH);
+    } else {
+      pdf.setTextColor(245, 158, 11);
+      pdf.setFontSize(24);
+      pdf.text(company?.name || "TransBH", 14, 20);
+    }
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(10);
     pdf.text(d.doc_type === "budget" ? "ORÇAMENTO" : "CONTRATO DE TRANSPORTE", 200, 20, { align: "right" });
