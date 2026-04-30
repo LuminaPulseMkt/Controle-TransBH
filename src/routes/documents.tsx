@@ -662,6 +662,7 @@ function DocumentsPage() {
         onOpenChange={(v) => !v && setPreviewDoc(null)}
         onExportPDF={exportPDF}
         onShareWhatsApp={shareWhatsApp}
+        company={company}
       />
     </AppLayout>
   );

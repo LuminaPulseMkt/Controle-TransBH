@@ -13,15 +13,26 @@ interface DocumentPreview extends DocumentViewData {
   accepted_contract_id: string | null;
 }
 
+interface CompanyInfo {
+  name?: string | null;
+  logo_url?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  address?: string | null;
+  cnpj?: string | null;
+}
+
 interface Props {
   doc: DocumentPreview | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onExportPDF?: (d: DocumentPreview) => void;
   onShareWhatsApp?: (d: DocumentPreview) => void;
+  company?: CompanyInfo | null;
 }
 
-export function DocumentPreviewDialog({ doc, open, onOpenChange, onExportPDF, onShareWhatsApp }: Props) {
+export function DocumentPreviewDialog({ doc, open, onOpenChange, onExportPDF, onShareWhatsApp, company }: Props) {
   if (!doc) return null;
 
   const copyLink = async () => {
@@ -42,7 +53,7 @@ export function DocumentPreviewDialog({ doc, open, onOpenChange, onExportPDF, on
           <DialogTitle>{doc.title}</DialogTitle>
         </DialogHeader>
 
-        <DocumentView doc={doc} />
+        <DocumentView doc={doc} company={company} />
 
         <DialogFooter className="px-6 py-4 border-t border-border bg-muted/20">
           {doc.public_token && (
