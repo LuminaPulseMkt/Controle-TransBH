@@ -418,13 +418,13 @@ function ReportsTab() {
   const exportPDF = async () => {
     if (!data) return;
     const doc = new jsPDF();
-    const headerH = 70;
+    const headerH = 56;
     doc.setFillColor(13, 27, 42);
     doc.rect(0, 0, 210, headerH, "F");
     const logo = await loadLogoDataUrl(company?.logo_url ?? null);
     if (logo) {
-      const targetH = 60;
-      const targetW = Math.min(logo.widthFor(targetH), 120);
+      const targetH = 48;
+      const targetW = Math.min(logo.widthFor(targetH), 140);
       doc.addImage(logo.dataUrl, "PNG", 14, (headerH - targetH) / 2, targetW, targetH);
     } else {
       doc.setTextColor(245, 158, 11);
