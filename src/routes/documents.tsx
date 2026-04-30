@@ -25,6 +25,7 @@ import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateR
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
@@ -61,6 +62,7 @@ function DocumentsPage() {
   const { isAdmin, user } = useAuth();
   const [items, setItems] = useState<Document[] | null>(null);
   const [customTemplates, setCustomTemplates] = useState<DocTemplate[]>([]);
+  const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
@@ -104,7 +106,11 @@ function DocumentsPage() {
       .order("created_at", { ascending: false });
     setCustomTemplates(((data ?? []) as unknown as DBTemplateRow[]).map(dbRowToTemplate));
   };
-  useEffect(() => { void load(); void loadTemplates(); }, []);
+  const loadCompany = async () => {
+    const { data } = await supabase.from("company_settings").select("name,logo_url").maybeSingle();
+    setCompany((data as any) ?? null);
+  };
+  useEffect(() => { void load(); void loadTemplates(); void loadCompany(); }, []);
 
   const allTemplates = useMemo(
     () => [...DOCUMENT_TEMPLATES, ...customTemplates],
@@ -253,9 +259,16 @@ function DocumentsPage() {
     const doc = new jsPDF();
     doc.setFillColor(13, 27, 42);
     doc.rect(0, 0, 210, 30, "F");
-    doc.setTextColor(245, 158, 11);
-    doc.setFontSize(24);
-    doc.text("TransBH", 14, 20);
+    const logo = await loadLogoDataUrl(company?.logo_url ?? null);
+    if (logo) {
+      const targetH = 18;
+      const targetW = Math.min(logo.widthFor(targetH), 80);
+      doc.addImage(logo.dataUrl, "PNG", 14, 6, targetW, targetH);
+    } else {
+      doc.setTextColor(245, 158, 11);
+      doc.setFontSize(24);
+      doc.text(company?.name || "TransBH", 14, 20);
+    }
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.text(d.doc_type === "budget" ? "ORÇAMENTO" : "CONTRATO DE TRANSPORTE", 200, 20, { align: "right" });
