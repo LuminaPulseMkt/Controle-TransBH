@@ -418,26 +418,32 @@ function ReportsTab() {
   const exportPDF = async () => {
     if (!data) return;
     const doc = new jsPDF();
+    const headerH = 70;
+    doc.setFillColor(13, 27, 42);
+    doc.rect(0, 0, 210, headerH, "F");
     const logo = await loadLogoDataUrl(company?.logo_url ?? null);
-    let titleX = 14;
     if (logo) {
-      const targetH = 16;
-      const targetW = Math.min(logo.widthFor(targetH), 50);
-      doc.addImage(logo.dataUrl, "PNG", 14, 8, targetW, targetH);
-      titleX = 14 + targetW + 6;
+      const targetH = 60;
+      const targetW = Math.min(logo.widthFor(targetH), 120);
+      doc.addImage(logo.dataUrl, "PNG", 14, (headerH - targetH) / 2, targetW, targetH);
+    } else {
+      doc.setTextColor(245, 158, 11);
+      doc.setFontSize(28);
+      doc.text(company?.name || "TransBH", 14, headerH / 2 + 4);
     }
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(18);
-    doc.text("Relatório Financeiro", titleX, 20);
+    doc.text("Relatório Financeiro", 14, headerH + 12);
     doc.setFontSize(11);
-    doc.text(`Mês: ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`, 14, 36);
-    doc.text(`Receita: ${brl(data.revenue)}`, 14, 46);
-    doc.text(`Despesas: ${brl(data.expenses)}`, 14, 53);
-    doc.text(`Resultado: ${brl(data.revenue - data.expenses)}`, 14, 60);
+    doc.text(`Mês: ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`, 14, headerH + 22);
+    doc.text(`Receita: ${brl(data.revenue)}`, 14, headerH + 32);
+    doc.text(`Despesas: ${brl(data.expenses)}`, 14, headerH + 39);
+    doc.text(`Resultado: ${brl(data.revenue - data.expenses)}`, 14, headerH + 46);
 
     if (data.receivables.length) {
-      doc.text("Contas vencidas:", 14, 72);
+      doc.text("Contas vencidas:", 14, headerH + 58);
       autoTable(doc, {
-        startY: 76,
+        startY: headerH + 62,
         head: [["Cliente", "Valor", "Vencimento", "Dias"]],
         body: data.receivables.map((r) => [
           r.client_name,

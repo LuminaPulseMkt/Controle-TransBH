@@ -257,29 +257,30 @@ function DocumentsPage() {
 
   const exportPDF = async (d: Document) => {
     const doc = new jsPDF();
+    const headerH = 70;
     doc.setFillColor(13, 27, 42);
-    doc.rect(0, 0, 210, 30, "F");
+    doc.rect(0, 0, 210, headerH, "F");
     const logo = await loadLogoDataUrl(company?.logo_url ?? null);
     if (logo) {
-      const targetH = 18;
-      const targetW = Math.min(logo.widthFor(targetH), 80);
-      doc.addImage(logo.dataUrl, "PNG", 14, 6, targetW, targetH);
+      const targetH = 60;
+      const targetW = Math.min(logo.widthFor(targetH), 120);
+      doc.addImage(logo.dataUrl, "PNG", 14, (headerH - targetH) / 2, targetW, targetH);
     } else {
       doc.setTextColor(245, 158, 11);
-      doc.setFontSize(24);
-      doc.text(company?.name || "TransBH", 14, 20);
+      doc.setFontSize(28);
+      doc.text(company?.name || "TransBH", 14, headerH / 2 + 4);
     }
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
-    doc.text(d.doc_type === "budget" ? "ORÇAMENTO" : "CONTRATO DE TRANSPORTE", 200, 20, { align: "right" });
+    doc.text(d.doc_type === "budget" ? "ORÇAMENTO" : "CONTRATO DE TRANSPORTE", 200, headerH - 8, { align: "right" });
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(16);
-    doc.text(d.title, 14, 45);
+    doc.text(d.title, 14, headerH + 12);
     doc.setFontSize(10);
-    doc.text(`Data: ${dateBR(d.created_at)}`, 14, 52);
+    doc.text(`Data: ${dateBR(d.created_at)}`, 14, headerH + 19);
 
-    let y = 65;
+    let y = headerH + 32;
     doc.setFontSize(12);
     doc.text("Cliente", 14, y); y += 6;
     doc.setFontSize(10);
