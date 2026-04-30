@@ -1,48 +1,38 @@
 ## Plano
 
-Aumentar a logo nos cabeçalhos de **Orçamento, Contrato e Relatório Financeiro** (web + PDF) para **250px de altura**, exibindo **somente a logo** (sem nome textual nem subtítulo ao lado), mantendo fallback de texto quando não houver `logo_url`.
+Substituir a logo atual pela nova enviada (caminhão TransBH PNG transparente), com upscale 2x para melhor qualidade, e ajustar o tamanho exibido para **180px** (web) e **~48mm** (PDF) nos cabeçalhos de Orçamento, Contrato e Relatório Financeiro.
 
 ## Mudanças
 
-### 1. Web — `src/components/DocumentView.tsx`
-No cabeçalho `<div className="bg-[#0d1b2a] ...">`:
-- Trocar `className="h-14 md:h-16 w-auto object-contain drop-shadow-..."` da `<img>` por `className="w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"` + `style={{ height: "250px" }}`.
-- O bloco já remove o texto quando há logo (lógica atual com `company?.logo_url ?`), então nada mais muda ali.
-- Aumentar levemente o `py` do header (de `py-5` para `py-6`) para acomodar a logo maior sem corte.
+### 1. Asset da nova logo
+- Copiar `user-uploads://remover_fundo-removebg-preview-removebg-preview.png` para `/tmp` e gerar versão upscale 2x via Lovable AI Gateway (Nano Banana Pro — `google/gemini-3-pro-image-preview`) para aumentar nitidez/resolução.
+- Salvar resultado em:
+  - `src/assets/transbh-logo.png` (HD para uso no app via import).
+  - `public/transbh-logo.png` (cópia para acesso por URL).
 
-### 2. PDF de Orçamento/Contrato (área autenticada) — `src/routes/documents.tsx`
-Na função `exportPDF`:
-- Aumentar a altura da faixa `#0d1b2a` do header de 30mm para **~70mm** (equivalente a 250px @ ~96dpi → ~66mm; arredondamos 70mm).
-- Trocar a chamada `doc.addImage(logoDataUrl, "PNG", 14, 6, ...)` para usar **altura 60mm** centralizada verticalmente na faixa: `const h = 60; const w = logo.widthFor(h); doc.addImage(logo.dataUrl, "PNG", 14, (70-h)/2, w, h);`.
-- Remover qualquer texto auxiliar ("TransBH"/subtítulo) ao lado da logo no header.
-- Fallback (sem logo): manter `doc.text("TransBH", 14, 20)` mas dentro da nova faixa (ajustar y para ~40).
-- Empurrar o `startY` do conteúdo para depois da nova faixa (`y = 80` em vez de `40`).
+### 2. Banco — `company_settings.logo_url`
+- Subir o PNG HD para o Storage do Supabase (bucket `logos` já usado em `settings.tsx`) e atualizar `logo_url` em `company_settings` via insert/update na linha existente (migration ou script `psql`/edge), garantindo que todos os documentos passem a usar a nova logo automaticamente.
 
-### 3. PDF público — `src/routes/d.$token.tsx`
-Mesma alteração da seção 2 na função `exportPDF`:
-- Faixa de 70mm, logo 60mm de altura, sem texto ao lado, conteúdo começando após a faixa.
+### 3. Tamanho — Web
+- `src/components/DocumentView.tsx` (linha 47): trocar `style={{ height: "250px" }}` por `style={{ height: "180px" }}`.
+- Reduzir `py-6` do header de volta para `py-5` (mais proporcional aos 180px).
 
-### 4. PDF do Relatório Financeiro — `src/routes/financial.tsx`
-Na função `exportPDF`:
-- Adicionar faixa `#0d1b2a` de 70mm (hoje só tem texto).
-- Renderizar a logo com altura 60mm à esquerda (mesmo cálculo via `loadLogoDataUrl` + `widthFor`).
-- **Remover** o texto "TransBH — Relatório Financeiro" do cabeçalho colorido (somente a logo, conforme pedido).
-- Manter um título "Relatório Financeiro" em preto **abaixo** da faixa (em ~y=80), pois é necessário identificar o documento.
-- Fallback sem logo: desenhar a faixa e escrever "TransBH" branco centralizado.
+### 4. Tamanho — PDF (3 arquivos)
+Em `src/routes/documents.tsx`, `src/routes/d.$token.tsx`, `src/routes/financial.tsx`:
+- Faixa de header: reduzir `headerH` de **70mm → 56mm**.
+- Logo: `targetH` de **60mm → 48mm** (180px @ ~96dpi ≈ 47.6mm).
+- Largura máxima: aumentar de 120mm → 140mm para acomodar o aspecto largo da nova logo (caminhão + texto).
+- Ajustar `y` inicial do conteúdo proporcionalmente (`headerH + 12 / +19 / +32`, já parametrizado).
 
-### 5. Sem alterações
-- `DocumentPreviewDialog.tsx` (já passa `company` com `logo_url`).
-- `src/lib/pdf-logo.ts` (helper já pronto, será reutilizado).
-- Assinatura do contrato (logo pequena de 8mm permanece como está — não foi pedido alterar).
+### 5. Sem alteração
+- `pdf-logo.ts` (helper continua válido).
+- Assinatura do contrato (logo pequena 8mm).
 - Sidebar, login, feedback, social.
 
 ## Detalhes técnicos
-
-- 250px @ 96dpi ≈ 66mm; usamos **60mm** no PDF para deixar margem visual dentro da faixa de 70mm.
-- Largura da logo no PDF é proporcional via `LoadedLogo.widthFor(60)`.
-- Em telas estreitas (mobile), 250px de altura vai dominar o header — é o tamanho explicitamente pedido.
-- Tipo do documento + data (lado direito do header web) permanece, pois identifica o documento.
+- Upscale: usar `lovable_ai.py --edit-image` com prompt tipo *"Upscale 2x, sharpen edges, preserve transparency, keep exact composition and colors"*.
+- 180px @ 96dpi ≈ 47.6mm → arredondado para 48mm.
+- Largura proporcional preservada via `LoadedLogo.widthFor(48)`.
 
 ## Fora de escopo
-
-- Card de entrega em `/social`, sidebar, login, feedback, assinatura de contrato.
+- Outras telas (sidebar, login, feedback, social) mantêm logo atual nos seus tamanhos.
