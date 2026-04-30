@@ -1,0 +1,1 @@
+UPDATE public.company_settings SET logo_url = 'https://mbcyrkofidalwpfykutf.supabase.co/storage/v1/object/public/company-assets/transbh-logo-hd-1777577502.png';
