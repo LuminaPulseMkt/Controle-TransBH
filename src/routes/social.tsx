@@ -128,12 +128,37 @@ function SocialPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-5">
           <h2 className="text-display text-xl mb-3">Redes Sociais</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <SocialLink href="https://instagram.com/TransBH" icon={Instagram} label="Instagram" color="bg-pink-500/15 text-pink-400" />
-            <SocialLink href="https://facebook.com/TransBH" icon={Facebook} label="Facebook" color="bg-blue-500/15 text-blue-400" />
-            <SocialLink href="https://wa.me/" icon={MessageCircle} label="WhatsApp Business" color="bg-green-500/15 text-green-400" />
-            <SocialLink href="https://business.google.com" icon={MapPin} label="Google Business" color="bg-amber-500/15 text-amber-400" />
-          </div>
+          {(() => {
+            const links = [
+              { href: socials.instagram_url, icon: Instagram, label: "Instagram", color: "bg-pink-500/15 text-pink-400" },
+              { href: socials.facebook_url, icon: Facebook, label: "Facebook", color: "bg-blue-500/15 text-blue-400" },
+              { href: socials.whatsapp_url, icon: MessageCircle, label: "WhatsApp Business", color: "bg-green-500/15 text-green-400" },
+              { href: socials.google_business_url, icon: MapPin, label: "Google Business", color: "bg-amber-500/15 text-amber-400" },
+            ].filter((l) => l.href && l.href.trim() !== "");
+
+            if (links.length === 0) {
+              return (
+                <div className="text-center py-6 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma rede social configurada. O administrador deve adicionar os links das contas próprias.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/settings">
+                      <SettingsIcon className="h-4 w-4 mr-1" /> Ir para Configurações
+                    </Link>
+                  </Button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-2 gap-3">
+                {links.map((l) => (
+                  <SocialLink key={l.label} href={l.href as string} icon={l.icon} label={l.label} color={l.color} />
+                ))}
+              </div>
+            );
+          })()}
         </Card>
 
         <Card className="p-5">
