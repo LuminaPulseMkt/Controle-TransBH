@@ -52,42 +52,54 @@ export type Database = {
           cnpj: string | null
           created_at: string
           email: string | null
+          facebook_url: string | null
+          google_business_url: string | null
           google_review_url: string | null
           id: string
+          instagram_url: string | null
           logo_url: string | null
           name: string
           phone: string | null
           singleton: boolean
           updated_at: string
           whatsapp: string | null
+          whatsapp_url: string | null
         }
         Insert: {
           address?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
+          facebook_url?: string | null
+          google_business_url?: string | null
           google_review_url?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           name?: string
           phone?: string | null
           singleton?: boolean
           updated_at?: string
           whatsapp?: string | null
+          whatsapp_url?: string | null
         }
         Update: {
           address?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
+          facebook_url?: string | null
+          google_business_url?: string | null
           google_review_url?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           name?: string
           phone?: string | null
           singleton?: boolean
           updated_at?: string
           whatsapp?: string | null
+          whatsapp_url?: string | null
         }
         Relationships: []
       }
