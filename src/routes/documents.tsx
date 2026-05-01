@@ -137,6 +137,39 @@ function DocumentsPage() {
     void loadTemplates();
   };
 
+  const requestDeleteDoc = (d: Document) => {
+    if (d.doc_type === "budget" && d.accepted_at) {
+      toast.error("Este orçamento já foi aceito e gerou um contrato. Exclua o contrato vinculado primeiro.");
+      return;
+    }
+    setDeletingDoc(d);
+  };
+
+  const confirmDeleteDoc = async () => {
+    const d = deletingDoc;
+    if (!d) return;
+    setDeletingDocBusy(true);
+    try {
+      // Se for um contrato gerado a partir de um orçamento aceito, libera o orçamento
+      if (d.doc_type === "contract") {
+        await supabase
+          .from("documents")
+          .update({ accepted_at: null, accepted_contract_id: null })
+          .eq("accepted_contract_id", d.id);
+      }
+      const { error } = await supabase.from("documents").delete().eq("id", d.id);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(`${d.doc_type === "budget" ? "Orçamento" : "Contrato"} excluído.`);
+        setDeletingDoc(null);
+        void load();
+      }
+    } finally {
+      setDeletingDocBusy(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     if (!items) return [];
     if (filter === "all") return items;
