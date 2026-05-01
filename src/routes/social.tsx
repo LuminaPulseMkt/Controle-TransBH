@@ -32,6 +32,12 @@ function SocialPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string[]>([]); // up to 4
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [socials, setSocials] = useState<{
+    instagram_url: string | null;
+    facebook_url: string | null;
+    whatsapp_url: string | null;
+    google_business_url: string | null;
+  }>({ instagram_url: null, facebook_url: null, whatsapp_url: null, google_business_url: null });
   const cardRef = useRef<HTMLDivElement>(null);
   const [satisfactionLink, setSatisfactionLink] = useState("");
 
@@ -44,10 +50,19 @@ function SocialPage() {
           .eq("status", "delivered")
           .order("created_at", { ascending: false })
           .limit(20),
-        supabase.from("company_settings").select("logo_url").maybeSingle(),
+        supabase
+          .from("company_settings")
+          .select("logo_url, instagram_url, facebook_url, whatsapp_url, google_business_url")
+          .maybeSingle(),
       ]);
       setTransports(tr ?? []);
       setLogoUrl(c?.logo_url ?? null);
+      setSocials({
+        instagram_url: c?.instagram_url ?? null,
+        facebook_url: c?.facebook_url ?? null,
+        whatsapp_url: c?.whatsapp_url ?? null,
+        google_business_url: c?.google_business_url ?? null,
+      });
     })();
   }, []);
 
