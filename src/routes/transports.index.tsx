@@ -25,7 +25,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransportStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
-import { Plus, Search, Loader2, X, Upload, MapPin, Send } from "lucide-react";
+import { Plus, Search, Loader2, X, Upload, MapPin, Send, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
@@ -109,6 +119,8 @@ function TransportsPage() {
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
+  const [deletingTransport, setDeletingTransport] = useState<Transport | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
 
   // Multi-photo state
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -403,12 +415,33 @@ function TransportsPage() {
     void load();
   };
 
-  const removeTransport = async (t: Transport) => {
-    if (!confirm(`Remover ${t.code} permanentemente?`)) return;
-    const { error } = await supabase.from("transports").delete().eq("id", t.id);
-    if (error) return toast.error(error.message);
-    toast.success("Removido.");
-    void load();
+  const removeTransport = (t: Transport) => {
+    setDeletingTransport(t);
+  };
+
+  const confirmRemoveTransport = async () => {
+    const t = deletingTransport;
+    if (!t) return;
+    setDeletingBusy(true);
+    try {
+      // Limpa dependências para evitar órfãos
+      await supabase.from("transport_photos").delete().eq("transport_id", t.id);
+      await supabase.from("transport_location_updates").delete().eq("transport_id", t.id);
+      await supabase.from("documents").update({ transport_id: null }).eq("transport_id", t.id);
+      await supabase.from("receivables").update({ transport_id: null }).eq("transport_id", t.id);
+      await supabase.from("payables").update({ transport_id: null }).eq("transport_id", t.id);
+
+      const { error } = await supabase.from("transports").delete().eq("id", t.id);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Transporte removido.");
+        setDeletingTransport(null);
+        void load();
+      }
+    } finally {
+      setDeletingBusy(false);
+    }
   };
 
   return (
@@ -501,8 +534,8 @@ function TransportsPage() {
                         </Button>
                       )}
                       {isAdmin && (
-                        <Button variant="ghost" size="sm" onClick={() => removeTransport(t)}>
-                          <X className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" onClick={() => removeTransport(t)} className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </td>
@@ -711,6 +744,36 @@ function TransportsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingTransport} onOpenChange={(v) => !v && !deletingBusy && setDeletingTransport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir transporte?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingTransport && (
+                <>
+                  Tem certeza que deseja remover permanentemente o transporte{" "}
+                  <strong>{deletingTransport.code}</strong> ({deletingTransport.vehicle_plate}) do cliente{" "}
+                  <strong>{deletingTransport.client_name}</strong>?
+                  <br />
+                  Fotos e atualizações de localização vinculadas também serão apagadas.
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void confirmRemoveTransport(); }}
+              disabled={deletingBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

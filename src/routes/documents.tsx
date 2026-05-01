@@ -14,6 +14,16 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -73,6 +83,8 @@ function DocumentsPage() {
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [groupByClient, setGroupByClient] = useState(true);
+  const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
+  const [deletingDocBusy, setDeletingDocBusy] = useState(false);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState({
@@ -123,6 +135,39 @@ function DocumentsPage() {
     if (error) return toast.error(error.message);
     toast.success("Modelo excluído.");
     void loadTemplates();
+  };
+
+  const requestDeleteDoc = (d: Document) => {
+    if (d.doc_type === "budget" && d.accepted_at) {
+      toast.error("Este orçamento já foi aceito e gerou um contrato. Exclua o contrato vinculado primeiro.");
+      return;
+    }
+    setDeletingDoc(d);
+  };
+
+  const confirmDeleteDoc = async () => {
+    const d = deletingDoc;
+    if (!d) return;
+    setDeletingDocBusy(true);
+    try {
+      // Se for um contrato gerado a partir de um orçamento aceito, libera o orçamento
+      if (d.doc_type === "contract") {
+        await supabase
+          .from("documents")
+          .update({ accepted_at: null, accepted_contract_id: null })
+          .eq("accepted_contract_id", d.id);
+      }
+      const { error } = await supabase.from("documents").delete().eq("id", d.id);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(`${d.doc_type === "budget" ? "Orçamento" : "Contrato"} excluído.`);
+        setDeletingDoc(null);
+        void load();
+      }
+    } finally {
+      setDeletingDocBusy(false);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -419,7 +464,9 @@ function DocumentsPage() {
                           key={d.id}
                           d={d}
                           canEdit={isAdmin}
+                          canDelete={isAdmin}
                           onEdit={() => openEdit(d)}
+                          onDelete={() => requestDeleteDoc(d)}
                           onPreview={() => setPreviewDoc(d)}
                           onPDF={() => exportPDF(d)}
                           onWhatsApp={() => shareWhatsApp(d)}
@@ -439,7 +486,9 @@ function DocumentsPage() {
               <DocRow
                 d={d}
                 canEdit={isAdmin}
+                canDelete={isAdmin}
                 onEdit={() => openEdit(d)}
+                onDelete={() => requestDeleteDoc(d)}
                 onPreview={() => setPreviewDoc(d)}
                 onPDF={() => exportPDF(d)}
                 onWhatsApp={() => shareWhatsApp(d)}
@@ -663,6 +712,37 @@ function DocumentsPage() {
         onShareWhatsApp={shareWhatsApp}
         company={company}
       />
+
+      <AlertDialog open={!!deletingDoc} onOpenChange={(v) => !v && !deletingDocBusy && setDeletingDoc(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {deletingDoc?.doc_type === "budget" ? "orçamento" : "contrato"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingDoc && (
+                <>
+                  Tem certeza que deseja excluir permanentemente{" "}
+                  <strong>{deletingDoc.title}</strong> do cliente{" "}
+                  <strong>{deletingDoc.client_name}</strong> ({brl(deletingDoc.total_amount ?? 0)})?
+                  <br />
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingDocBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void confirmDeleteDoc(); }}
+              disabled={deletingDocBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingDocBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
@@ -670,14 +750,18 @@ function DocumentsPage() {
 function DocRow({
   d,
   canEdit,
+  canDelete,
   onEdit,
+  onDelete,
   onPreview,
   onPDF,
   onWhatsApp,
 }: {
   d: Document;
   canEdit?: boolean;
+  canDelete?: boolean;
   onEdit?: () => void;
+  onDelete?: () => void;
   onPreview: () => void;
   onPDF: () => void;
   onWhatsApp: () => void;
@@ -727,6 +811,17 @@ function DocRow({
         <Button size="sm" variant="outline" onClick={onWhatsApp}>
           <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
         </Button>
+        {canDelete && onDelete && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDelete}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            title="Excluir documento"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
