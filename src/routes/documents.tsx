@@ -83,6 +83,8 @@ function DocumentsPage() {
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [groupByClient, setGroupByClient] = useState(true);
+  const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
+  const [deletingDocBusy, setDeletingDocBusy] = useState(false);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState({
