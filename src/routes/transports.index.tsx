@@ -744,6 +744,36 @@ function TransportsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingTransport} onOpenChange={(v) => !v && !deletingBusy && setDeletingTransport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir transporte?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingTransport && (
+                <>
+                  Tem certeza que deseja remover permanentemente o transporte{" "}
+                  <strong>{deletingTransport.code}</strong> ({deletingTransport.vehicle_plate}) do cliente{" "}
+                  <strong>{deletingTransport.client_name}</strong>?
+                  <br />
+                  Fotos e atualizações de localização vinculadas também serão apagadas.
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void confirmRemoveTransport(); }}
+              disabled={deletingBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
