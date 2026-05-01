@@ -1,0 +1,1 @@
+UPDATE public.company_settings SET logo_url = '/transbh-logo.png', updated_at = now();
