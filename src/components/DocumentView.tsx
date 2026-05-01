@@ -39,7 +39,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
       {/* Cabeçalho estilo papel */}
       <div className="bg-[#0d1b2a] text-white px-6 py-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {company?.logo_url ? (
+          {!isContract && company?.logo_url ? (
             <img
               src={company.logo_url}
               alt={company?.name || "Logo"}
