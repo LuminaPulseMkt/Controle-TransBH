@@ -260,7 +260,8 @@ function DocumentsPage() {
     const headerH = 56;
     doc.setFillColor(13, 27, 42);
     doc.rect(0, 0, 210, headerH, "F");
-    const logo = await loadLogoDataUrl(company?.logo_url ?? null);
+    const isContract = d.doc_type === "contract";
+    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? null) : null;
     if (logo) {
       const targetH = 48;
       const targetW = Math.min(logo.widthFor(targetH), 140);
@@ -268,7 +269,10 @@ function DocumentsPage() {
     } else {
       doc.setTextColor(245, 158, 11);
       doc.setFontSize(28);
-      doc.text(company?.name || "TransBH", 14, headerH / 2 + 4);
+      doc.text(company?.name || "TransBH", 14, headerH / 2);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.text("Transporte de Veículos", 14, headerH / 2 + 8);
     }
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
@@ -323,13 +327,7 @@ function DocumentsPage() {
       doc.text("____________________________", 14, y);
       doc.text("____________________________", 120, y);
       doc.text("Cliente", 14, y + 5);
-      if (logo) {
-        const sigH = 10;
-        const sigW = Math.min(logo.widthFor(sigH), 40);
-        doc.addImage(logo.dataUrl, "PNG", 120, y - sigH, sigW, sigH);
-      } else {
-        doc.text(company?.name || "TransBH", 120, y + 5);
-      }
+      doc.text(company?.name || "TransBH", 120, y + 5);
     }
 
     doc.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);

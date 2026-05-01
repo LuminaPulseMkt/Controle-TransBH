@@ -39,7 +39,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
       {/* Cabeçalho estilo papel */}
       <div className="bg-[#0d1b2a] text-white px-6 py-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {company?.logo_url ? (
+          {!isContract && company?.logo_url ? (
             <img
               src={company.logo_url}
               alt={company?.name || "Logo"}
@@ -126,15 +126,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
             </div>
             <div className="text-center">
               <div className="border-t border-foreground/40 pt-2 text-sm font-medium text-foreground">
-                {company?.logo_url ? (
-                  <img
-                    src={company.logo_url}
-                    alt={company?.name || "Logo"}
-                    className="h-8 w-auto object-contain mx-auto mb-1"
-                  />
-                ) : (
-                  company?.name || "TransBH"
-                )}
+                {company?.name || "TransBH"}
                 <div className="text-xs uppercase tracking-wider mt-0.5 text-muted-foreground">Contratada</div>
               </div>
             </div>
