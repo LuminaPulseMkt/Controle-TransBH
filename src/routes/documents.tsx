@@ -486,7 +486,9 @@ function DocumentsPage() {
               <DocRow
                 d={d}
                 canEdit={isAdmin}
+                canDelete={isAdmin}
                 onEdit={() => openEdit(d)}
+                onDelete={() => requestDeleteDoc(d)}
                 onPreview={() => setPreviewDoc(d)}
                 onPDF={() => exportPDF(d)}
                 onWhatsApp={() => shareWhatsApp(d)}
