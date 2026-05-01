@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Instagram, Facebook, MessageCircle, MapPin, Download, Star, Copy, Camera } from "lucide-react";
+import { Instagram, Facebook, MessageCircle, MapPin, Download, Star, Copy, Camera, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
 
