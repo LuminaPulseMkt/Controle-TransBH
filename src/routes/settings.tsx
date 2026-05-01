@@ -61,6 +61,10 @@ function CompanyTab() {
         email: data.email,
         logo_url: data.logo_url,
         google_review_url: data.google_review_url,
+        instagram_url: data.instagram_url,
+        facebook_url: data.facebook_url,
+        whatsapp_url: data.whatsapp_url,
+        google_business_url: data.google_business_url,
       })
       .eq("singleton", true);
     setBusy(false);
