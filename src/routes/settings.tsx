@@ -144,6 +144,52 @@ function CompanyTab() {
           </p>
         </div>
       </div>
+
+      <div className="mt-6 pt-6 border-t">
+        <h3 className="text-display text-lg mb-1">Redes Sociais</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Configure os links das suas próprias contas. Deixe em branco para ocultar da página Social.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Instagram</Label>
+            <Input
+              type="url"
+              placeholder="https://instagram.com/seu_perfil"
+              value={data.instagram_url ?? ""}
+              onChange={(e) => setData({ ...data, instagram_url: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Facebook</Label>
+            <Input
+              type="url"
+              placeholder="https://facebook.com/sua_pagina"
+              value={data.facebook_url ?? ""}
+              onChange={(e) => setData({ ...data, facebook_url: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>WhatsApp Business</Label>
+            <Input
+              type="url"
+              placeholder="https://wa.me/5531999999999"
+              value={data.whatsapp_url ?? ""}
+              onChange={(e) => setData({ ...data, whatsapp_url: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Google Business</Label>
+            <Input
+              type="url"
+              placeholder="https://g.page/seu-negocio"
+              value={data.google_business_url ?? ""}
+              onChange={(e) => setData({ ...data, google_business_url: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="mt-4 flex justify-end">
         <Button onClick={save} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
