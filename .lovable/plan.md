@@ -1,31 +1,60 @@
+## Contexto
+
+Hoje, em `src/routes/social.tsx`, o card "Redes Sociais" contém 4 links **hardcoded** apontando para contas fixas:
+
+- `https://instagram.com/TransBH`
+- `https://facebook.com/TransBH`
+- `https://wa.me/` (vazio)
+- `https://business.google.com` (genérico)
+
+Não existe nenhuma integração OAuth, token armazenado ou publicação automática — apenas links estáticos. "Desconectar" aqui significa **remover os links fixos** e deixar que o admin configure as URLs próprias dele (ou abra em branco para cada um logar manualmente nas plataformas oficiais).
+
 ## Plano
 
-Substituir a logo atual pela nova imagem anexada (`remover_fundo-removebg-preview-removebg-preview-2.png` — caminhão TransBH com fundo transparente), aplicando upscale 2x via IA para melhorar nitidez e resolução, mantendo o tamanho de exibição já configurado (180px web / 48mm PDF).
+### 1. Banco — adicionar campos sociais em `company_settings`
 
-## Mudanças
+Migration adicionando 4 colunas nullable em `public.company_settings`:
 
-### 1. Processar a nova logo
-- Copiar `user-uploads://remover_fundo-removebg-preview-removebg-preview-2.png` para `/tmp/logo-original.png`.
-- Gerar versão HD via Lovable AI Gateway (modelo `google/gemini-3-pro-image-preview` — Nano Banana Pro) com prompt do tipo:
-  > *"Upscale 2x, sharpen edges and text, enhance details, preserve full transparency (alpha channel), keep exact composition, colors and proportions"*.
-- Salvar resultado em:
-  - `src/assets/transbh-logo.png` (HD para uso no app via import).
-  - `public/transbh-logo.png` (cópia servida por URL).
+- `instagram_url text`
+- `facebook_url text`
+- `whatsapp_url text`
+- `google_business_url text`
 
-### 2. Subir para o Storage do Supabase
-- Upload do PNG HD para o bucket público `company-assets` (já usado).
-- Atualizar `company_settings.logo_url` via migration para apontar para a nova URL pública (cache-busting com timestamp no nome).
+Como já existe a linha de configurações da empresa, os valores começam `NULL` (= "não configurado"). Sem alteração de RLS — a tabela já permite leitura/escrita para administradores.
 
-### 3. Sem alteração de tamanho
-- `DocumentView.tsx`: mantém `height: 180px` no header web.
-- `documents.tsx`, `d.$token.tsx`, `financial.tsx`: mantêm `headerH=56mm`, `targetH=48mm`, largura máx. 140mm no PDF.
-- `pdf-logo.ts`: helper continua válido (preserva proporção automaticamente).
+### 2. Página `/settings` — nova seção "Redes Sociais"
+
+Em `src/routes/settings.tsx`, adicionar 4 inputs (apenas para administradores, padrão da página):
+
+- Instagram (URL completa)
+- Facebook (URL completa)
+- WhatsApp (link `wa.me/55...` ou número)
+- Google Business (link do perfil)
+
+Cada campo tem placeholder explicativo e é salvo junto com os demais campos via o botão "Salvar" já existente.
+
+### 3. Página `/social` — substituir links fixos por dinâmicos
+
+Em `src/routes/social.tsx`:
+
+- Carregar `instagram_url`, `facebook_url`, `whatsapp_url`, `google_business_url` junto com `logo_url`.
+- Renderizar cada `SocialLink` apenas se a URL estiver preenchida.
+- Se **nenhuma** rede estiver configurada, mostrar estado vazio:  
+  *"Nenhuma rede social configurada. Configure as URLs em Configurações → Redes Sociais."* com botão "Ir para Configurações".
+- Cada link continua abrindo em nova aba (`target="_blank"`), assim o admin loga manualmente na plataforma oficial quando precisar.
+
+### 4. Sem mudança na logo
+
+A logo continua transparente sobre o cabeçalho azul-escuro (`#0d1b2a`), conforme você confirmou.
 
 ## Detalhes técnicos
-- Upscale preservando canal alpha (transparência) — Nano Banana Pro suporta PNG transparente.
-- Nome do arquivo no Storage com timestamp (ex.: `transbh-logo-{ts}.png`) para invalidar cache do navegador/CDN.
-- Migration única atualizando a linha existente em `company_settings`.
+
+- Migration única em `supabase/migrations/` com 4 `ALTER TABLE ADD COLUMN`.
+- `src/integrations/supabase/types.ts` é regenerado automaticamente após a migration.
+- Sem novos secrets, sem edge functions, sem OAuth.
 
 ## Fora de escopo
-- Nenhuma mudança em sidebar, login, feedback, social ou na assinatura do contrato (continuam com a logo nos seus tamanhos atuais).
-- Nenhuma alteração de layout/typografia.
+
+- Integração OAuth real com Instagram/Facebook/Google (publicação automática) — não existe hoje e você não pediu para criar.
+- Mudanças no card de "Entrega Concluída" (continua usando a logo da empresa normalmente).
+- Mudanças na logo, no cabeçalho ou em outras páginas.
