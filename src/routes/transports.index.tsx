@@ -119,6 +119,8 @@ function TransportsPage() {
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
+  const [deletingTransport, setDeletingTransport] = useState<Transport | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
 
   // Multi-photo state
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
