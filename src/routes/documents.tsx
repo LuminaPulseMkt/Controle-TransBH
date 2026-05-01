@@ -712,6 +712,37 @@ function DocumentsPage() {
         onShareWhatsApp={shareWhatsApp}
         company={company}
       />
+
+      <AlertDialog open={!!deletingDoc} onOpenChange={(v) => !v && !deletingDocBusy && setDeletingDoc(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {deletingDoc?.doc_type === "budget" ? "orçamento" : "contrato"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingDoc && (
+                <>
+                  Tem certeza que deseja excluir permanentemente{" "}
+                  <strong>{deletingDoc.title}</strong> do cliente{" "}
+                  <strong>{deletingDoc.client_name}</strong> ({brl(deletingDoc.total_amount ?? 0)})?
+                  <br />
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingDocBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void confirmDeleteDoc(); }}
+              disabled={deletingDocBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingDocBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
