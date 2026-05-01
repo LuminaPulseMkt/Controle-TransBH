@@ -1,36 +1,48 @@
 ## Objetivo
+Permitir que administradores excluam orçamentos, contratos e transportes diretamente da interface, com diálogo de confirmação consistente.
 
-Mostrar a logo apenas no **orçamento** e no **sidebar** (web). No **contrato**, substituir a logo pelo texto "TRANSBH - Transporte de Veículos" (em vez da imagem) — tanto na pré-visualização quanto no PDF gerado.
+## Estado atual
+- **Transportes** (`src/routes/transports.index.tsx`): já existe a função `removeTransport` e botão "Remover", mas usa o `confirm()` nativo do browser.
+- **Documentos** (orçamento/contrato em `src/routes/documents.tsx`): **não existe** botão nem função para excluir. Apenas templates podem ser excluídos.
+- RLS já permite `DELETE` para administradores nas tabelas `documents` e `transports`.
 
-## Escopo
+## Mudanças propostas
 
-### 1. `src/components/DocumentView.tsx` (pré-visualização web/HTML)
+### 1. `src/routes/documents.tsx` — adicionar exclusão de documento
+- Importar `AlertDialog` (e subcomponentes) de `@/components/ui/alert-dialog`.
+- Adicionar estado `deletingDoc: Document | null`.
+- Criar função `deleteDocument(d)`:
+  - `supabase.from("documents").delete().eq("id", d.id)`
+  - Toast de sucesso/erro e `void load()`.
+  - Bloquear exclusão se `d.accepted_at` (orçamento já aceito gerou contrato) — mostrar toast explicativo, ou permitir somente se admin confirmar (vou bloquear por padrão para evitar quebrar o vínculo `accepted_contract_id`).
+- No `DocRow`:
+  - Adicionar prop `onDelete?: () => void` e `canDelete?: boolean`.
+  - Botão `Trash2` em vermelho (`variant="outline"` com `text-destructive`) ao lado do botão Editar, visível só para admin.
+- Renderizar um `AlertDialog` único no nível da página, controlado por `deletingDoc`, com:
+  - Título: "Excluir orçamento/contrato?"
+  - Descrição: nome do cliente, título, valor.
+  - Ações: Cancelar / Excluir (destructive).
 
-No cabeçalho azul-escuro:
-- Se `doc.doc_type === "contract"` → renderizar bloco textual: título grande "TransBH" + subtítulo "Transporte de Veículos" (o fallback que já existe para quando não há logo).
-- Se `doc.doc_type === "budget"` → manter a `<img>` da logo como está hoje.
+### 2. `src/routes/transports.index.tsx` — substituir `confirm()` por AlertDialog
+- Importar `AlertDialog` e adicionar estado `deletingTransport: Transport | null`.
+- Reescrever `removeTransport` para abrir o diálogo; criar `confirmRemoveTransport` que executa o `delete`.
+- Mesmo botão `Trash2` existente passa a abrir o diálogo.
+- Antes de deletar o transporte, deletar registros dependentes para evitar erro de integridade lógica:
+  - `transport_photos` (eq `transport_id`)
+  - `transport_location_updates` (eq `transport_id`)
+  - Limpar `transport_id` em `documents`, `receivables`, `payables` via `update({ transport_id: null })` (não há FK formal, mas evita órfãos confusos).
+- Mostrar diálogo com código do transporte, cliente e placa.
 
-No bloco de assinatura "Contratada" (só aparece em contrato): trocar a `<img>` pelo nome textual da empresa (`company?.name || "TransBH"`).
+### 3. Permissões
+- Botões de exclusão visíveis apenas quando `isAdmin` (já há `useAuth`/`isAdmin` em ambas as rotas — confirmar uso). RLS já garante no servidor.
 
-### 2. `src/routes/documents.tsx` (geração de PDF via jsPDF)
+## Detalhes técnicos
+- Não há mudanças de schema nem migrações.
+- Nenhuma server function necessária — uso direto do client Supabase com RLS de admin.
+- Componente `AlertDialog` já existe em `src/components/ui/alert-dialog.tsx`.
+- Ícone `Trash2` já importado em `documents.tsx`; em `transports.index.tsx` verificar/adicionar import.
 
-Função de exportação de PDF (linhas ~263 a ~329):
-- Cabeçalho: só chamar `doc.addImage(logo...)` quando `d.doc_type === "budget"`. Para contrato, escrever no cabeçalho o texto "TRANSBH" (grande, branco) e logo abaixo "Transporte de Veículos" (menor), posicionados onde hoje vai a logo.
-- Assinatura da contratada (bloco do contrato, ~linha 326-329): remover `addImage` e escrever apenas o texto "TransBH" sobre a linha de assinatura.
-
-### 3. Sidebar
-
-Sem alteração — o sidebar já usa o ícone `Package2` + texto "TransBH" (não usa `logo_url`). O comportamento atual já atende ao pedido.
-
-## O que NÃO muda
-
-- Tela de Configurações, Social, login, e qualquer outro lugar que use `logo_url`.
-- O valor de `logo_url` no banco continua existindo (usado no orçamento).
-
-## Resultado
-
-| Local | Antes | Depois |
-|---|---|---|
-| Sidebar | Ícone + "TransBH" | Igual |
-| Orçamento (web + PDF) | Logo PNG | Logo PNG |
-| Contrato (web + PDF) | Logo PNG | Texto "TRANSBH — Transporte de Veículos" |
+## Fora de escopo
+- Soft delete / lixeira / restauração.
+- Auditoria de exclusões.
+- Exclusão em massa.
