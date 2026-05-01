@@ -327,13 +327,7 @@ function DocumentsPage() {
       doc.text("____________________________", 14, y);
       doc.text("____________________________", 120, y);
       doc.text("Cliente", 14, y + 5);
-      if (logo) {
-        const sigH = 10;
-        const sigW = Math.min(logo.widthFor(sigH), 40);
-        doc.addImage(logo.dataUrl, "PNG", 120, y - sigH, sigW, sigH);
-      } else {
-        doc.text(company?.name || "TransBH", 120, y + 5);
-      }
+      doc.text(company?.name || "TransBH", 120, y + 5);
     }
 
     doc.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);
