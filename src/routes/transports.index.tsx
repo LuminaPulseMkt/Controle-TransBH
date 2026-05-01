@@ -534,8 +534,8 @@ function TransportsPage() {
                         </Button>
                       )}
                       {isAdmin && (
-                        <Button variant="ghost" size="sm" onClick={() => removeTransport(t)}>
-                          <X className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" onClick={() => removeTransport(t)} className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </td>
