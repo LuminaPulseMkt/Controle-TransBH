@@ -719,14 +719,18 @@ function DocumentsPage() {
 function DocRow({
   d,
   canEdit,
+  canDelete,
   onEdit,
+  onDelete,
   onPreview,
   onPDF,
   onWhatsApp,
 }: {
   d: Document;
   canEdit?: boolean;
+  canDelete?: boolean;
   onEdit?: () => void;
+  onDelete?: () => void;
   onPreview: () => void;
   onPDF: () => void;
   onWhatsApp: () => void;
@@ -776,6 +780,17 @@ function DocRow({
         <Button size="sm" variant="outline" onClick={onWhatsApp}>
           <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
         </Button>
+        {canDelete && onDelete && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDelete}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            title="Excluir documento"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
