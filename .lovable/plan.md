@@ -1,60 +1,36 @@
-## Contexto
+## Objetivo
 
-Hoje, em `src/routes/social.tsx`, o card "Redes Sociais" contém 4 links **hardcoded** apontando para contas fixas:
+Mostrar a logo apenas no **orçamento** e no **sidebar** (web). No **contrato**, substituir a logo pelo texto "TRANSBH - Transporte de Veículos" (em vez da imagem) — tanto na pré-visualização quanto no PDF gerado.
 
-- `https://instagram.com/TransBH`
-- `https://facebook.com/TransBH`
-- `https://wa.me/` (vazio)
-- `https://business.google.com` (genérico)
+## Escopo
 
-Não existe nenhuma integração OAuth, token armazenado ou publicação automática — apenas links estáticos. "Desconectar" aqui significa **remover os links fixos** e deixar que o admin configure as URLs próprias dele (ou abra em branco para cada um logar manualmente nas plataformas oficiais).
+### 1. `src/components/DocumentView.tsx` (pré-visualização web/HTML)
 
-## Plano
+No cabeçalho azul-escuro:
+- Se `doc.doc_type === "contract"` → renderizar bloco textual: título grande "TransBH" + subtítulo "Transporte de Veículos" (o fallback que já existe para quando não há logo).
+- Se `doc.doc_type === "budget"` → manter a `<img>` da logo como está hoje.
 
-### 1. Banco — adicionar campos sociais em `company_settings`
+No bloco de assinatura "Contratada" (só aparece em contrato): trocar a `<img>` pelo nome textual da empresa (`company?.name || "TransBH"`).
 
-Migration adicionando 4 colunas nullable em `public.company_settings`:
+### 2. `src/routes/documents.tsx` (geração de PDF via jsPDF)
 
-- `instagram_url text`
-- `facebook_url text`
-- `whatsapp_url text`
-- `google_business_url text`
+Função de exportação de PDF (linhas ~263 a ~329):
+- Cabeçalho: só chamar `doc.addImage(logo...)` quando `d.doc_type === "budget"`. Para contrato, escrever no cabeçalho o texto "TRANSBH" (grande, branco) e logo abaixo "Transporte de Veículos" (menor), posicionados onde hoje vai a logo.
+- Assinatura da contratada (bloco do contrato, ~linha 326-329): remover `addImage` e escrever apenas o texto "TransBH" sobre a linha de assinatura.
 
-Como já existe a linha de configurações da empresa, os valores começam `NULL` (= "não configurado"). Sem alteração de RLS — a tabela já permite leitura/escrita para administradores.
+### 3. Sidebar
 
-### 2. Página `/settings` — nova seção "Redes Sociais"
+Sem alteração — o sidebar já usa o ícone `Package2` + texto "TransBH" (não usa `logo_url`). O comportamento atual já atende ao pedido.
 
-Em `src/routes/settings.tsx`, adicionar 4 inputs (apenas para administradores, padrão da página):
+## O que NÃO muda
 
-- Instagram (URL completa)
-- Facebook (URL completa)
-- WhatsApp (link `wa.me/55...` ou número)
-- Google Business (link do perfil)
+- Tela de Configurações, Social, login, e qualquer outro lugar que use `logo_url`.
+- O valor de `logo_url` no banco continua existindo (usado no orçamento).
 
-Cada campo tem placeholder explicativo e é salvo junto com os demais campos via o botão "Salvar" já existente.
+## Resultado
 
-### 3. Página `/social` — substituir links fixos por dinâmicos
-
-Em `src/routes/social.tsx`:
-
-- Carregar `instagram_url`, `facebook_url`, `whatsapp_url`, `google_business_url` junto com `logo_url`.
-- Renderizar cada `SocialLink` apenas se a URL estiver preenchida.
-- Se **nenhuma** rede estiver configurada, mostrar estado vazio:  
-  *"Nenhuma rede social configurada. Configure as URLs em Configurações → Redes Sociais."* com botão "Ir para Configurações".
-- Cada link continua abrindo em nova aba (`target="_blank"`), assim o admin loga manualmente na plataforma oficial quando precisar.
-
-### 4. Sem mudança na logo
-
-A logo continua transparente sobre o cabeçalho azul-escuro (`#0d1b2a`), conforme você confirmou.
-
-## Detalhes técnicos
-
-- Migration única em `supabase/migrations/` com 4 `ALTER TABLE ADD COLUMN`.
-- `src/integrations/supabase/types.ts` é regenerado automaticamente após a migration.
-- Sem novos secrets, sem edge functions, sem OAuth.
-
-## Fora de escopo
-
-- Integração OAuth real com Instagram/Facebook/Google (publicação automática) — não existe hoje e você não pediu para criar.
-- Mudanças no card de "Entrega Concluída" (continua usando a logo da empresa normalmente).
-- Mudanças na logo, no cabeçalho ou em outras páginas.
+| Local | Antes | Depois |
+|---|---|---|
+| Sidebar | Ícone + "TransBH" | Igual |
+| Orçamento (web + PDF) | Logo PNG | Logo PNG |
+| Contrato (web + PDF) | Logo PNG | Texto "TRANSBH — Transporte de Veículos" |
