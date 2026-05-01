@@ -415,12 +415,33 @@ function TransportsPage() {
     void load();
   };
 
-  const removeTransport = async (t: Transport) => {
-    if (!confirm(`Remover ${t.code} permanentemente?`)) return;
-    const { error } = await supabase.from("transports").delete().eq("id", t.id);
-    if (error) return toast.error(error.message);
-    toast.success("Removido.");
-    void load();
+  const removeTransport = (t: Transport) => {
+    setDeletingTransport(t);
+  };
+
+  const confirmRemoveTransport = async () => {
+    const t = deletingTransport;
+    if (!t) return;
+    setDeletingBusy(true);
+    try {
+      // Limpa dependências para evitar órfãos
+      await supabase.from("transport_photos").delete().eq("transport_id", t.id);
+      await supabase.from("transport_location_updates").delete().eq("transport_id", t.id);
+      await supabase.from("documents").update({ transport_id: null }).eq("transport_id", t.id);
+      await supabase.from("receivables").update({ transport_id: null }).eq("transport_id", t.id);
+      await supabase.from("payables").update({ transport_id: null }).eq("transport_id", t.id);
+
+      const { error } = await supabase.from("transports").delete().eq("id", t.id);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Transporte removido.");
+        setDeletingTransport(null);
+        void load();
+      }
+    } finally {
+      setDeletingBusy(false);
+    }
   };
 
   return (
