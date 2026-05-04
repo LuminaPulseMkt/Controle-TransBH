@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendWhatsAppText } from "./whatsapp.server";
 
 const InputSchema = z.object({
   token: z.string().min(10).max(64),
@@ -223,6 +224,21 @@ export const acceptBudget = createServerFn({ method: "POST" })
           ok: false as const,
           error: "Não foi possível processar a solicitação. Tente novamente.",
         };
+      }
+
+      // Notify client via WhatsApp (best-effort, never blocks)
+      if (budget.client_phone && contract.public_token) {
+        const link = `https://transbh-fleetflow.lovable.app/d/${contract.public_token}`;
+        const valor = totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const venc = new Date(receivable.due_date + "T00:00:00").toLocaleDateString("pt-BR");
+        const text =
+          `Olá ${budget.client_name}! Recebemos seu aceite do orçamento "${budget.title}".\n` +
+          `Contrato: ${link}\n` +
+          `Valor: ${valor} — vencimento ${venc}.\n` +
+          `Obrigado por confiar na TransBH!`;
+        sendWhatsAppText({ phone: budget.client_phone, text }).catch((e) =>
+          console.error("[acceptBudget] whatsapp send failed", e),
+        );
       }
 
       return {
