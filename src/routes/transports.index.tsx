@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 
 type TransportsSearch = { status?: string };
 
