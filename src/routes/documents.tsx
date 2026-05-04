@@ -36,6 +36,7 @@ import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
+import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
@@ -285,16 +286,41 @@ function DocumentsPage() {
       body,
       total_amount: total,
     };
-    const { error } = editingDoc
-      ? await supabase.from("documents").update(payload).eq("id", editingDoc.id)
-      : await supabase.from("documents").insert({
+    let createdToken: string | null = null;
+    if (editingDoc) {
+      const { error } = await supabase.from("documents").update(payload).eq("id", editingDoc.id);
+      setBusy(false);
+      if (error) return toast.error(error.message);
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("documents")
+        .insert({
           ...payload,
           doc_type: docType,
           created_by: user?.id ?? null,
-        });
-    setBusy(false);
-    if (error) return toast.error(error.message);
+        })
+        .select("public_token")
+        .single();
+      setBusy(false);
+      if (error) return toast.error(error.message);
+      createdToken = inserted?.public_token ?? null;
+    }
     toast.success(editingDoc ? "Documento atualizado." : "Documento criado.");
+
+    // Auto-send WhatsApp on new budget creation
+    if (!editingDoc && docType === "budget" && form.client_phone && createdToken) {
+      const link = `${window.location.origin}/d/${createdToken}`;
+      const text = `Olá ${form.client_name}! Segue o link do seu orçamento TransBH: ${link}`;
+      sendWhatsAppManual({ data: { phone: form.client_phone, text } })
+        .then((r) => {
+          if (r?.ok) toast.success("WhatsApp enviado ao cliente.");
+          else if (r?.error) toast.message("WhatsApp não enviado", { description: r.error });
+        })
+        .catch(() => {
+          /* silencioso — não bloqueia criação */
+        });
+    }
+
     setOpen(false);
     setEditingDoc(null);
     void load();
@@ -378,16 +404,34 @@ function DocumentsPage() {
     doc.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);
   };
 
-  const shareWhatsApp = (d: Document) => {
+  const shareWhatsApp = async (d: Document) => {
     const phone = (d.client_phone ?? "").replace(/\D/g, "");
     const link = d.public_token ? `${window.location.origin}/d/${d.public_token}` : "";
     const tipo = d.doc_type === "budget" ? "orçamento" : "contrato";
     const valor = brl(d.total_amount ?? 0);
-    const msg = encodeURIComponent(
-      `Olá ${d.client_name}! Segue seu ${tipo} TransBH no valor de ${valor}.${link ? `\n${link}` : ""}`,
-    );
-    if (phone) window.open(`https://wa.me/${phone}?text=${msg}`, "_blank", "noopener,noreferrer");
-    else window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+    const text = `Olá ${d.client_name}! Segue seu ${tipo} TransBH no valor de ${valor}.${link ? `\n${link}` : ""}`;
+
+    if (!phone) {
+      // Sem telefone: fallback abre WhatsApp Web pra escolher contato
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const t = toast.loading("Enviando WhatsApp...");
+    try {
+      const r = await sendWhatsAppManual({ data: { phone, text } });
+      toast.dismiss(t);
+      if (r?.ok) {
+        toast.success("Mensagem enviada via WhatsApp.");
+      } else {
+        toast.error(r?.error ?? "Falha ao enviar. Abrindo WhatsApp Web...");
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      toast.dismiss(t);
+      toast.error("Falha ao enviar. Abrindo WhatsApp Web...");
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (

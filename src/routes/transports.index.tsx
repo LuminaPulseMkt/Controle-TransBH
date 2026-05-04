@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 
 type TransportsSearch = { status?: string };
 
@@ -276,11 +277,21 @@ function TransportsPage() {
     return `Olá ${t.client_name}, atualização do transporte ${t.code} (${t.vehicle_plate}): seu veículo está em *${location}*. ${eta} — TransBH`;
   };
 
-  const sendWhatsApp = (phone: string | null, message: string) => {
+  const sendWhatsApp = async (phone: string | null, message: string) => {
     const digits = (phone ?? "").replace(/\D/g, "");
     if (!digits) {
       toast.error("Cliente sem telefone cadastrado para WhatsApp.");
       return false;
+    }
+    try {
+      const r = await sendWhatsAppManual({ data: { phone: digits, text: message } });
+      if (r?.ok) {
+        toast.success("WhatsApp enviado ao cliente.");
+        return true;
+      }
+      toast.error(r?.error ?? "Falha no envio. Abrindo WhatsApp Web...");
+    } catch {
+      toast.error("Falha no envio. Abrindo WhatsApp Web...");
     }
     const url = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
