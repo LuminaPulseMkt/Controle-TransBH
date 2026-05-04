@@ -179,16 +179,25 @@ function DocumentsPage() {
   }, [items, filter]);
 
   // Agrupa documentos por cliente (chave = nome normalizado)
+  // O total ignora contratos gerados a partir de aceites de orçamento
+  // (mesmo dinheiro do orçamento — somar dobraria o valor).
   const groupedByClient = useMemo(() => {
+    const linkedContractIds = new Set<string>(
+      filtered
+        .map((d) => d.accepted_contract_id)
+        .filter((v): v is string => !!v),
+    );
     const map = new Map<string, { name: string; docs: Document[]; total: number }>();
     for (const d of filtered) {
       const key = d.client_name.trim().toLowerCase();
+      const isLinkedContract = d.doc_type === "contract" && linkedContractIds.has(d.id);
+      const addAmount = isLinkedContract ? 0 : Number(d.total_amount ?? 0);
       const existing = map.get(key);
       if (existing) {
         existing.docs.push(d);
-        existing.total += Number(d.total_amount ?? 0);
+        existing.total += addAmount;
       } else {
-        map.set(key, { name: d.client_name, docs: [d], total: Number(d.total_amount ?? 0) });
+        map.set(key, { name: d.client_name, docs: [d], total: addAmount });
       }
     }
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
