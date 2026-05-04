@@ -610,6 +610,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_document_by_token: {
+        Args: { _token: string }
+        Returns: {
+          accepted_at: string
+          accepted_contract_id: string
+          body: Json
+          client_document: string
+          client_email: string
+          client_name: string
+          client_phone: string
+          created_at: string
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id: string
+          public_token: string
+          title: string
+          total_amount: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
