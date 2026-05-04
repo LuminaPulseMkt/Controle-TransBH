@@ -70,15 +70,19 @@ function PublicDocumentPage() {
     const headerH = 56;
     pdf.setFillColor(13, 27, 42);
     pdf.rect(0, 0, 210, headerH, "F");
-    const logo = await loadLogoDataUrl(company?.logo_url ?? null);
+    const isContract = d.doc_type === "contract";
+    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? null) : null;
     if (logo) {
       const targetH = 48;
       const targetW = Math.min(logo.widthFor(targetH), 140);
       pdf.addImage(logo.dataUrl, "PNG", 14, (headerH - targetH) / 2, targetW, targetH);
     } else {
       pdf.setTextColor(245, 158, 11);
-      pdf.setFontSize(28);
-      pdf.text(company?.name || "TransBH", 14, headerH / 2 + 4);
+      pdf.setFontSize(20);
+      pdf.text(company?.name || "TransBH", 14, headerH / 2);
+      pdf.setFontSize(11);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text("Transporte de Veículos", 14, headerH / 2 + 8);
     }
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(10);
