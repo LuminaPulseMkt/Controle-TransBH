@@ -9,8 +9,8 @@ import {
   Users,
   Settings,
   LogOut,
-  Package2,
 } from "lucide-react";
+import logo from "@/assets/logo-transbh.png";
 import {
   Sidebar,
   SidebarContent,
