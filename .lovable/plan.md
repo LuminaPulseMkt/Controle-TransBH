@@ -1,61 +1,122 @@
 ## Objetivo
-Centralizar todos os textos enviados (WhatsApp e e-mail) na tabela `message_templates`, editáveis pela tela **Configurações → Modelos de Mensagem**, e ligar e-mail real via Lovable Emails (domínio próprio).
 
-## O que já existe (reaproveitar)
-- Tabela `message_templates(key, label, body)` com RLS pronta.
-- Aba **Modelos de Mensagem** em `/settings` editando `body` por blur.
-- WhatsApp já dispara via Evolution API em: criação de orçamento, aceite, cobrança manual e ações manuais em documentos/transports.
+1. Quando o cliente aceita o orçamento, gerar um **contrato com cláusulas próprias** (pagamento, seguro de carga, prazo, responsabilidades, vistoria, foro) — diferentes do texto de "observações" do orçamento.
+2. Tornar essas cláusulas **editáveis** em Configurações.
+3. Corrigir o **valor multiplicado** mostrado em "Contratos & Orçamentos" (total agrupado por cliente soma orçamento + contrato gerado).
 
-## Mudanças
+---
 
-### 1. Seed dos 6 templates editáveis (migration)
-Inserir/atualizar (ON CONFLICT key) na `message_templates`:
+## 1. Cláusulas padrão de contrato (editáveis)
 
-| key | label | uso |
-|---|---|---|
-| `wa_budget_created` | WhatsApp — Orçamento enviado | gatilho ao criar orçamento |
-| `wa_budget_accepted` | WhatsApp — Aceite recebido | gatilho ao aceitar orçamento |
-| `wa_charge_reminder` | WhatsApp — Cobrança | botão "Cobrar" |
-| `email_budget_created` | E-mail — Orçamento (assunto + corpo) | mesmo gatilho do WhatsApp |
-| `email_budget_accepted` | E-mail — Aceite confirmado | mesmo gatilho do WhatsApp |
-| `email_charge_reminder` | E-mail — Cobrança | botão "Cobrar e-mail" |
+**Onde guardar**: reutilizar a tabela `message_templates` (já existe, já tem UI de edição). Adicionar uma chave nova:
 
-Para os 3 templates de e-mail, o `body` guarda **assunto + corpo** separados por uma linha contendo apenas `---` (mais simples que duas colunas e funciona bem no `<Textarea>`).
+- `contract_clauses_default` — cláusulas padrão usadas quando o orçamento é aceito.
 
-### 2. Helper `renderTemplate(body, vars)` — `src/lib/message-templates.ts`
-Faz `{client_name}`, `{amount}`, `{due_date}`, `{link}`, `{title}`, `{transport_code}`, `{days_overdue}`, `{company_name}` → valor, com fallback `""` se variável ausente. Usado em todos os pontos de envio.
+**Conteúdo padrão** (texto fixo que o usuário poderá editar depois):
 
-### 3. Carregar templates do banco antes de enviar
-Padrão usado em todos os pontos: query simples `select body from message_templates where key=?`. No servidor (`accept-budget.functions.ts`) lê via `supabaseAdmin`. No client (documents.tsx, financial.clients.$name.tsx, transports.index.tsx) lê via `supabase`. Fallback para texto padrão se template vazio.
+```
+1. OBJETO
+A CONTRATADA compromete-se a transportar o veículo descrito neste contrato
+da origem até o destino indicados, com zelo e segurança.
 
-### 4. Pontos que passam a usar templates
-- `src/routes/documents.tsx` `save()` → usa `wa_budget_created` (e dispara `email_budget_created` se houver `client_email`).
-- `src/server/accept-budget.functions.ts` → usa `wa_budget_accepted` + `email_budget_accepted`.
-- `src/routes/financial.clients.$name.tsx` `sendCharge()` → usa `wa_charge_reminder`; novo botão "E-mail" usa `email_charge_reminder`.
-- `src/routes/transports.index.tsx` (mensagem de status) — opcional manter como está; se quiser editável criamos `wa_transport_update` (fora deste escopo, posso adicionar se confirmar).
+2. PAGAMENTO
+2.1. Valor total: {amount}.
+2.2. Forma de pagamento: 50% na coleta e 50% na entrega, salvo acordo
+     diferente registrado por escrito.
+2.3. O atraso no pagamento implica multa de 2% e juros de 1% ao mês.
 
-### 5. Infra de e-mail (Lovable Emails)
-- Configurar domínio de e-mail (vou abrir o diálogo de setup no momento da execução).
-- Rodar `setup_email_infra` + `scaffold_transactional_email`.
-- Criar 3 templates React Email em `src/lib/email-templates/` (`budget-created`, `budget-accepted`, `charge-reminder`) que recebem **subject e body já renderizados** via `templateData` — assim a edição continua sendo só na aba Modelos de Mensagem (o `.tsx` é só wrapper visual com cabeçalho/rodapé da marca).
-- Criar `src/lib/email/send.ts` (helper `sendTransactionalEmail`) e usar nos pontos acima.
-- Para envios disparados por usuário não autenticado (página de aceite), o aceite já roda via `createServerFn` no servidor — fará a chamada interna ao endpoint usando o JWT do request quando houver, ou via service role.
+3. SEGURO E RESPONSABILIDADE PELA CARGA
+3.1. O veículo viaja coberto por seguro de transporte contra colisão,
+     tombamento, incêndio e roubo durante todo o trajeto.
+3.2. Em caso de sinistro, a CONTRATADA acionará o seguro e manterá o
+     CONTRATANTE informado em até 24h.
+3.3. Não estão cobertos: itens pessoais deixados no veículo, danos
+     pré-existentes não registrados na vistoria e avarias mecânicas
+     internas não decorrentes do transporte.
 
-### 6. UI da aba Modelos de Mensagem (`src/routes/settings.tsx`)
-- Agrupar os cards em duas seções: **WhatsApp** e **E-mail**.
-- Para templates de e-mail, dois campos (Assunto e Corpo) que serializam para `assunto\n---\n corpo` no `body`.
-- Mostrar a lista correta de variáveis disponíveis por template (não a lista genérica atual).
-- Pequeno preview com variáveis substituídas por exemplos.
+4. PRAZO DE ENTREGA
+4.1. Prazo estimado: até {due_date}.
+4.2. Atrasos por caso fortuito, força maior, condições climáticas
+     extremas ou bloqueios de via não geram multa.
+4.3. Atraso superior a 5 dias úteis por culpa exclusiva da CONTRATADA
+     gera desconto de 5% sobre o frete.
 
-## Variáveis suportadas
-`{client_name}`, `{title}`, `{amount}`, `{due_date}`, `{link}`, `{company_name}`, `{transport_code}`, `{days_overdue}`.
+5. VISTORIA
+5.1. Vistoria fotográfica detalhada será feita na coleta e na entrega.
+5.2. Eventuais avarias devem ser apontadas no ato da entrega; após a
+     assinatura do termo, presume-se que o veículo foi entregue íntegro.
+
+6. OBRIGAÇÕES DO CONTRATANTE
+6.1. Apresentar documentação do veículo em dia.
+6.2. Garantir que o veículo esteja com combustível suficiente para manobra
+     (mínimo 1/4 do tanque) e em condições de rodar curtas distâncias.
+
+7. RESCISÃO
+Em caso de cancelamento pelo CONTRATANTE após a coleta, será cobrada
+taxa proporcional ao trajeto já percorrido.
+
+8. FORO
+Fica eleito o foro da comarca da sede da CONTRATADA para dirimir
+quaisquer questões deste contrato.
+```
+
+Variáveis suportadas: `{amount}`, `{due_date}`, `{client_name}`, `{company_name}`, `{title}`.
+
+**Migração SQL**:
+```sql
+INSERT INTO public.message_templates (key, label, body) VALUES
+('contract_clauses_default', 'Contrato — Cláusulas padrão', '<texto acima>')
+ON CONFLICT (key) DO NOTHING;
+```
+
+**UI de edição**: adicionar uma terceira seção em Configurações → Modelos de Mensagem chamada **"Contrato"**, mostrando essa cláusula com textarea grande (mín. 14 linhas) e a lista de variáveis suportadas.
+
+---
+
+## 2. Geração do contrato com cláusulas próprias
+
+Em `src/server/accept-budget.functions.ts` (estágio `create_contract`):
+
+- Buscar o template `contract_clauses_default`.
+- Renderizar variáveis (`amount`, `due_date`, `client_name`, `company_name`, `title`).
+- Gravar o resultado no `body.notes` do contrato (substituindo o `body` herdado do orçamento — clonar `body` mas trocar `notes`).
+- Manter título, valores e dados do cliente vindos do orçamento.
+
+Resultado: o contrato gerado mostrará **cláusulas profissionais** em vez de copiar as "observações" do orçamento. O `DocumentView` já renderiza `body.notes` sob o título "Cláusulas" quando `doc_type === "contract"`.
+
+---
+
+## 3. Correção do total duplicado em "Contratos & Orçamentos"
+
+**Causa**: em `src/routes/documents.tsx` (linhas 182-195), `groupedByClient` soma `total_amount` de **todos** os documentos do cliente. Como cada orçamento aceito gera um contrato com o mesmo `total_amount`, o cliente aparece com 2 documentos somando 2× o valor.
+
+**Correção**: ao calcular o total agrupado, **ignorar contratos que foram gerados a partir de um orçamento aceito** (eles representam o mesmo dinheiro do orçamento). Critério: somar apenas:
+- todos os orçamentos, e
+- contratos cujo `id` **não** seja referenciado por nenhum `accepted_contract_id` de outro documento.
+
+Implementação: construir um `Set<string>` com todos os `accepted_contract_id` não nulos, e no `reduce` pular contratos cujo id esteja nesse set.
+
+```ts
+const linkedContractIds = new Set(
+  filtered.map(d => d.accepted_contract_id).filter(Boolean) as string[]
+);
+// dentro do loop:
+const countsForTotal = !(d.doc_type === "contract" && linkedContractIds.has(d.id));
+if (countsForTotal) existing.total += Number(d.total_amount ?? 0);
+```
+
+Os documentos continuam aparecendo na lista expandida (orçamento + contrato), apenas o total deixa de duplicar.
+
+---
+
+## Arquivos a editar
+
+- `supabase/migrations/<novo>.sql` — seed do template `contract_clauses_default`.
+- `src/server/accept-budget.functions.ts` — buscar template e injetar no `body.notes` do contrato.
+- `src/routes/settings.tsx` — adicionar seção "Contrato" na aba de Modelos de Mensagem.
+- `src/routes/documents.tsx` — corrigir cálculo de total agrupado por cliente.
 
 ## Fora de escopo
-- Editor rich-text para e-mail (mantém texto puro com cabeçalho/rodapé fixos da marca).
-- Anexos no e-mail (não suportado pela infra; podemos colocar link do documento).
-- Templates por idioma.
-- Templates de mudança de status de transporte (posso adicionar depois se quiser).
 
-## Pontos de atenção
-- O setup de e-mail exige verificação DNS — o envio só sai depois que o domínio estiver ativo, mas a edição dos textos já fica disponível na hora.
-- Edição da `message_templates` continua restrita a admin (RLS atual mantida).
+- Editor rich-text (textarea simples).
+- Versionamento histórico das cláusulas (contratos já assinados mantêm o texto que tinham, pois ele é gravado em `body.notes`).
