@@ -8,8 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR } from "@/lib/format";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 
 export const Route = createFileRoute("/financial/clients/$name")({
   component: () => (
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/financial/clients/$name")({
 interface Row {
   id: string;
   client_name: string;
+  client_phone: string | null;
   amount: number;
   due_date: string;
   paid_at: string | null;
@@ -45,7 +47,7 @@ function ClientReceivablesPage() {
     const { data, error } = await supabase
       .from("receivables")
       .select(
-        "id, client_name, amount, due_date, paid_at, status, description, transport_id, transports:transport_id(code, vehicle_plate, vehicle_brand, vehicle_model)",
+        "id, client_name, client_phone, amount, due_date, paid_at, status, description, transport_id, transports:transport_id(code, vehicle_plate, vehicle_brand, vehicle_model)",
       )
       .eq("client_name", decoded)
       .order("due_date", { ascending: true });
@@ -66,6 +68,33 @@ function ClientReceivablesPage() {
     if (error) return toast.error(error.message);
     toast.success("Cobrança marcada como paga.");
     void load();
+  };
+
+  const sendCharge = async (r: Row) => {
+    const phone = (r.client_phone ?? "").replace(/\D/g, "");
+    if (!phone) {
+      toast.error("Cliente sem telefone cadastrado.");
+      return;
+    }
+    const venc = dateBR(r.due_date);
+    const text =
+      `Olá ${r.client_name}! Lembrete da cobrança TransBH:\n` +
+      `${r.description ? r.description + "\n" : ""}` +
+      `Valor: ${brl(Number(r.amount))} — vencimento ${venc}.\n` +
+      `Em caso de dúvida, fale conosco.`;
+    const t = toast.loading("Enviando WhatsApp...");
+    try {
+      const res = await sendWhatsAppManual({ data: { phone, text } });
+      toast.dismiss(t);
+      if (res?.ok) toast.success("Cobrança enviada via WhatsApp.");
+      else {
+        toast.error(res?.error ?? "Falha ao enviar. Abrindo WhatsApp Web...");
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      toast.dismiss(t);
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    }
   };
 
   const total = (rows ?? []).reduce((s, r) => s + Number(r.amount), 0);
@@ -154,9 +183,14 @@ function ClientReceivablesPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {r.status !== "paid" ? (
-                          <Button size="sm" variant="ghost" onClick={() => markPaid(r.id)}>
-                            <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar pago
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => sendCharge(r)} title="Enviar cobrança via WhatsApp">
+                              <MessageCircle className="h-4 w-4 mr-1" /> Cobrar
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => markPaid(r.id)}>
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Pago
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">
                             pago {dateBR(r.paid_at)}
