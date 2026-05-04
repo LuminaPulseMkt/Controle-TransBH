@@ -208,6 +208,7 @@ const VARS_BY_KEY: Record<string, string[]> = {
   email_budget_created: ["client_name", "title", "link", "company_name"],
   email_budget_accepted: ["client_name", "title", "amount", "due_date", "link", "company_name"],
   email_charge_reminder: ["client_name", "amount", "due_date", "company_name"],
+  contract_clauses_default: ["client_name", "title", "amount", "due_date", "company_name"],
 };
 
 function splitEmail(raw: string): { subject: string; body: string } {
@@ -239,10 +240,26 @@ function TemplatesTab() {
 
   const wa = items.filter((t) => t.key.startsWith("wa_"));
   const em = items.filter((t) => t.key.startsWith("email_"));
-  const other = items.filter((t) => !t.key.startsWith("wa_") && !t.key.startsWith("email_"));
+  const contract = items.filter((t) => t.key.startsWith("contract_"));
+  const other = items.filter(
+    (t) => !t.key.startsWith("wa_") && !t.key.startsWith("email_") && !t.key.startsWith("contract_"),
+  );
 
   return (
     <div className="space-y-6">
+      <Section
+        title="Contrato"
+        description="Cláusulas padrão inseridas no contrato gerado automaticamente quando o cliente aceita o orçamento."
+      >
+        {contract.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum modelo de contrato cadastrado.</p>
+        ) : (
+          contract.map((t) => (
+            <ContractTemplateCard key={t.id} t={t} busy={busyId === t.id} onSave={save} />
+          ))
+        )}
+      </Section>
+
       <Section title="WhatsApp" description="Mensagens enviadas pelo WhatsApp via Evolution API.">
         {wa.map((t) => (
           <WhatsTemplateCard key={t.id} t={t} busy={busyId === t.id} onSave={save} />
@@ -263,6 +280,28 @@ function TemplatesTab() {
         </Section>
       )}
     </div>
+  );
+}
+
+function ContractTemplateCard({ t, busy, onSave }: { t: MsgTemplate; busy: boolean; onSave: (id: string, body: string) => void }) {
+  const [body, setBody] = useState(t.body);
+  const dirty = body !== t.body;
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <h3 className="text-display text-base">{t.label}</h3>
+        <Button size="sm" disabled={!dirty || busy} onClick={() => onSave(t.id, body)}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+        </Button>
+      </div>
+      <Textarea
+        rows={18}
+        className="font-mono text-sm"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+      />
+      <VarHints keyName={t.key} />
+    </Card>
   );
 }
 
