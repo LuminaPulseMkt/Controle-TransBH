@@ -11,6 +11,7 @@ import { brl, dateBR } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
+import { renderFromDb } from "@/lib/message-templates";
 
 export const Route = createFileRoute("/financial/clients/$name")({
   component: () => (
@@ -76,12 +77,15 @@ function ClientReceivablesPage() {
       toast.error("Cliente sem telefone cadastrado.");
       return;
     }
-    const venc = dateBR(r.due_date);
-    const text =
-      `Olá ${r.client_name}! Lembrete da cobrança TransBH:\n` +
-      `${r.description ? r.description + "\n" : ""}` +
-      `Valor: ${brl(Number(r.amount))} — vencimento ${venc}.\n` +
+    const fallback =
+      `Olá {client_name}! Lembrete da cobrança {company_name}:\n` +
+      `Valor: {amount} — vencimento {due_date}.\n` +
       `Em caso de dúvida, fale conosco.`;
+    const text = await renderFromDb("wa_charge_reminder", {
+      client_name: r.client_name,
+      amount: Number(r.amount),
+      due_date: r.due_date,
+    }, fallback);
     const t = toast.loading("Enviando WhatsApp...");
     try {
       const res = await sendWhatsAppManual({ data: { phone, text } });

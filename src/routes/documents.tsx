@@ -37,6 +37,7 @@ import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
+import { renderFromDb } from "@/lib/message-templates";
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
@@ -310,8 +311,15 @@ function DocumentsPage() {
     // Auto-send WhatsApp on new budget creation
     if (!editingDoc && docType === "budget" && form.client_phone && createdToken) {
       const link = `${window.location.origin}/d/${createdToken}`;
-      const text = `Olá ${form.client_name}! Segue o link do seu orçamento TransBH: ${link}`;
-      sendWhatsAppManual({ data: { phone: form.client_phone, text } })
+      const vars = {
+        client_name: form.client_name,
+        title: payload.title,
+        link,
+        company_name: company?.name ?? "TransBH",
+      };
+      const fallback = `Olá {client_name}! Segue o link do seu orçamento {company_name}: {link}`;
+      renderFromDb("wa_budget_created", vars, fallback)
+        .then((text) => sendWhatsAppManual({ data: { phone: form.client_phone, text } }))
         .then((r) => {
           if (r?.ok) toast.success("WhatsApp enviado ao cliente.");
           else if (r?.error) toast.message("WhatsApp não enviado", { description: r.error });
@@ -407,12 +415,17 @@ function DocumentsPage() {
   const shareWhatsApp = async (d: Document) => {
     const phone = (d.client_phone ?? "").replace(/\D/g, "");
     const link = d.public_token ? `${window.location.origin}/d/${d.public_token}` : "";
-    const tipo = d.doc_type === "budget" ? "orçamento" : "contrato";
-    const valor = brl(d.total_amount ?? 0);
-    const text = `Olá ${d.client_name}! Segue seu ${tipo} TransBH no valor de ${valor}.${link ? `\n${link}` : ""}`;
+    const vars = {
+      client_name: d.client_name,
+      title: d.title,
+      amount: Number(d.total_amount ?? 0),
+      link,
+      company_name: company?.name ?? "TransBH",
+    };
+    const fallback = `Olá {client_name}! Segue seu documento {company_name} no valor de {amount}.\n{link}`;
+    const text = await renderFromDb("wa_budget_created", vars, fallback);
 
     if (!phone) {
-      // Sem telefone: fallback abre WhatsApp Web pra escolher contato
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
       return;
     }

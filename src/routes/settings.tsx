@@ -199,13 +199,30 @@ function CompanyTab() {
   );
 }
 
+interface MsgTemplate { id: string; key: string; label: string; body: string }
+
+const VARS_BY_KEY: Record<string, string[]> = {
+  wa_budget_created: ["client_name", "title", "link", "company_name"],
+  wa_budget_accepted: ["client_name", "title", "amount", "due_date", "link", "company_name"],
+  wa_charge_reminder: ["client_name", "amount", "due_date", "company_name"],
+  email_budget_created: ["client_name", "title", "link", "company_name"],
+  email_budget_accepted: ["client_name", "title", "amount", "due_date", "link", "company_name"],
+  email_charge_reminder: ["client_name", "amount", "due_date", "company_name"],
+};
+
+function splitEmail(raw: string): { subject: string; body: string } {
+  const idx = raw.indexOf("\n---\n");
+  if (idx === -1) return { subject: "", body: raw };
+  return { subject: raw.slice(0, idx).trim(), body: raw.slice(idx + 5) };
+}
+
 function TemplatesTab() {
-  const [items, setItems] = useState<{ id: string; key: string; label: string; body: string }[] | null>(null);
+  const [items, setItems] = useState<MsgTemplate[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
     const { data } = await supabase.from("message_templates").select("*").order("key");
-    setItems(data ?? []);
+    setItems((data ?? []) as MsgTemplate[]);
   };
   useEffect(() => { void load(); }, []);
 
@@ -214,32 +231,104 @@ function TemplatesTab() {
     const { error } = await supabase.from("message_templates").update({ body }).eq("id", id);
     setBusyId(null);
     if (error) return toast.error(error.message);
-    toast.success("Modelo atualizado.");
+    toast.success("Modelo salvo.");
+    void load();
   };
 
   if (!items) return <Skeleton className="h-48 w-full" />;
 
+  const wa = items.filter((t) => t.key.startsWith("wa_"));
+  const em = items.filter((t) => t.key.startsWith("email_"));
+  const other = items.filter((t) => !t.key.startsWith("wa_") && !t.key.startsWith("email_"));
+
   return (
-    <div className="space-y-4">
-      {items.map((t) => (
-        <Card key={t.id} className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="text-display text-lg">{t.label}</h3>
-              <p className="text-xs text-muted-foreground">
-                Variáveis: {"{client_name}"}, {"{amount}"}, {"{transport_code}"}, {"{days_overdue}"}
-              </p>
-            </div>
-          </div>
-          <Textarea
-            rows={5}
-            defaultValue={t.body}
-            onBlur={(e) => { if (e.target.value !== t.body) void save(t.id, e.target.value); }}
-          />
-          {busyId === t.id && <div className="text-xs text-muted-foreground mt-1">Salvando…</div>}
-        </Card>
-      ))}
+    <div className="space-y-6">
+      <Section title="WhatsApp" description="Mensagens enviadas pelo WhatsApp via Evolution API.">
+        {wa.map((t) => (
+          <WhatsTemplateCard key={t.id} t={t} busy={busyId === t.id} onSave={save} />
+        ))}
+      </Section>
+
+      <Section title="E-mail" description="Assunto e corpo do e-mail. O envio depende do domínio de e-mail estar configurado.">
+        {em.map((t) => (
+          <EmailTemplateCard key={t.id} t={t} busy={busyId === t.id} onSave={save} />
+        ))}
+      </Section>
+
+      {other.length > 0 && (
+        <Section title="Outros">
+          {other.map((t) => (
+            <WhatsTemplateCard key={t.id} t={t} busy={busyId === t.id} onSave={save} />
+          ))}
+        </Section>
+      )}
     </div>
+  );
+}
+
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-3">
+        <h2 className="text-display text-xl">{title}</h2>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function VarHints({ keyName }: { keyName: string }) {
+  const vars = VARS_BY_KEY[keyName] ?? [];
+  if (vars.length === 0) return null;
+  return (
+    <p className="text-xs text-muted-foreground mt-1">
+      Variáveis: {vars.map((v) => `{${v}}`).join(", ")}
+    </p>
+  );
+}
+
+function WhatsTemplateCard({ t, busy, onSave }: { t: MsgTemplate; busy: boolean; onSave: (id: string, body: string) => void }) {
+  const [body, setBody] = useState(t.body);
+  const dirty = body !== t.body;
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <h3 className="text-display text-base">{t.label}</h3>
+        <Button size="sm" disabled={!dirty || busy} onClick={() => onSave(t.id, body)}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+        </Button>
+      </div>
+      <Textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} />
+      <VarHints keyName={t.key} />
+    </Card>
+  );
+}
+
+function EmailTemplateCard({ t, busy, onSave }: { t: MsgTemplate; busy: boolean; onSave: (id: string, body: string) => void }) {
+  const initial = splitEmail(t.body);
+  const [subject, setSubject] = useState(initial.subject);
+  const [body, setBody] = useState(initial.body);
+  const merged = `${subject.trim()}\n---\n${body}`;
+  const dirty = merged !== t.body;
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-display text-base">{t.label}</h3>
+        <Button size="sm" disabled={!dirty || busy} onClick={() => onSave(t.id, merged)}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+        </Button>
+      </div>
+      <div>
+        <Label className="text-xs">Assunto</Label>
+        <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+      </div>
+      <div>
+        <Label className="text-xs">Corpo</Label>
+        <Textarea rows={7} value={body} onChange={(e) => setBody(e.target.value)} />
+        <VarHints keyName={t.key} />
+      </div>
+    </Card>
   );
 }
 

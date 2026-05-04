@@ -231,11 +231,30 @@ export const acceptBudget = createServerFn({ method: "POST" })
         const link = `https://transbh-fleetflow.lovable.app/d/${contract.public_token}`;
         const valor = totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         const venc = new Date(receivable.due_date + "T00:00:00").toLocaleDateString("pt-BR");
-        const text =
-          `Olá ${budget.client_name}! Recebemos seu aceite do orçamento "${budget.title}".\n` +
-          `Contrato: ${link}\n` +
-          `Valor: ${valor} — vencimento ${venc}.\n` +
-          `Obrigado por confiar na TransBH!`;
+        const fallback =
+          `Olá {client_name}! Recebemos seu aceite do orçamento "{title}".\n` +
+          `Contrato: {link}\nValor: {amount} — vencimento {due_date}.\nObrigado por confiar na {company_name}!`;
+        const { data: tpl } = await supabaseAdmin
+          .from("message_templates")
+          .select("body")
+          .eq("key", "wa_budget_accepted")
+          .maybeSingle();
+        const { data: comp } = await supabaseAdmin
+          .from("company_settings")
+          .select("name")
+          .maybeSingle();
+        const body = tpl?.body ?? fallback;
+        const map: Record<string, string> = {
+          client_name: budget.client_name ?? "",
+          title: budget.title ?? "",
+          link,
+          amount: valor,
+          due_date: venc,
+          company_name: comp?.name ?? "TransBH",
+        };
+        const text = body.replace(/\{(\w+)\}/g, (_: string, k: string) =>
+          Object.prototype.hasOwnProperty.call(map, k) ? map[k] : `{${k}}`,
+        );
         sendWhatsAppText({ phone: budget.client_phone, text }).catch((e) =>
           console.error("[acceptBudget] whatsapp send failed", e),
         );
