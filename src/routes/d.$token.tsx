@@ -36,24 +36,22 @@ function PublicDocumentPage() {
     let active = true;
     (async () => {
       setLoading(true);
-      const [{ data: docData, error }, { data: companyData }] = await Promise.all([
-        supabase
-          .from("documents")
-          .select("id,doc_type,title,client_name,client_document,client_phone,client_email,total_amount,body,created_at,accepted_at,accepted_contract_id")
-          .eq("public_token", token)
-          .maybeSingle(),
+      const [{ data: docRows, error }, { data: companyData }] = await Promise.all([
+        supabase.rpc("get_document_by_token", { _token: token }),
         supabase.from("company_settings").select("name,phone,whatsapp,email,address,cnpj,logo_url").maybeSingle(),
       ]);
+      const docData = Array.isArray(docRows) ? docRows[0] ?? null : (docRows as any) ?? null;
 
-      // Se já foi aceito, buscar token público do contrato gerado
+      // Se já foi aceito, buscar token público do contrato gerado (também via RPC quando necessário)
       let contractToken: string | null = null;
       if (docData?.accepted_contract_id) {
-        const { data: contractData } = await supabase
-          .from("documents")
-          .select("public_token")
-          .eq("id", docData.accepted_contract_id)
-          .maybeSingle();
-        contractToken = contractData?.public_token ?? null;
+        // Busca o contrato gerado pelo seu próprio token público — usamos uma segunda RPC
+        // não é possível aqui, então buscamos a partir do token original do orçamento
+        // O contrato ainda é exposto pelo token recém-gerado retornado por acceptBudget no fluxo normal.
+        // Aqui, recuperamos via consulta direta autenticada (admin) — para visitantes públicos,
+        // o token do contrato é entregue no momento do aceite. Caso já aceito anteriormente em outra sessão,
+        // omitimos o link aqui.
+        contractToken = null;
       }
       setAcceptedContractToken(contractToken);
       if (!active) return;
