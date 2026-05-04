@@ -610,6 +610,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_contract_token_for_budget: {
+        Args: { _budget_token: string }
+        Returns: string
+      }
       get_document_by_token: {
         Args: { _token: string }
         Returns: {

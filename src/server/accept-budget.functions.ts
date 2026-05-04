@@ -62,7 +62,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
 
       if (fetchErr) {
         console.error("[acceptBudget]", stage, fetchErr);
-        return { ok: false as const, error: `Erro ao buscar documento: ${fetchErr.message}` };
+        return { ok: false as const, error: "Não foi possível processar a solicitação. Tente novamente." };
       }
       if (!budget) {
         return { ok: false as const, error: "Documento não encontrado." };
@@ -137,7 +137,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
         console.error("[acceptBudget]", stage, contractErr);
         return {
           ok: false as const,
-          error: `Falha ao criar contrato: ${errMsg(contractErr)}`,
+          error: "Não foi possível processar a solicitação. Tente novamente.",
         };
       }
 
@@ -173,7 +173,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
         console.error("[acceptBudget]", stage, transportErr);
         return {
           ok: false as const,
-          error: `Falha ao criar transporte: ${errMsg(transportErr)}`,
+          error: "Não foi possível processar a solicitação. Tente novamente.",
         };
       }
 
@@ -201,7 +201,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
         console.error("[acceptBudget]", stage, recvErr);
         return {
           ok: false as const,
-          error: `Falha ao criar cobrança: ${errMsg(recvErr)}`,
+          error: "Não foi possível processar a solicitação. Tente novamente.",
         };
       }
 
@@ -221,7 +221,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
         console.error("[acceptBudget]", stage, updErr);
         return {
           ok: false as const,
-          error: `Falha ao registrar aceite: ${updErr.message}`,
+          error: "Não foi possível processar a solicitação. Tente novamente.",
         };
       }
 
@@ -238,7 +238,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
       console.error("[acceptBudget] unhandled at stage:", stage, err);
       return {
         ok: false as const,
-        error: `Erro inesperado (${stage}): ${errMsg(err)}`,
+        error: "Não foi possível processar a solicitação. Tente novamente.",
       };
     }
   });
