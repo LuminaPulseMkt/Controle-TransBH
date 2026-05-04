@@ -9,8 +9,8 @@ import {
   Users,
   Settings,
   LogOut,
-  Package2,
 } from "lucide-react";
+import logo from "@/assets/logo-transbh.png";
 import {
   Sidebar,
   SidebarContent,
@@ -51,17 +51,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary">
-            <Package2 className="h-5 w-5 text-primary-foreground" />
-          </div>
+        <div className="flex flex-col items-center gap-1 px-2 py-3">
+          <img
+            src={logo}
+            alt="TransBH - Transportes de Veículos"
+            className={collapsed ? "h-7 w-auto object-contain" : "h-12 w-auto object-contain"}
+          />
           {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="text-display text-2xl text-primary">TransBH</span>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                {isAdmin ? "Administrador" : "Colaborador"}
-              </span>
-            </div>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {isAdmin ? "Administrador" : "Colaborador"}
+            </span>
           )}
         </div>
       </SidebarHeader>
