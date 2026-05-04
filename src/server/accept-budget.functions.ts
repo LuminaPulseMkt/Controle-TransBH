@@ -117,6 +117,41 @@ export const acceptBudget = createServerFn({ method: "POST" })
       }
 
       stage = "create_contract";
+      // Busca cláusulas padrão de contrato (editáveis em Configurações)
+      const { data: clausesTpl } = await supabaseAdmin
+        .from("message_templates")
+        .select("body")
+        .eq("key", "contract_clauses_default")
+        .maybeSingle();
+      const { data: companyForContract } = await supabaseAdmin
+        .from("company_settings")
+        .select("name")
+        .maybeSingle();
+
+      const contractDue = new Date();
+      contractDue.setDate(contractDue.getDate() + 7);
+      const contractDueStr = contractDue.toISOString().slice(0, 10);
+
+      const valorBrl = Number(totalAmount).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const venc = new Date(contractDueStr + "T00:00:00").toLocaleDateString("pt-BR");
+      const clauseVars: Record<string, string> = {
+        client_name: budget.client_name ?? "",
+        title: budget.title ?? "",
+        amount: valorBrl,
+        due_date: venc,
+        company_name: companyForContract?.name ?? "TransBH",
+      };
+      const renderedClauses = clausesTpl?.body
+        ? clausesTpl.body.replace(/\{(\w+)\}/g, (_: string, k: string) =>
+            Object.prototype.hasOwnProperty.call(clauseVars, k) ? clauseVars[k] : `{${k}}`,
+          )
+        : ((budget.body as any)?.notes ?? "");
+
+      const contractBody = { ...((budget.body as any) ?? {}), notes: renderedClauses };
+
       const { data: contract, error: contractErr } = await supabaseAdmin
         .from("documents")
         .insert({
@@ -127,7 +162,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
           client_document: budget.client_document,
           client_phone: budget.client_phone,
           client_email: budget.client_email,
-          body: budget.body,
+          body: contractBody,
           total_amount: budget.total_amount,
           created_by: budget.created_by,
         })
