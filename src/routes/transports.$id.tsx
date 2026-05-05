@@ -68,8 +68,19 @@ interface Transport {
   photo_url: string | null;
   current_location: string | null;
   location_updated_at: string | null;
+  partner_id: string | null;
+  partner_quoted_amount: number | null;
+  partner_notified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface PartnerLite {
+  id: string;
+  name: string;
+  whatsapp: string | null;
+  phone: string | null;
+  default_amount: number;
 }
 
 interface LocationUpdate {
@@ -87,11 +98,16 @@ interface Receivable {
 
 function TransportDetailPage() {
   const { id } = Route.useParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, can } = useAuth();
+  const showValues = can("values.view");
   const [transport, setTransport] = useState<Transport | null | "missing">(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [locationUpdates, setLocationUpdates] = useState<LocationUpdate[]>([]);
+  const [partners, setPartners] = useState<PartnerLite[]>([]);
+  const [partnerId, setPartnerId] = useState<string>("");
+  const [partnerAmount, setPartnerAmount] = useState<string>("");
+  const [savingPartner, setSavingPartner] = useState(false);
   const [newLocation, setNewLocation] = useState("");
   const [newLocationNote, setNewLocationNote] = useState("");
   const [savingLocation, setSavingLocation] = useState(false);
@@ -125,17 +141,22 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r, loc] = await Promise.all([
+    const [t, p, r, loc, pa] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
       supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("partners").select("id, name, whatsapp, phone, default_amount").eq("is_active", true).order("name"),
     ]);
     if (!t.data) { setTransport("missing"); return; }
-    setTransport(t.data as Transport);
+    const tr = t.data as Transport;
+    setTransport(tr);
     setPhotos((p.data ?? []) as Photo[]);
     setReceivables((r.data ?? []) as Receivable[]);
     setLocationUpdates((loc.data ?? []) as LocationUpdate[]);
+    setPartners((pa.data ?? []) as PartnerLite[]);
+    setPartnerId(tr.partner_id ?? "");
+    setPartnerAmount(tr.partner_quoted_amount != null ? String(tr.partner_quoted_amount) : "");
   };
 
   useEffect(() => { void load(); }, [id]);
@@ -163,6 +184,50 @@ function TransportDetailPage() {
     }
     const url = `https://wa.me/${digits}?text=${encodeURIComponent(buildWhatsAppMessage(location))}`;
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const savePartner = async () => {
+    if (!transport || transport === "missing") return;
+    setSavingPartner(true);
+    const amt = partnerAmount.trim() === "" ? null : Number(partnerAmount);
+    const { error } = await supabase
+      .from("transports")
+      .update({
+        partner_id: partnerId || null,
+        partner_quoted_amount: amt,
+      })
+      .eq("id", transport.id);
+    setSavingPartner(false);
+    if (error) return toast.error(error.message);
+    toast.success("Parceiro atualizado.");
+    void load();
+  };
+
+  const sendPartnerWhatsApp = async () => {
+    if (!transport || transport === "missing") return;
+    const partner = partners.find((p) => p.id === partnerId);
+    if (!partner) return toast.error("Selecione um parceiro.");
+    const digits = (partner.whatsapp || partner.phone || "").replace(/\D/g, "");
+    if (!digits) return toast.error("Parceiro sem WhatsApp cadastrado.");
+    const t = transport;
+    const vehicle = [t.vehicle_brand, t.vehicle_model, t.vehicle_year, t.vehicle_plate].filter(Boolean).join(" ");
+    const trackingLink = `${window.location.origin}/transports/${t.id}`;
+    const amt = partnerAmount.trim() === "" ? Number(partner.default_amount ?? 0) : Number(partnerAmount);
+    const text =
+      `Olá ${partner.name}! Tenho um transporte para você:\n\n` +
+      `Código: ${t.code}\n` +
+      `Cliente: ${t.client_name}\n` +
+      `Veículo: ${vehicle}\n` +
+      `Rota: ${t.origin_city}/${t.origin_state} → ${t.destination_city}/${t.destination_state}\n` +
+      `Valor combinado: ${brl(amt)}\n` +
+      (t.notes ? `\nObs: ${t.notes}\n` : "") +
+      `\nAcompanhe: ${trackingLink}`;
+    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    await supabase
+      .from("transports")
+      .update({ partner_notified_at: new Date().toISOString(), partner_id: partner.id })
+      .eq("id", t.id);
+    void load();
   };
 
   const addLocationUpdate = async (notify: boolean) => {
@@ -432,6 +497,76 @@ function TransportDetailPage() {
                     </li>
                   ))}
                 </ol>
+              </div>
+            )}
+          </Card>
+
+          {/* Partner */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Send className="h-5 w-5 text-primary" />
+              <h3 className="text-display text-xl">Parceiro responsável</h3>
+            </div>
+            {partners.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum parceiro ativo cadastrado. <Link to="/partners" className="text-primary underline">Cadastrar agora</Link>.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
+                  <div className="space-y-1">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Parceiro</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={partnerId}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setPartnerId(newId);
+                        const p = partners.find((x) => x.id === newId);
+                        if (p && !partnerAmount) setPartnerAmount(String(p.default_amount ?? ""));
+                      }}
+                    >
+                      <option value="">— Sem parceiro —</option>
+                      {partners.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{showValues ? ` · ${brl(Number(p.default_amount ?? 0))}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {showValues && (
+                    <div className="space-y-1">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Valor combinado</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={partnerAmount}
+                        onChange={(e) => setPartnerAmount(e.target.value)}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={savePartner} disabled={savingPartner}>
+                    {savingPartner ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                    Salvar parceiro
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={sendPartnerWhatsApp}
+                    disabled={!partnerId}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Enviar via WhatsApp
+                  </Button>
+                </div>
+                {t.partner_notified_at && (
+                  <p className="text-xs text-muted-foreground">
+                    Parceiro notificado em {new Date(t.partner_notified_at).toLocaleString("pt-BR")}
+                  </p>
+                )}
               </div>
             )}
           </Card>
