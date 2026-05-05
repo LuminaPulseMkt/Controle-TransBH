@@ -19,7 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, paymentStatusLabel } from "@/lib/format";
 import { Plus, Loader2, Download } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
-import { paymentStatusLabel as paymentStatusMap } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
