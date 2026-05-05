@@ -187,7 +187,7 @@ function DashboardPage() {
         </div>
 
         {/* Chart */}
-        {isAdmin && (
+        {showValues && (
           <Card
             className="p-5 cursor-pointer transition-all hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5"
             onClick={() => navigate({ to: "/financial", search: { tab: "reports" } as any })}
