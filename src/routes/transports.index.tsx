@@ -110,7 +110,7 @@ const emptyForm = {
 };
 
 function TransportsPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, can } = useAuth();
   const navigate = useNavigate();
   const initialSearch = Route.useSearch();
   const [items, setItems] = useState<Transport[] | null>(null);
