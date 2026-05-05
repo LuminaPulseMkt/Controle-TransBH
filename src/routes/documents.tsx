@@ -530,8 +530,8 @@ function DocumentsPage() {
                         <DocRow
                           key={d.id}
                           d={d}
-                          canEdit={isAdmin}
-                          canDelete={isAdmin}
+                          canEdit={canEditDocs}
+                          canDelete={canEditDocs}
                           onEdit={() => openEdit(d)}
                           onDelete={() => requestDeleteDoc(d)}
                           onPreview={() => setPreviewDoc(d)}
@@ -552,8 +552,8 @@ function DocumentsPage() {
             <Card key={d.id} className="p-0 overflow-hidden">
               <DocRow
                 d={d}
-                canEdit={isAdmin}
-                canDelete={isAdmin}
+                canEdit={canEditDocs}
+                canDelete={canEditDocs}
                 onEdit={() => openEdit(d)}
                 onDelete={() => requestDeleteDoc(d)}
                 onPreview={() => setPreviewDoc(d)}
