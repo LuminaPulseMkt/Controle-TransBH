@@ -38,7 +38,8 @@ interface Stats {
 }
 
 function DashboardPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, can } = useAuth();
+  const showValues = can("values.view");
   const [stats, setStats] = useState<Stats | null>(null);
   const navigate = useNavigate();
 
@@ -152,7 +153,7 @@ function DashboardPage() {
             to="/transports"
             search={{ status: "in_transit" }}
           />
-          {isAdmin && (
+          {showValues && (
             <>
               <KpiCard
                 label="A receber"
@@ -186,7 +187,7 @@ function DashboardPage() {
         </div>
 
         {/* Chart */}
-        {isAdmin && (
+        {showValues && (
           <Card
             className="p-5 cursor-pointer transition-all hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5"
             onClick={() => navigate({ to: "/financial", search: { tab: "reports" } as any })}

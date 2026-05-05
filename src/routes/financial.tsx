@@ -31,7 +31,7 @@ export const Route = createFileRoute("/financial")({
     status: typeof s.status === "string" ? s.status : undefined,
   }),
   component: () => (
-    <AuthGate adminOnly>
+    <AuthGate requirePermission="financial.view">
       <FinancialPage />
     </AuthGate>
   ),

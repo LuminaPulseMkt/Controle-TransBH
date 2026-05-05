@@ -16,7 +16,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/collections")({
   component: () => (
-    <AuthGate adminOnly>
+    <AuthGate requirePermission="collections.view">
       <CollectionsPage />
     </AuthGate>
   ),

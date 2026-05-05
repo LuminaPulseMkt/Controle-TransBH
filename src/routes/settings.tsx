@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   component: () => (
-    <AuthGate adminOnly>
+    <AuthGate requirePermission="settings.manage">
       <SettingsPage />
     </AuthGate>
   ),

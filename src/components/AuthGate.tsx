@@ -1,10 +1,19 @@
 import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
+import type { PermKey } from "@/lib/permissions";
 import { Loader2 } from "lucide-react";
 
-export function AuthGate({ children, adminOnly = false }: { children: ReactNode; adminOnly?: boolean }) {
-  const { user, loading, isAdmin } = useAuth();
+export function AuthGate({
+  children,
+  adminOnly = false,
+  requirePermission,
+}: {
+  children: ReactNode;
+  adminOnly?: boolean;
+  requirePermission?: PermKey;
+}) {
+  const { user, loading, isAdmin, can } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,13 +28,17 @@ export function AuthGate({ children, adminOnly = false }: { children: ReactNode;
     );
   }
 
-  if (adminOnly && !isAdmin) {
+  const denied =
+    (adminOnly && !isAdmin) ||
+    (requirePermission && !can(requirePermission));
+
+  if (denied) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="max-w-md text-center">
           <h2 className="text-display text-3xl text-primary">Acesso restrito</h2>
           <p className="mt-2 text-muted-foreground">
-            Este módulo é exclusivo para administradores.
+            Você não tem permissão para acessar este módulo.
           </p>
         </div>
       </div>

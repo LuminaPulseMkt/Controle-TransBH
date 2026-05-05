@@ -47,7 +47,7 @@ export const Route = createFileRoute("/transports/")({
     status: typeof s.status === "string" ? s.status : undefined,
   }),
   component: () => (
-    <AuthGate>
+    <AuthGate requirePermission="transports.view">
       <TransportsPage />
     </AuthGate>
   ),
@@ -110,7 +110,7 @@ const emptyForm = {
 };
 
 function TransportsPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, can } = useAuth();
   const navigate = useNavigate();
   const initialSearch = Route.useSearch();
   const [items, setItems] = useState<Transport[] | null>(null);
@@ -544,7 +544,7 @@ function TransportsPage() {
                           Cancelar
                         </Button>
                       )}
-                      {isAdmin && (
+                      {can("transports.delete") && (
                         <Button variant="ghost" size="sm" onClick={() => removeTransport(t)} className="text-destructive hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>

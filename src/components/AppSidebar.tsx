@@ -24,26 +24,27 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
+import type { PermKey } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 
-const allItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, adminOnly: false },
-  { title: "Transportes", url: "/transports", icon: Truck, adminOnly: false },
-  { title: "Financeiro", url: "/financial", icon: Wallet, adminOnly: true },
-  { title: "Cobranças", url: "/collections", icon: AlertTriangle, adminOnly: true },
-  { title: "Contratos & Orçamentos", url: "/documents", icon: FileText, adminOnly: false },
-  { title: "Social & Marketing", url: "/social", icon: Share2, adminOnly: false },
-  { title: "Usuários", url: "/users", icon: Users, adminOnly: true },
-  { title: "Configurações", url: "/settings", icon: Settings, adminOnly: true },
+const allItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: PermKey }[] = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Transportes", url: "/transports", icon: Truck, permission: "transports.view" },
+  { title: "Financeiro", url: "/financial", icon: Wallet, permission: "financial.view" },
+  { title: "Cobranças", url: "/collections", icon: AlertTriangle, permission: "collections.view" },
+  { title: "Contratos & Orçamentos", url: "/documents", icon: FileText, permission: "documents.view" },
+  { title: "Social & Marketing", url: "/social", icon: Share2, permission: "social.view" },
+  { title: "Usuários", url: "/users", icon: Users, permission: "users.manage" },
+  { title: "Configurações", url: "/settings", icon: Settings, permission: "settings.manage" },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { isAdmin, signOut, user } = useAuth();
+  const { isAdmin, signOut, user, can } = useAuth();
 
-  const items = allItems.filter((i) => !i.adminOnly || isAdmin);
+  const items = allItems.filter((i) => !i.permission || can(i.permission));
 
   const isActive = (url: string) =>
     url === "/" ? location.pathname === "/" : location.pathname.startsWith(url);

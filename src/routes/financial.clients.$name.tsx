@@ -15,7 +15,7 @@ import { renderFromDb } from "@/lib/message-templates";
 
 export const Route = createFileRoute("/financial/clients/$name")({
   component: () => (
-    <AuthGate adminOnly>
+    <AuthGate requirePermission="financial.view">
       <ClientReceivablesPage />
     </AuthGate>
   ),

@@ -19,7 +19,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/transports/$id")({
   component: () => (
-    <AuthGate>
+    <AuthGate requirePermission="transports.view">
       <TransportDetailPage />
     </AuthGate>
   ),

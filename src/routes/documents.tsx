@@ -47,7 +47,7 @@ const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
 
 export const Route = createFileRoute("/documents")({
   component: () => (
-    <AuthGate>
+    <AuthGate requirePermission="documents.view">
       <DocumentsPage />
     </AuthGate>
   ),
@@ -71,7 +71,8 @@ interface Document {
 }
 
 function DocumentsPage() {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, can } = useAuth();
+  const canEditDocs = can("documents.edit");
   const [items, setItems] = useState<Document[] | null>(null);
   const [customTemplates, setCustomTemplates] = useState<DocTemplate[]>([]);
   const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
@@ -461,10 +462,12 @@ function DocumentsPage() {
       title="Contratos & Orçamentos"
       actions={
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => openNew("budget")}>
-            <Plus className="h-4 w-4 mr-1" /> Orçamento
-          </Button>
-          {isAdmin && (
+          {canEditDocs && (
+            <Button size="sm" variant="outline" onClick={() => openNew("budget")}>
+              <Plus className="h-4 w-4 mr-1" /> Orçamento
+            </Button>
+          )}
+          {canEditDocs && (
             <Button size="sm" onClick={() => openNew("contract")}>
               <Plus className="h-4 w-4 mr-1" /> Contrato
             </Button>
@@ -529,8 +532,8 @@ function DocumentsPage() {
                         <DocRow
                           key={d.id}
                           d={d}
-                          canEdit={isAdmin}
-                          canDelete={isAdmin}
+                          canEdit={canEditDocs}
+                          canDelete={canEditDocs}
                           onEdit={() => openEdit(d)}
                           onDelete={() => requestDeleteDoc(d)}
                           onPreview={() => setPreviewDoc(d)}
@@ -551,8 +554,8 @@ function DocumentsPage() {
             <Card key={d.id} className="p-0 overflow-hidden">
               <DocRow
                 d={d}
-                canEdit={isAdmin}
-                canDelete={isAdmin}
+                canEdit={canEditDocs}
+                canDelete={canEditDocs}
                 onEdit={() => openEdit(d)}
                 onDelete={() => requestDeleteDoc(d)}
                 onPreview={() => setPreviewDoc(d)}
