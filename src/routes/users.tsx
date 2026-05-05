@@ -16,6 +16,7 @@ import {
   COLLABORATOR_DEFAULTS,
   type PermKey,
 } from "@/lib/permissions";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/users")({
   component: () => (
@@ -117,7 +118,24 @@ function UsersPage() {
   };
 
   return (
-    <AppLayout title="Usuários">
+    <AppLayout
+      title="Usuários"
+      actions={
+        <ExportMenu
+          filename={`usuarios-${new Date().toISOString().slice(0,10)}`}
+          title="Usuários"
+          columns={["Nome", "E-mail", "Papel", "Ativo", "Último login", "Cadastro"]}
+          rows={(users ?? []).map((u) => [
+            u.display_name ?? "—",
+            u.email ?? "—",
+            u.role === "administrator" ? "Administrador" : "Colaborador",
+            u.is_active ? "Sim" : "Não",
+            u.last_login_at ? dateBR(u.last_login_at) : "—",
+            dateBR(u.created_at),
+          ])}
+        />
+      }
+    >
       <Card className="overflow-hidden">
         {!users ? (
           <div className="p-4 space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
