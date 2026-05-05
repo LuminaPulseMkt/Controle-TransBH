@@ -141,17 +141,22 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r, loc] = await Promise.all([
+    const [t, p, r, loc, pa] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
       supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("partners").select("id, name, whatsapp, phone, default_amount").eq("is_active", true).order("name"),
     ]);
     if (!t.data) { setTransport("missing"); return; }
-    setTransport(t.data as Transport);
+    const tr = t.data as Transport;
+    setTransport(tr);
     setPhotos((p.data ?? []) as Photo[]);
     setReceivables((r.data ?? []) as Receivable[]);
     setLocationUpdates((loc.data ?? []) as LocationUpdate[]);
+    setPartners((pa.data ?? []) as PartnerLite[]);
+    setPartnerId(tr.partner_id ?? "");
+    setPartnerAmount(tr.partner_quoted_amount != null ? String(tr.partner_quoted_amount) : "");
   };
 
   useEffect(() => { void load(); }, [id]);
