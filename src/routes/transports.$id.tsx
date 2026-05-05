@@ -230,6 +230,7 @@ function TransportDetailPage() {
     void load();
   };
 
+  const addLocationUpdate = async (notify: boolean) => {
     if (!transport || transport === "missing") return;
     const trimmed = newLocation.trim();
     if (!trimmed) return toast.error("Informe a localização atual.");
