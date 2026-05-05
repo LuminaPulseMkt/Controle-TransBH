@@ -462,10 +462,12 @@ function DocumentsPage() {
       title="Contratos & Orçamentos"
       actions={
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => openNew("budget")}>
-            <Plus className="h-4 w-4 mr-1" /> Orçamento
-          </Button>
-          {isAdmin && (
+          {canEditDocs && (
+            <Button size="sm" variant="outline" onClick={() => openNew("budget")}>
+              <Plus className="h-4 w-4 mr-1" /> Orçamento
+            </Button>
+          )}
+          {canEditDocs && (
             <Button size="sm" onClick={() => openNew("contract")}>
               <Plus className="h-4 w-4 mr-1" /> Contrato
             </Button>
