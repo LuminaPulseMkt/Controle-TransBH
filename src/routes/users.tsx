@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/users")({
   component: () => (
-    <AuthGate adminOnly>
+    <AuthGate requirePermission="users.manage">
       <UsersPage />
     </AuthGate>
   ),

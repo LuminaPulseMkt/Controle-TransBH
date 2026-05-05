@@ -15,7 +15,7 @@ import { toPng } from "html-to-image";
 
 export const Route = createFileRoute("/social")({
   component: () => (
-    <AuthGate>
+    <AuthGate requirePermission="social.view">
       <SocialPage />
     </AuthGate>
   ),

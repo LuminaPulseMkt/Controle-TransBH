@@ -47,7 +47,7 @@ export const Route = createFileRoute("/transports/")({
     status: typeof s.status === "string" ? s.status : undefined,
   }),
   component: () => (
-    <AuthGate>
+    <AuthGate requirePermission="transports.view">
       <TransportsPage />
     </AuthGate>
   ),

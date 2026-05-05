@@ -47,7 +47,7 @@ const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
 
 export const Route = createFileRoute("/documents")({
   component: () => (
-    <AuthGate>
+    <AuthGate requirePermission="documents.view">
       <DocumentsPage />
     </AuthGate>
   ),
