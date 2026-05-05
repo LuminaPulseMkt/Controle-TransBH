@@ -1,14 +1,11 @@
-## Substituir "TransBH" pela logo no sidebar
+## Substituir "TransBH" pela logo na tela de login
 
-### Passos
-1. Copiar a imagem enviada para `src/assets/logo-transbh.png`.
-2. Editar `src/components/AppSidebar.tsx`:
-   - Importar: `import logo from "@/assets/logo-transbh.png"`
-   - Remover o quadrado amarelo com `Package2` e o texto "TransBH".
-   - Renderizar `<img src={logo} alt="TransBH" className="h-10 w-auto object-contain" />` quando expandido e `h-7 w-auto` quando colapsado.
-   - Manter abaixo o subtítulo "Administrador / Colaborador" apenas quando expandido.
-   - Remover import não usado de `Package2`.
+### Mudanças em `src/routes/login.tsx`
+1. Adicionar `import logo from "@/assets/logo-transbh.png"`.
+2. Remover o quadrado amarelo com `Package2` e o `<h1>TransBH</h1>`.
+3. Inserir `<img src={logo} alt="TransBH" className="h-20 w-auto object-contain mb-2" />`.
+4. Manter o subtítulo "Gestão de Transporte de Veículos".
+5. Remover import `Package2` (não usado).
 
-### Detalhes
-- A logo já tem o caminhão + "TRANSBH / TRANSPORTES DE VEÍCULOS", então não é preciso texto adicional ao lado.
-- Tamanhos escolhidos garantem leitura sem estourar a altura do header do sidebar.
+### Resultado
+Header do card de login passa a exibir apenas a logo (sem fundo) em tamanho legível, seguida do subtítulo.
