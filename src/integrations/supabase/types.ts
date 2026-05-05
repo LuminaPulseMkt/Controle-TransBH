@@ -276,6 +276,57 @@ export type Database = {
         }
         Relationships: []
       }
+      partners: {
+        Row: {
+          base_city: string | null
+          created_at: string
+          created_by: string | null
+          default_amount: number
+          document: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          pricing_notes: string | null
+          routes: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          base_city?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_amount?: number
+          document?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          pricing_notes?: string | null
+          routes?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          base_city?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_amount?: number
+          document?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          pricing_notes?: string | null
+          routes?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       payables: {
         Row: {
           amount: number
@@ -515,6 +566,9 @@ export type Database = {
           notes: string | null
           origin_city: string
           origin_state: string
+          partner_id: string | null
+          partner_notified_at: string | null
+          partner_quoted_amount: number | null
           photo_url: string | null
           status: Database["public"]["Enums"]["transport_status"]
           updated_at: string
@@ -543,6 +597,9 @@ export type Database = {
           notes?: string | null
           origin_city: string
           origin_state: string
+          partner_id?: string | null
+          partner_notified_at?: string | null
+          partner_quoted_amount?: number | null
           photo_url?: string | null
           status?: Database["public"]["Enums"]["transport_status"]
           updated_at?: string
@@ -571,6 +628,9 @@ export type Database = {
           notes?: string | null
           origin_city?: string
           origin_state?: string
+          partner_id?: string | null
+          partner_notified_at?: string | null
+          partner_quoted_amount?: number | null
           photo_url?: string | null
           status?: Database["public"]["Enums"]["transport_status"]
           updated_at?: string
@@ -582,7 +642,15 @@ export type Database = {
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
           vehicle_year?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transports_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_permissions: {
         Row: {
