@@ -38,7 +38,8 @@ interface Stats {
 }
 
 function DashboardPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, can } = useAuth();
+  const showValues = can("values.view");
   const [stats, setStats] = useState<Stats | null>(null);
   const navigate = useNavigate();
 
