@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import logo from "@/assets/logo-transbh.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -51,10 +52,7 @@ function LoginPage() {
     <div className="min-h-screen bg-background bg-grid flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 border-border bg-card">
         <div className="flex flex-col items-center mb-6">
-          <div className="flex h-14 w-14 items-center justify-center rounded-md bg-primary mb-3">
-            <Package2 className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-display text-4xl text-primary">TransBH</h1>
+          <img src={logo} alt="TransBH" className="h-20 w-auto object-contain mb-2" />
           <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
             Gestão de Transporte de Veículos
           </p>
