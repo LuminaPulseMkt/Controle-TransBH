@@ -340,7 +340,22 @@ function PayablesTab() {
           <div className="text-display text-3xl mt-1">{brl(total)}</div>
         </Card>
       </div>
-      <Card className="p-4 mb-4 flex justify-end">
+      <Card className="p-4 mb-4 flex justify-end gap-2">
+        <ExportMenu
+          filename={`despesas-${new Date().toISOString().slice(0,10)}`}
+          title="Contas a Pagar"
+          columns={["Data", "Categoria", "Descrição", "Valor (R$)"]}
+          rows={(items ?? []).map((p) => [
+            dateBR(p.expense_date),
+            p.category,
+            p.description ?? "—",
+            Number(p.amount).toFixed(2),
+          ])}
+          summary={[
+            { label: "Total", value: brl(total) },
+            { label: "Mês atual", value: brl(monthTotal) },
+          ]}
+        />
         <Button onClick={() => setOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Nova Despesa
         </Button>
