@@ -9,6 +9,7 @@ import {
   Users,
   Settings,
   LogOut,
+  Handshake,
 } from "lucide-react";
 import logo from "@/assets/logo-transbh.png";
 import {
@@ -30,6 +31,7 @@ import { Button } from "@/components/ui/button";
 const allItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: PermKey }[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Transportes", url: "/transports", icon: Truck, permission: "transports.view" },
+  { title: "Parceiros", url: "/partners", icon: Handshake, permission: "partners.view" },
   { title: "Financeiro", url: "/financial", icon: Wallet, permission: "financial.view" },
   { title: "Cobranças", url: "/collections", icon: AlertTriangle, permission: "collections.view" },
   { title: "Contratos & Orçamentos", url: "/documents", icon: FileText, permission: "documents.view" },

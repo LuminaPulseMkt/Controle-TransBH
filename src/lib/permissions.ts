@@ -10,6 +10,8 @@ export const PERMISSIONS = [
   "users.manage",
   "settings.manage",
   "values.view",
+  "partners.view",
+  "partners.manage",
 ] as const;
 
 export type PermKey = (typeof PERMISSIONS)[number];
@@ -26,6 +28,8 @@ export const PERMISSION_LABELS: Record<PermKey, string> = {
   "users.manage": "Gerenciar usuários",
   "settings.manage": "Configurações da empresa",
   "values.view": "Visualizar valores monetários",
+  "partners.view": "Visualizar parceiros (motoristas)",
+  "partners.manage": "Gerenciar parceiros (motoristas)",
 };
 
 export const COLLABORATOR_DEFAULTS: Record<PermKey, boolean> = {
@@ -40,6 +44,8 @@ export const COLLABORATOR_DEFAULTS: Record<PermKey, boolean> = {
   "users.manage": false,
   "settings.manage": false,
   "values.view": false,
+  "partners.view": true,
+  "partners.manage": false,
 };
 
 export const ALL_TRUE: Record<PermKey, boolean> = PERMISSIONS.reduce(
