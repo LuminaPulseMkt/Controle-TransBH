@@ -68,8 +68,19 @@ interface Transport {
   photo_url: string | null;
   current_location: string | null;
   location_updated_at: string | null;
+  partner_id: string | null;
+  partner_quoted_amount: number | null;
+  partner_notified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface PartnerLite {
+  id: string;
+  name: string;
+  whatsapp: string | null;
+  phone: string | null;
+  default_amount: number;
 }
 
 interface LocationUpdate {
@@ -87,11 +98,16 @@ interface Receivable {
 
 function TransportDetailPage() {
   const { id } = Route.useParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, can } = useAuth();
+  const showValues = can("values.view");
   const [transport, setTransport] = useState<Transport | null | "missing">(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [locationUpdates, setLocationUpdates] = useState<LocationUpdate[]>([]);
+  const [partners, setPartners] = useState<PartnerLite[]>([]);
+  const [partnerId, setPartnerId] = useState<string>("");
+  const [partnerAmount, setPartnerAmount] = useState<string>("");
+  const [savingPartner, setSavingPartner] = useState(false);
   const [newLocation, setNewLocation] = useState("");
   const [newLocationNote, setNewLocationNote] = useState("");
   const [savingLocation, setSavingLocation] = useState(false);

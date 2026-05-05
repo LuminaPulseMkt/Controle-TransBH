@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as SocialRouteImport } from './routes/social'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FinancialRouteImport } from './routes/financial'
 import { Route as FeedbackRouteImport } from './routes/feedback'
@@ -36,6 +37,11 @@ const SocialRoute = SocialRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnersRoute = PartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
+  '/partners': typeof PartnersRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
+  '/partners': typeof PartnersRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
+  '/partners': typeof PartnersRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/feedback'
     | '/financial'
     | '/login'
+    | '/partners'
     | '/settings'
     | '/social'
     | '/users'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/feedback'
     | '/financial'
     | '/login'
+    | '/partners'
     | '/settings'
     | '/social'
     | '/users'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/feedback'
     | '/financial'
     | '/login'
+    | '/partners'
     | '/settings'
     | '/social'
     | '/users'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   FeedbackRoute: typeof FeedbackRoute
   FinancialRoute: typeof FinancialRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PartnersRoute: typeof PartnersRoute
   SettingsRoute: typeof SettingsRoute
   SocialRoute: typeof SocialRoute
   UsersRoute: typeof UsersRoute
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partners': {
+      id: '/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -313,6 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedbackRoute: FeedbackRoute,
   FinancialRoute: FinancialRouteWithChildren,
   LoginRoute: LoginRoute,
+  PartnersRoute: PartnersRoute,
   SettingsRoute: SettingsRoute,
   SocialRoute: SocialRoute,
   UsersRoute: UsersRoute,
