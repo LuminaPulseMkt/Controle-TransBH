@@ -501,6 +501,76 @@ function TransportDetailPage() {
             )}
           </Card>
 
+          {/* Partner */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Send className="h-5 w-5 text-primary" />
+              <h3 className="text-display text-xl">Parceiro responsável</h3>
+            </div>
+            {partners.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum parceiro ativo cadastrado. <Link to="/partners" className="text-primary underline">Cadastrar agora</Link>.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
+                  <div className="space-y-1">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Parceiro</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={partnerId}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setPartnerId(newId);
+                        const p = partners.find((x) => x.id === newId);
+                        if (p && !partnerAmount) setPartnerAmount(String(p.default_amount ?? ""));
+                      }}
+                    >
+                      <option value="">— Sem parceiro —</option>
+                      {partners.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{showValues ? ` · ${brl(Number(p.default_amount ?? 0))}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {showValues && (
+                    <div className="space-y-1">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Valor combinado</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={partnerAmount}
+                        onChange={(e) => setPartnerAmount(e.target.value)}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={savePartner} disabled={savingPartner}>
+                    {savingPartner ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                    Salvar parceiro
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={sendPartnerWhatsApp}
+                    disabled={!partnerId}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Enviar via WhatsApp
+                  </Button>
+                </div>
+                {t.partner_notified_at && (
+                  <p className="text-xs text-muted-foreground">
+                    Parceiro notificado em {new Date(t.partner_notified_at).toLocaleString("pt-BR")}
+                  </p>
+                )}
+              </div>
+            )}
+          </Card>
+
           {/* Photo gallery */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
