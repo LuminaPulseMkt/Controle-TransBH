@@ -12,6 +12,8 @@ import { ArrowLeft, CheckCircle2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
+import { ExportMenu } from "@/components/ExportMenu";
+import { paymentStatusLabel } from "@/lib/format";
 
 export const Route = createFileRoute("/financial/clients/$name")({
   component: () => (
@@ -111,11 +113,31 @@ function ClientReceivablesPage() {
     <AppLayout
       title={`Cobranças · ${decoded}`}
       actions={
-        <Button asChild variant="outline" size="sm">
-          <Link to="/financial">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Financeiro
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename={`cobrancas-${decoded.replace(/\s+/g, "_")}`}
+            title={`Cobranças — ${decoded}`}
+            columns={["Veículo", "Descrição", "Vencimento", "Valor (R$)", "Status", "Pago em"]}
+            rows={(rows ?? []).map((r) => [
+              r.transports?.vehicle_plate ?? "—",
+              r.description ?? "—",
+              dateBR(r.due_date),
+              Number(r.amount).toFixed(2),
+              paymentStatusLabel[r.status] ?? r.status,
+              r.paid_at ? dateBR(r.paid_at) : "—",
+            ])}
+            summary={[
+              { label: "Total", value: brl(total) },
+              { label: "Pago", value: brl(paid) },
+              { label: "Faltante", value: brl(outstanding) },
+            ]}
+          />
+          <Button asChild variant="outline" size="sm">
+            <Link to="/financial">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Financeiro
+            </Link>
+          </Button>
+        </div>
       }
     >
       <div className="grid gap-3 sm:grid-cols-3 mb-4">

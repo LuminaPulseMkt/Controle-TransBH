@@ -1,103 +1,115 @@
 ## Objetivo
 
-Criar uma área de **Parceiros** (motoristas terceirizados que costumam fazer cotações), com cadastro de valor padrão por parceiro e ação de **enviar transporte/orçamento aprovado direto pelo WhatsApp** ao parceiro escolhido.
+1. Criar um **Dashboard** completo (rota `/`) com indicadores de saúde financeira: orçamentos aprovados vs. não aprovados, custo real (parceiros/despesas) vs. valor cobrado (margem), e filtros por período.
+2. Adicionar **exportação PDF + CSV** em todas as abas com listagens (Transportes, Documentos, Financeiro/Recebíveis, Financeiro/Despesas, Cobranças, Parceiros, Social, Usuários).
 
-## Funcionalidades
+---
 
-1. **Cadastro de parceiros** (CRUD) com:
-   - Nome, telefone/WhatsApp, documento (CPF/CNPJ, opcional)
-   - Cidade base, regiões/rotas que costuma atender (texto livre)
-   - Valor médio cobrado (numérico) + observação de tabela (texto)
-   - Status ativo/inativo, observações
+## 1. Dashboard reformulado (`src/routes/index.tsx`)
 
-2. **Atribuição de parceiro a um transporte**
-   - Na tela de detalhe do transporte (`transports.$id.tsx`), novo bloco "Parceiro responsável" com select de parceiros ativos.
-   - Salva `partner_id` em `transports`.
-   - Mostra valor cotado padrão e permite sobrescrever (`partner_quoted_amount`).
+Substituir a home atual por um painel com:
 
-3. **Enviar para WhatsApp do parceiro**
-   - Botão "Enviar ao parceiro" na tela do transporte e também no documento (orçamento) quando aceito.
-   - Usa `sendWhatsAppManual` (já existe) com mensagem montada a partir de um novo template `wa_partner_assignment` em `message_templates`, com variáveis: `{partner_name}`, `{transport_code}`, `{client_name}`, `{origin}`, `{destination}`, `{vehicle}`, `{partner_amount}`, `{notes}`, `{tracking_link}`.
+**Filtro de período** (chips: Hoje / 7d / Mês atual / Mês anterior / 90d / Customizado com 2 date pickers).
 
-4. **Indicação automática a partir do orçamento aceito**
-   - Em `documents.tsx`/aceite, se o documento aceito gerou um transporte e há um parceiro pré-selecionado, oferecer "Compartilhar com parceiro" no modal pós-aceite.
+**KPIs principais (cards):**
+- Receita recebida (recebíveis `paid` no período)
+- A receber (pending + partial + overdue)
+- Despesas (payables no período)
+- Custo com parceiros (soma `partner_quoted_amount` dos transportes no período)
+- **Margem bruta** = Receita − (Despesas + Custo parceiros)
+- Ticket médio por transporte
 
-## Banco de dados (migration)
+**Funil de orçamentos:**
+- Orçamentos enviados, aceitos (com `accepted_at`), pendentes, taxa de conversão (%)
+- Valor total cotado vs. valor total fechado
 
-```sql
-CREATE TABLE public.partners (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  phone text,
-  whatsapp text,
-  document text,
-  base_city text,
-  routes text,                  -- regiões/rotas que costuma atender
-  default_amount numeric DEFAULT 0,
-  pricing_notes text,
-  notes text,
-  is_active boolean NOT NULL DEFAULT true,
-  created_by uuid,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+**Comparativo Custo x Cobrado (por transporte):**
+- Tabela: Código · Cliente · Valor cobrado (recebível vinculado) · Custo parceiro · Margem · % margem
+- Linhas com margem negativa destacadas em vermelho
 
-ALTER TABLE public.transports
-  ADD COLUMN partner_id uuid REFERENCES public.partners(id) ON DELETE SET NULL,
-  ADD COLUMN partner_quoted_amount numeric,
-  ADD COLUMN partner_notified_at timestamptz;
+**Gráficos** (usar `recharts`, já no stack shadcn):
+- Linha: receita vs. despesa por dia/semana no período
+- Barras: top 5 clientes por receita
+- Pizza: status dos transportes
+
+**Permissões:** dashboard financeiro só para quem tem `financial.view`. Para colaboradores sem essa permissão, mostrar versão enxuta (apenas transportes/funil sem valores).
+
+**Botões "Exportar PDF" e "Exportar CSV"** no topo do dashboard, gerando o snapshot completo do período.
+
+---
+
+## 2. Utilitário compartilhado de exportação
+
+Criar `src/lib/exporters.ts`:
+
+```ts
+export function exportCSV(filename: string, rows: Record<string, unknown>[]): void
+export function exportPDF(opts: {
+  filename: string;
+  title: string;
+  subtitle?: string;
+  columns: string[];
+  rows: (string | number)[][];
+  company?: { name: string | null; logo_url: string | null };
+  summary?: { label: string; value: string }[];
+}): Promise<void>
 ```
 
-RLS:
-- `SELECT`: qualquer autenticado com permissão `partners.view`.
-- `INSERT/UPDATE/DELETE`: somente admins ou usuários com `partners.manage`.
-- Trigger `updated_at`.
+- CSV: escape de aspas/vírgulas, BOM UTF-8 para Excel.
+- PDF: reaproveita `jspdf` + `jspdf-autotable` + `loadLogoDataUrl` (mesmo header escuro do relatório financeiro existente).
+- Componente `<ExportMenu />` (`src/components/ExportMenu.tsx`) com dropdown shadcn (PDF / CSV).
 
-Seed do template:
-```sql
-INSERT INTO public.message_templates (key,label,body) VALUES
-('wa_partner_assignment','WhatsApp - Atribuição a parceiro',
- 'Olá {partner_name}! Tenho um transporte para você:\n\nCódigo: {transport_code}\nCliente: {client_name}\nVeículo: {vehicle}\nRota: {origin} → {destination}\nValor combinado: {partner_amount}\n\nObs: {notes}\n\nAcompanhe: {tracking_link}');
-```
+---
 
-## Permissões (estende `src/lib/permissions.ts`)
+## 3. Adicionar `<ExportMenu />` em cada listagem
 
-Novas chaves:
-- `partners.view` — ver lista de parceiros e atribuir a transporte.
-- `partners.manage` — criar/editar/excluir parceiros.
+Em cada arquivo, montar `columns` + `rows` a partir do estado já carregado e respeitar a permissão `values.view` (ocultar colunas de valor para colaboradores restritos).
 
-Defaults colaborador: `partners.view: true`, `partners.manage: false`.
+| Rota | Conteúdo exportado |
+|------|--------------------|
+| `routes/transports.index.tsx` | Código, cliente, veículo, origem→destino, status, motorista, parceiro, valor (se permitido) |
+| `routes/documents.tsx` | Tipo, título, cliente, data, valor, status (aceito/pendente) |
+| `routes/financial.tsx` (Recebíveis) | Cliente, descrição, valor, vencimento, status, transporte vinculado |
+| `routes/financial.tsx` (Despesas) | Data, categoria, descrição, valor |
+| `routes/financial.tsx` (Relatórios) | Reescrever botão atual usando o helper unificado e adicionar CSV |
+| `routes/financial.clients.$name.tsx` | Histórico do cliente (recebíveis + transportes) |
+| `routes/collections.tsx` | Recebíveis vencidos, dias de atraso, telefone, última nota |
+| `routes/partners.tsx` | Nome, WhatsApp, cidade base, rotas, valor padrão, status |
+| `routes/social.tsx` | Itens listados (posts/avaliações conforme conteúdo atual) |
+| `routes/users.tsx` | Usuários, papel, último login |
 
-## Front-end
+Cada listagem ganha o filtro existente respeitado na exportação (exporta o que está visível).
 
-**Nova rota** `src/routes/partners.tsx`
-- Lista (tabela) com nome, telefone, cidade base, valor médio, status.
-- Modal "Novo/Editar parceiro" com todos os campos.
-- Ações: editar, ativar/inativar, excluir, enviar mensagem teste WhatsApp.
-- Protegida por `requirePermission="partners.view"`.
+---
 
-**Sidebar** (`AppSidebar.tsx`)
-- Novo item "Parceiros" entre Transportes e Financeiro, com `permission: "partners.view"` e ícone `Handshake` (lucide).
+## 4. Dependências
 
-**Detalhe do transporte** (`transports.$id.tsx`)
-- Card "Parceiro responsável":
-  - Select de parceiros ativos.
-  - Campo valor (preenche com `default_amount`, editável).
-  - Botão **"Enviar ao parceiro via WhatsApp"** → renderiza template `wa_partner_assignment`, abre `sendWhatsAppManual`, salva `partner_notified_at`.
-  - Mostra "Notificado em: …" quando aplicável.
-  - Esconde valores se `!can("values.view")`.
+Sem novas dependências — `jspdf`, `jspdf-autotable` e `recharts` já estão no projeto (recharts vem com shadcn). Se `recharts` não estiver instalado, adicionar via `bun add recharts` no início.
 
-**Aceite de orçamento** (fluxo de `accept-budget`)
-- No diálogo pós-aceite (admin), botão "Encaminhar para parceiro" abrindo o mesmo seletor.
+---
 
-**Settings → Templates de mensagem**
-- O novo template aparece automaticamente, editável pelo admin (já existe a tela).
+## 5. Banco de dados
 
-## Arquivos a criar/editar
+**Nenhuma migração necessária.** Todos os dados já existem (`transports.partner_quoted_amount`, `receivables`, `payables`, `documents.accepted_at`, etc.). Cálculo de margem é feito no cliente cruzando `transports` ↔ `receivables` (pelo `transport_id`) e `transports.partner_quoted_amount`.
 
-- Nova migration: `partners` + colunas em `transports` + RLS + template seed
-- Novo: `src/routes/partners.tsx`, `src/components/PartnerDialog.tsx`, `src/components/PartnerSelectCard.tsx`
-- Editar: `src/lib/permissions.ts`, `src/components/AppSidebar.tsx`, `src/routes/transports.$id.tsx`, `src/routes/documents.tsx` (botão pós-aceite)
-- Sem mudança em server functions (reaproveita `sendWhatsAppManual`)
+---
+
+## Arquivos afetados
+
+**Novos:**
+- `src/lib/exporters.ts`
+- `src/components/ExportMenu.tsx`
+- `src/components/dashboard/*` (KPIs, gráficos, tabela margem)
+
+**Editados:**
+- `src/routes/index.tsx` (dashboard completo)
+- `src/routes/transports.index.tsx`
+- `src/routes/documents.tsx`
+- `src/routes/financial.tsx`
+- `src/routes/financial.clients.$name.tsx`
+- `src/routes/collections.tsx`
+- `src/routes/partners.tsx`
+- `src/routes/social.tsx`
+- `src/routes/users.tsx`
 
 Posso aplicar?

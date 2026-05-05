@@ -38,6 +38,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
+import { ExportMenu } from "@/components/ExportMenu";
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
@@ -462,6 +463,23 @@ function DocumentsPage() {
       title="Contratos & Orçamentos"
       actions={
         <div className="flex gap-2">
+          <ExportMenu
+            filename={`documentos-${new Date().toISOString().slice(0,10)}`}
+            title="Documentos"
+            subtitle={filter !== "all" ? (filter === "budget" ? "Orçamentos" : "Contratos") : undefined}
+            columns={["Tipo", "Título", "Cliente", "Telefone", "Valor (R$)", "Status", "Criado", "Aceito em"]}
+            rows={filtered.map((d) => [
+              d.doc_type === "budget" ? "Orçamento" : "Contrato",
+              d.title,
+              d.client_name,
+              d.client_phone ?? "—",
+              Number(d.total_amount ?? 0).toFixed(2),
+              d.accepted_at ? "Aceito" : "Pendente",
+              dateBR(d.created_at),
+              d.accepted_at ? dateBR(d.accepted_at) : "—",
+            ])}
+            orientation="landscape"
+          />
           {canEditDocs && (
             <Button size="sm" variant="outline" onClick={() => openNew("budget")}>
               <Plus className="h-4 w-4 mr-1" /> Orçamento

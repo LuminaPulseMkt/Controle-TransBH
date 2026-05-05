@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
+import { ExportMenu } from "@/components/ExportMenu";
 
 type TransportsSearch = { status?: string };
 
@@ -459,9 +460,31 @@ function TransportsPage() {
     <AppLayout
       title="Transportes"
       actions={
-        <Button onClick={openNew} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Novo Transporte
-        </Button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename={`transportes-${new Date().toISOString().slice(0,10)}`}
+            title="Lista de Transportes"
+            subtitle={statusFilter !== "all" ? `Status: ${statusFilter}` : undefined}
+            columns={can("values.view")
+              ? ["Código", "Cliente", "Placa", "Veículo", "Origem", "Destino", "Status", "Motorista", "Criado"]
+              : ["Código", "Cliente", "Placa", "Veículo", "Origem", "Destino", "Status", "Motorista", "Criado"]}
+            rows={filtered.map((t) => [
+              t.code,
+              t.client_name,
+              t.vehicle_plate,
+              [t.vehicle_brand, t.vehicle_model].filter(Boolean).join(" ") || "—",
+              `${t.origin_city}/${t.origin_state}`,
+              `${t.destination_city}/${t.destination_state}`,
+              transportStatusLabel[t.status] ?? t.status,
+              t.driver_name ?? "—",
+              dateBR(t.created_at),
+            ])}
+            orientation="landscape"
+          />
+          <Button onClick={openNew} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Novo Transporte
+          </Button>
+        </div>
       }
     >
       <Card className="p-4 mb-4 flex flex-col md:flex-row gap-3">

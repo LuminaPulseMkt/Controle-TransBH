@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { brl } from "@/lib/format";
 import { Plus, Pencil, Trash2, MessageCircle, Handshake } from "lucide-react";
 import { toast } from "sonner";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/partners")({
   component: () => (
@@ -119,11 +120,25 @@ function PartnersPage() {
   return (
     <AppLayout
       title="Parceiros"
-      actions={canManage && (
-        <Button size="sm" onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" /> Novo parceiro
-        </Button>
-      )}
+      actions={
+        <div className="flex gap-2">
+          <ExportMenu
+            filename={`parceiros-${new Date().toISOString().slice(0,10)}`}
+            title="Parceiros (motoristas)"
+            columns={showValues
+              ? ["Nome", "WhatsApp", "Cidade base", "Rotas", "Valor médio (R$)", "Ativo"]
+              : ["Nome", "WhatsApp", "Cidade base", "Rotas", "Ativo"]}
+            rows={(list ?? []).map((p) => showValues
+              ? [p.name, p.whatsapp ?? p.phone ?? "—", p.base_city ?? "—", p.routes ?? "—", Number(p.default_amount).toFixed(2), p.is_active ? "Sim" : "Não"]
+              : [p.name, p.whatsapp ?? p.phone ?? "—", p.base_city ?? "—", p.routes ?? "—", p.is_active ? "Sim" : "Não"])}
+          />
+          {canManage && (
+            <Button size="sm" onClick={openNew}>
+              <Plus className="h-4 w-4 mr-1" /> Novo parceiro
+            </Button>
+          )}
+        </div>
+      }
     >
       {list === null ? (
         <Card className="p-12 text-center text-muted-foreground">Carregando…</Card>

@@ -18,6 +18,7 @@ import { PaymentStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, paymentStatusLabel } from "@/lib/format";
 import { Plus, Loader2, Download } from "lucide-react";
+import { ExportMenu } from "@/components/ExportMenu";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -162,9 +163,29 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => setOpen(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Novo Recebível
-        </Button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename={`recebiveis-${new Date().toISOString().slice(0,10)}`}
+            title="Contas a Receber"
+            subtitle={filter !== "all" ? paymentStatusLabel[filter] : "Todos"}
+            columns={["Cliente", "Descrição", "Valor (R$)", "Vencimento", "Status", "Pago em"]}
+            rows={filtered.map((r) => [
+              r.client_name,
+              r.description ?? "—",
+              Number(r.amount).toFixed(2),
+              dateBR(r.due_date),
+              paymentStatusLabel[r.status] ?? r.status,
+              r.paid_at ? dateBR(r.paid_at) : "—",
+            ])}
+            summary={[
+              { label: "Total", value: brl(filtered.reduce((s, r) => s + Number(r.amount), 0)) },
+              { label: "Itens", value: String(filtered.length) },
+            ]}
+          />
+          <Button onClick={() => setOpen(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Novo Recebível
+          </Button>
+        </div>
       </Card>
 
       <Card className="overflow-hidden">
@@ -319,7 +340,22 @@ function PayablesTab() {
           <div className="text-display text-3xl mt-1">{brl(total)}</div>
         </Card>
       </div>
-      <Card className="p-4 mb-4 flex justify-end">
+      <Card className="p-4 mb-4 flex justify-end gap-2">
+        <ExportMenu
+          filename={`despesas-${new Date().toISOString().slice(0,10)}`}
+          title="Contas a Pagar"
+          columns={["Data", "Categoria", "Descrição", "Valor (R$)"]}
+          rows={(items ?? []).map((p) => [
+            dateBR(p.expense_date),
+            p.category,
+            p.description ?? "—",
+            Number(p.amount).toFixed(2),
+          ])}
+          summary={[
+            { label: "Total", value: brl(total) },
+            { label: "Mês atual", value: brl(monthTotal) },
+          ]}
+        />
         <Button onClick={() => setOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Nova Despesa
         </Button>

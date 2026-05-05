@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR } from "@/lib/format";
 import { MessageCircle, Mail, CheckCircle, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/collections")({
   component: () => (
@@ -111,7 +112,24 @@ function CollectionsPage() {
   };
 
   return (
-    <AppLayout title="Cobrança de Devedores">
+    <AppLayout
+      title="Cobrança de Devedores"
+      actions={
+        <ExportMenu
+          filename={`cobrancas-vencidas-${new Date().toISOString().slice(0,10)}`}
+          title="Cobranças vencidas"
+          columns={["Cliente", "Telefone", "Transporte", "Valor (R$)", "Vencimento", "Dias atraso"]}
+          rows={(items ?? []).map((r) => {
+            const days = Math.floor((Date.now() - new Date(r.due_date).getTime()) / 86400000);
+            return [r.client_name, r.client_phone ?? "—", r.transport_code ?? "—", Number(r.amount).toFixed(2), dateBR(r.due_date), String(days)];
+          })}
+          summary={[
+            { label: "Total vencido", value: brl((items ?? []).reduce((s, r) => s + Number(r.amount), 0)) },
+            { label: "Devedores", value: String((items ?? []).length) },
+          ]}
+        />
+      }
+    >
       {!items ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
       ) : items.length === 0 ? (
