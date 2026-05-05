@@ -186,7 +186,50 @@ function TransportDetailPage() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const addLocationUpdate = async (notify: boolean) => {
+  const savePartner = async () => {
+    if (!transport || transport === "missing") return;
+    setSavingPartner(true);
+    const amt = partnerAmount.trim() === "" ? null : Number(partnerAmount);
+    const { error } = await supabase
+      .from("transports")
+      .update({
+        partner_id: partnerId || null,
+        partner_quoted_amount: amt,
+      })
+      .eq("id", transport.id);
+    setSavingPartner(false);
+    if (error) return toast.error(error.message);
+    toast.success("Parceiro atualizado.");
+    void load();
+  };
+
+  const sendPartnerWhatsApp = async () => {
+    if (!transport || transport === "missing") return;
+    const partner = partners.find((p) => p.id === partnerId);
+    if (!partner) return toast.error("Selecione um parceiro.");
+    const digits = (partner.whatsapp || partner.phone || "").replace(/\D/g, "");
+    if (!digits) return toast.error("Parceiro sem WhatsApp cadastrado.");
+    const t = transport;
+    const vehicle = [t.vehicle_brand, t.vehicle_model, t.vehicle_year, t.vehicle_plate].filter(Boolean).join(" ");
+    const trackingLink = `${window.location.origin}/transports/${t.id}`;
+    const amt = partnerAmount.trim() === "" ? Number(partner.default_amount ?? 0) : Number(partnerAmount);
+    const text =
+      `Olá ${partner.name}! Tenho um transporte para você:\n\n` +
+      `Código: ${t.code}\n` +
+      `Cliente: ${t.client_name}\n` +
+      `Veículo: ${vehicle}\n` +
+      `Rota: ${t.origin_city}/${t.origin_state} → ${t.destination_city}/${t.destination_state}\n` +
+      `Valor combinado: ${brl(amt)}\n` +
+      (t.notes ? `\nObs: ${t.notes}\n` : "") +
+      `\nAcompanhe: ${trackingLink}`;
+    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    await supabase
+      .from("transports")
+      .update({ partner_notified_at: new Date().toISOString(), partner_id: partner.id })
+      .eq("id", t.id);
+    void load();
+  };
+
     if (!transport || transport === "missing") return;
     const trimmed = newLocation.trim();
     if (!trimmed) return toast.error("Informe a localização atual.");
