@@ -153,7 +153,7 @@ function DashboardPage() {
             to="/transports"
             search={{ status: "in_transit" }}
           />
-          {isAdmin && (
+          {showValues && (
             <>
               <KpiCard
                 label="A receber"
