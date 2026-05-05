@@ -71,7 +71,8 @@ interface Document {
 }
 
 function DocumentsPage() {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, can } = useAuth();
+  const canEditDocs = can("documents.edit");
   const [items, setItems] = useState<Document[] | null>(null);
   const [customTemplates, setCustomTemplates] = useState<DocTemplate[]>([]);
   const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
