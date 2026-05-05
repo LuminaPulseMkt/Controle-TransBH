@@ -137,8 +137,8 @@ function UsersPage() {
                 const isCollab = u.role === "collaborator";
                 const isOpen = expanded === u.user_id;
                 return (
-                  <>
-                    <tr key={u.user_id} className="border-t border-border/50">
+                  <Fragment key={u.user_id}>
+                    <tr className="border-t border-border/50">
                       <td className="px-2 py-3 align-middle">
                         {isCollab && (
                           <button
