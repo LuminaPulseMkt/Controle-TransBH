@@ -243,10 +243,22 @@ function PartnersPage() {
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Telefone">
-                <Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} />
+                <Input
+                  inputMode="tel"
+                  placeholder="+55 (31) 99999-9999"
+                  value={withBR55(editing.phone ?? "")}
+                  onFocus={() => { if (!editing.phone) setEditing((s) => ({ ...s, phone: "+55 " })); }}
+                  onChange={(e) => setEditing({ ...editing, phone: withBR55(e.target.value) })}
+                />
               </Field>
               <Field label="WhatsApp">
-                <Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="DDI+DDD+número" />
+                <Input
+                  inputMode="tel"
+                  placeholder="+55 (31) 99999-9999"
+                  value={withBR55(editing.whatsapp ?? "")}
+                  onFocus={() => { if (!editing.whatsapp) setEditing((s) => ({ ...s, whatsapp: "+55 " })); }}
+                  onChange={(e) => setEditing({ ...editing, whatsapp: withBR55(e.target.value) })}
+                />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
