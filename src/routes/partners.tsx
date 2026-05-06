@@ -47,6 +47,35 @@ const empty: Partial<Partner> = {
   pricing_notes: "", notes: "", is_active: true,
 };
 
+/** Normaliza para sempre exibir +55 e máscara BR. Vazio fica vazio. */
+function withBR55(input: string): string {
+  let digits = (input || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55")) digits = digits.slice(2);
+  digits = digits.slice(0, 11); // DDD (2) + número (até 9)
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  let out = "+55";
+  if (ddd) out += ` (${ddd}`;
+  if (ddd.length === 2) out += ")";
+  if (rest.length <= 4) {
+    if (rest) out += ` ${rest}`;
+  } else if (rest.length <= 8) {
+    out += ` ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  } else {
+    out += ` ${rest.slice(0, 5)}-${rest.slice(5)}`;
+  }
+  return out;
+}
+
+/** Devolve string normalizada para salvar, ou null se só tiver DDI. */
+function phoneForSave(input: string | null | undefined): string | null {
+  const digits = (input || "").replace(/\D/g, "");
+  const local = digits.startsWith("55") ? digits.slice(2) : digits;
+  if (!local) return null;
+  return withBR55(input || "");
+}
+
 function PartnersPage() {
   const { can, user } = useAuth();
   const canManage = can("partners.manage");
@@ -75,8 +104,8 @@ function PartnersPage() {
     setSaving(true);
     const payload = {
       name: editing.name!.trim(),
-      phone: editing.phone || null,
-      whatsapp: editing.whatsapp || null,
+      phone: phoneForSave(editing.phone),
+      whatsapp: phoneForSave(editing.whatsapp),
       document: editing.document || null,
       base_city: editing.base_city || null,
       routes: editing.routes || null,
@@ -214,10 +243,22 @@ function PartnersPage() {
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Telefone">
-                <Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} />
+                <Input
+                  inputMode="tel"
+                  placeholder="+55 (31) 99999-9999"
+                  value={withBR55(editing.phone ?? "")}
+                  onFocus={() => { if (!editing.phone) setEditing((s) => ({ ...s, phone: "+55 " })); }}
+                  onChange={(e) => setEditing({ ...editing, phone: withBR55(e.target.value) })}
+                />
               </Field>
               <Field label="WhatsApp">
-                <Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="DDI+DDD+número" />
+                <Input
+                  inputMode="tel"
+                  placeholder="+55 (31) 99999-9999"
+                  value={withBR55(editing.whatsapp ?? "")}
+                  onFocus={() => { if (!editing.whatsapp) setEditing((s) => ({ ...s, whatsapp: "+55 " })); }}
+                  onChange={(e) => setEditing({ ...editing, whatsapp: withBR55(e.target.value) })}
+                />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
