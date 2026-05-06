@@ -47,6 +47,35 @@ const empty: Partial<Partner> = {
   pricing_notes: "", notes: "", is_active: true,
 };
 
+/** Normaliza para sempre exibir +55 e máscara BR. Vazio fica vazio. */
+function withBR55(input: string): string {
+  let digits = (input || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55")) digits = digits.slice(2);
+  digits = digits.slice(0, 11); // DDD (2) + número (até 9)
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  let out = "+55";
+  if (ddd) out += ` (${ddd}`;
+  if (ddd.length === 2) out += ")";
+  if (rest.length <= 4) {
+    if (rest) out += ` ${rest}`;
+  } else if (rest.length <= 8) {
+    out += ` ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  } else {
+    out += ` ${rest.slice(0, 5)}-${rest.slice(5)}`;
+  }
+  return out;
+}
+
+/** Devolve string normalizada para salvar, ou null se só tiver DDI. */
+function phoneForSave(input: string | null | undefined): string | null {
+  const digits = (input || "").replace(/\D/g, "");
+  const local = digits.startsWith("55") ? digits.slice(2) : digits;
+  if (!local) return null;
+  return withBR55(input || "");
+}
+
 function PartnersPage() {
   const { can, user } = useAuth();
   const canManage = can("partners.manage");
