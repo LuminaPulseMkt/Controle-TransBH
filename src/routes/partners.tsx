@@ -104,8 +104,8 @@ function PartnersPage() {
     setSaving(true);
     const payload = {
       name: editing.name!.trim(),
-      phone: editing.phone || null,
-      whatsapp: editing.whatsapp || null,
+      phone: phoneForSave(editing.phone),
+      whatsapp: phoneForSave(editing.whatsapp),
       document: editing.document || null,
       base_city: editing.base_city || null,
       routes: editing.routes || null,
