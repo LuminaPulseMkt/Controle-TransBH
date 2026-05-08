@@ -117,6 +117,7 @@ function TransportDetailPage() {
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
+  const previewUrlsRef = useRef<Map<File, string>>(new Map());
 
   // Manage preview URLs lifecycle to avoid leaks
   useEffect(() => {
@@ -129,15 +130,17 @@ function TransportDetailPage() {
       prev.forEach((url, file) => {
         if (!next.has(file)) URL.revokeObjectURL(url);
       });
+      previewUrlsRef.current = next;
       return next;
     });
   }, [pendingFiles]);
 
+  // Revoke any remaining URLs on unmount (uses ref to avoid stale closure)
   useEffect(() => {
     return () => {
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current = new Map();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const load = async () => {
@@ -163,7 +166,7 @@ function TransportDetailPage() {
 
   const updateStatus = async (status: string) => {
     if (!transport || transport === "missing") return;
-    const { error } = await supabase.from("transports").update({ status: status as Transport["status"] as any }).eq("id", transport.id);
+    const { error } = await supabase.from("transports").update({ status: status as Transport["status"] }).eq("id", transport.id);
     if (error) return toast.error(error.message);
     toast.success(`Status: ${transportStatusLabel[status] ?? status}`);
     void load();
