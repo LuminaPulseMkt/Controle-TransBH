@@ -195,17 +195,24 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
             filename={`recebiveis-${new Date().toISOString().slice(0,10)}`}
             title="Contas a Receber"
             subtitle={filter !== "all" ? paymentStatusLabel[filter] : "Todos"}
-            columns={["Cliente", "Descrição", "Valor (R$)", "Vencimento", "Status", "Pago em"]}
-            rows={filtered.map((r) => [
-              r.client_name,
-              r.description ?? "—",
-              Number(r.amount).toFixed(2),
-              dateBR(r.due_date),
-              paymentStatusLabel[r.status] ?? r.status,
-              r.paid_at ? dateBR(r.paid_at) : "—",
-            ])}
+            columns={["Cliente", "Descrição", "Valor (R$)", "Pago (R$)", "Saldo (R$)", "Vencimento", "Status", "Pago em"]}
+            rows={filtered.map((r) => {
+              const paid = Number(r.paid_amount ?? 0);
+              const balance = Number(r.amount) - paid;
+              return [
+                r.client_name,
+                r.description ?? "—",
+                Number(r.amount).toFixed(2),
+                paid.toFixed(2),
+                balance.toFixed(2),
+                dateBR(r.due_date),
+                paymentStatusLabel[r.status] ?? r.status,
+                r.paid_at ? dateBR(r.paid_at) : "—",
+              ];
+            })}
             summary={[
               { label: "Total", value: brl(filtered.reduce((s, r) => s + Number(r.amount), 0)) },
+              { label: "Recebido", value: brl(filtered.reduce((s, r) => s + Number(r.paid_amount ?? (r.status === "paid" ? r.amount : 0)), 0)) },
               { label: "Itens", value: String(filtered.length) },
             ]}
           />
