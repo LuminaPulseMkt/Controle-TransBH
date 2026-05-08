@@ -43,6 +43,7 @@ interface Receivable {
   client_email: string | null;
   description: string | null;
   amount: number;
+  paid_amount: number | null;
   due_date: string;
   paid_at: string | null;
   status: string;
