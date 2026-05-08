@@ -512,13 +512,16 @@ function ReportsTab() {
       const monthStart = new Date();
       monthStart.setDate(1);
       const iso = monthStart.toISOString().slice(0, 10);
-      const [{ data: paid }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
+      const [{ data: paid }, { data: partials }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
         supabase.from("receivables").select("amount, paid_at").eq("status", "paid").gte("paid_at", iso),
+        supabase.from("receivables").select("paid_amount, paid_at").eq("status", "partial").gte("paid_at", iso),
         supabase.from("payables").select("amount, expense_date").gte("expense_date", iso),
         supabase.from("receivables").select("*").eq("status", "overdue").order("due_date"),
         supabase.from("company_settings").select("name,logo_url").maybeSingle(),
       ]);
-      const revenue = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
+      const revenuePaid = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
+      const revenuePartial = partials?.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0) ?? 0;
+      const revenue = revenuePaid + revenuePartial;
       const expenses = pay?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
       setData({ revenue, expenses, receivables: rec ?? [] });
       setCompany(comp ?? null);
