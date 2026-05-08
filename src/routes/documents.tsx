@@ -30,7 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR } from "@/lib/format";
 import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
+
 import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
@@ -346,6 +346,7 @@ function DocumentsPage() {
   };
 
   const exportPDF = async (d: Document) => {
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     const headerH = 56;
     doc.setFillColor(13, 27, 42);

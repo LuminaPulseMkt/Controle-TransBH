@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText } from "lucide-react";
 import { brl, dateBR } from "@/lib/format";
-import jsPDF from "jspdf";
+
 import { AcceptBudgetCard } from "@/components/AcceptBudgetCard";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
@@ -66,6 +66,7 @@ function PublicDocumentPage() {
   const exportPDF = async () => {
     if (!doc) return;
     const d = doc;
+    const { default: jsPDF } = await import("jspdf");
     const pdf = new jsPDF();
     const headerH = 56;
     pdf.setFillColor(13, 27, 42);
