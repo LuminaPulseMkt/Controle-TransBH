@@ -24,15 +24,19 @@ interface Props {
   variant?: "default" | "outline" | "ghost";
 }
 
-let cachedCompany: { name: string | null; logo_url: string | null } | null = null;
+type CompanyInfo = { name: string | null; logo_url: string | null };
+let cachedCompany: CompanyInfo | null = null;
+let cachedAt = 0;
+const CACHE_TTL_MS = 60_000;
 
-async function getCompany() {
-  if (cachedCompany) return cachedCompany;
+async function getCompany(): Promise<CompanyInfo> {
+  if (cachedCompany && Date.now() - cachedAt < CACHE_TTL_MS) return cachedCompany;
   const { data } = await supabase
     .from("company_settings")
     .select("name,logo_url")
     .maybeSingle();
-  cachedCompany = (data as any) ?? { name: null, logo_url: null };
+  cachedCompany = data ?? { name: null, logo_url: null };
+  cachedAt = Date.now();
   return cachedCompany;
 }
 

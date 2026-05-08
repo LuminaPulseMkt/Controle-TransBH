@@ -173,7 +173,7 @@ function DashboardPage() {
     const start = new Date(range.from); start.setHours(0, 0, 0, 0);
     const end = new Date(range.to); end.setHours(0, 0, 0, 0);
     const dayMs = 86400000;
-    const total = Math.min(60, Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs) + 1));
+    const total = Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs) + 1);
     for (let i = 0; i < total; i++) {
       const d = new Date(start.getTime() + i * dayMs);
       days.push({ date: isoDate(d), label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), revenue: 0, expenses: 0 });
