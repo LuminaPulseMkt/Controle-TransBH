@@ -411,6 +411,7 @@ export type Database = {
           description: string | null
           due_date: string
           id: string
+          paid_amount: number | null
           paid_at: string | null
           status: Database["public"]["Enums"]["payment_status"]
           transport_id: string | null
@@ -425,6 +426,7 @@ export type Database = {
           description?: string | null
           due_date: string
           id?: string
+          paid_amount?: number | null
           paid_at?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           transport_id?: string | null
@@ -439,6 +441,7 @@ export type Database = {
           description?: string | null
           due_date?: string
           id?: string
+          paid_amount?: number | null
           paid_at?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           transport_id?: string | null

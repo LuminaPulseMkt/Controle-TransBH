@@ -43,6 +43,7 @@ interface Receivable {
   client_email: string | null;
   description: string | null;
   amount: number;
+  paid_amount: number | null;
   due_date: string;
   paid_at: string | null;
   status: string;
@@ -90,6 +91,8 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
+  const [partialTarget, setPartialTarget] = useState<Receivable | null>(null);
+  const [partialValue, setPartialValue] = useState("");
   const initialForm = {
     client_name: "",
     client_phone: "",
@@ -139,14 +142,39 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
-  const updateStatus = async (id: string, newStatus: "pending" | "partial" | "paid") => {
-    const patch: { status: typeof newStatus; paid_at: string | null } = {
+  const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
+    if (newStatus === "partial") {
+      setPartialTarget(item);
+      setPartialValue(item.paid_amount != null ? String(item.paid_amount) : "");
+      return;
+    }
+    const patch: { status: typeof newStatus; paid_at: string | null; paid_amount: number | null } = {
       status: newStatus,
       paid_at: newStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
+      paid_amount: newStatus === "paid" ? Number(item.amount) : null,
     };
-    const { error } = await supabase.from("receivables").update(patch).eq("id", id);
+    const { error } = await supabase.from("receivables").update(patch).eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Status atualizado.");
+    void load();
+  };
+
+  const savePartial = async () => {
+    if (!partialTarget) return;
+    const value = Number(partialValue);
+    if (!Number.isFinite(value) || value <= 0) return toast.error("Informe um valor válido.");
+    if (value >= Number(partialTarget.amount)) {
+      return toast.error("Valor parcial deve ser menor que o total. Use 'Pago' para quitar.");
+    }
+    const { error } = await supabase.from("receivables").update({
+      status: "partial",
+      paid_amount: value,
+      paid_at: new Date().toISOString().slice(0, 10),
+    }).eq("id", partialTarget.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pagamento parcial registrado.");
+    setPartialTarget(null);
+    setPartialValue("");
     void load();
   };
 
@@ -167,17 +195,24 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
             filename={`recebiveis-${new Date().toISOString().slice(0,10)}`}
             title="Contas a Receber"
             subtitle={filter !== "all" ? paymentStatusLabel[filter] : "Todos"}
-            columns={["Cliente", "Descrição", "Valor (R$)", "Vencimento", "Status", "Pago em"]}
-            rows={filtered.map((r) => [
-              r.client_name,
-              r.description ?? "—",
-              Number(r.amount).toFixed(2),
-              dateBR(r.due_date),
-              paymentStatusLabel[r.status] ?? r.status,
-              r.paid_at ? dateBR(r.paid_at) : "—",
-            ])}
+            columns={["Cliente", "Descrição", "Valor (R$)", "Pago (R$)", "Saldo (R$)", "Vencimento", "Status", "Pago em"]}
+            rows={filtered.map((r) => {
+              const paid = Number(r.paid_amount ?? 0);
+              const balance = Number(r.amount) - paid;
+              return [
+                r.client_name,
+                r.description ?? "—",
+                Number(r.amount).toFixed(2),
+                paid.toFixed(2),
+                balance.toFixed(2),
+                dateBR(r.due_date),
+                paymentStatusLabel[r.status] ?? r.status,
+                r.paid_at ? dateBR(r.paid_at) : "—",
+              ];
+            })}
             summary={[
               { label: "Total", value: brl(filtered.reduce((s, r) => s + Number(r.amount), 0)) },
+              { label: "Recebido", value: brl(filtered.reduce((s, r) => s + Number(r.paid_amount ?? (r.status === "paid" ? r.amount : 0)), 0)) },
               { label: "Itens", value: String(filtered.length) },
             ]}
           />
@@ -209,13 +244,20 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                 <tr key={r.id} className="border-t border-border/50 hover:bg-muted/30">
                   <td className="px-4 py-3">{r.client_name}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.description || "—"}</td>
-                  <td className={`px-4 py-3 font-medium ${r.status === "overdue" ? "text-destructive" : ""}`}>{brl(r.amount)}</td>
+                  <td className={`px-4 py-3 font-medium ${r.status === "overdue" ? "text-destructive" : ""}`}>
+                    {brl(r.amount)}
+                    {r.status === "partial" && r.paid_amount != null && (
+                      <div className="text-xs font-normal text-muted-foreground">
+                        Pago <span className="text-success">{brl(r.paid_amount)}</span> · Resta <span className="text-destructive">{brl(Number(r.amount) - Number(r.paid_amount))}</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs">{dateBR(r.due_date)}</td>
                   <td className="px-4 py-3"><PaymentStatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-right">
                     <Select
                       value={["pending", "partial", "paid"].includes(r.status) ? r.status : ""}
-                      onValueChange={(v) => updateStatus(r.id, v as "pending" | "partial" | "paid")}
+                      onValueChange={(v) => updateStatus(r, v as "pending" | "partial" | "paid")}
                     >
                       <SelectTrigger className="h-8 w-36 ml-auto text-xs">
                         <SelectValue placeholder="Alterar status" />
@@ -279,6 +321,40 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!partialTarget} onOpenChange={(o) => { if (!o) { setPartialTarget(null); setPartialValue(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="text-display text-2xl">Pagamento Parcial</DialogTitle></DialogHeader>
+          {partialTarget && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                {partialTarget.client_name} · Total {brl(partialTarget.amount)}
+              </div>
+              <div>
+                <Label>Valor pago *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={Number(partialTarget.amount) - 0.01}
+                  value={partialValue}
+                  onChange={(e) => setPartialValue(e.target.value)}
+                  autoFocus
+                />
+                {partialValue && Number(partialValue) > 0 && Number(partialValue) < Number(partialTarget.amount) && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Saldo restante: <span className="text-destructive font-medium">{brl(Number(partialTarget.amount) - Number(partialValue))}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPartialTarget(null); setPartialValue(""); }}>Cancelar</Button>
+            <Button onClick={savePartial}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -436,13 +512,16 @@ function ReportsTab() {
       const monthStart = new Date();
       monthStart.setDate(1);
       const iso = monthStart.toISOString().slice(0, 10);
-      const [{ data: paid }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
+      const [{ data: paid }, { data: partials }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
         supabase.from("receivables").select("amount, paid_at").eq("status", "paid").gte("paid_at", iso),
+        supabase.from("receivables").select("paid_amount, paid_at").eq("status", "partial").gte("paid_at", iso),
         supabase.from("payables").select("amount, expense_date").gte("expense_date", iso),
         supabase.from("receivables").select("*").eq("status", "overdue").order("due_date"),
         supabase.from("company_settings").select("name,logo_url").maybeSingle(),
       ]);
-      const revenue = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
+      const revenuePaid = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
+      const revenuePartial = partials?.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0) ?? 0;
+      const revenue = revenuePaid + revenuePartial;
       const expenses = pay?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
       setData({ revenue, expenses, receivables: rec ?? [] });
       setCompany(comp ?? null);
