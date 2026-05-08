@@ -91,6 +91,8 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
+  const [partialTarget, setPartialTarget] = useState<Receivable | null>(null);
+  const [partialValue, setPartialValue] = useState("");
   const initialForm = {
     client_name: "",
     client_phone: "",
@@ -140,14 +142,39 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
-  const updateStatus = async (id: string, newStatus: "pending" | "partial" | "paid") => {
-    const patch: { status: typeof newStatus; paid_at: string | null } = {
+  const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
+    if (newStatus === "partial") {
+      setPartialTarget(item);
+      setPartialValue(item.paid_amount != null ? String(item.paid_amount) : "");
+      return;
+    }
+    const patch: { status: typeof newStatus; paid_at: string | null; paid_amount: number | null } = {
       status: newStatus,
       paid_at: newStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
+      paid_amount: newStatus === "paid" ? Number(item.amount) : null,
     };
-    const { error } = await supabase.from("receivables").update(patch).eq("id", id);
+    const { error } = await supabase.from("receivables").update(patch).eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Status atualizado.");
+    void load();
+  };
+
+  const savePartial = async () => {
+    if (!partialTarget) return;
+    const value = Number(partialValue);
+    if (!Number.isFinite(value) || value <= 0) return toast.error("Informe um valor válido.");
+    if (value >= Number(partialTarget.amount)) {
+      return toast.error("Valor parcial deve ser menor que o total. Use 'Pago' para quitar.");
+    }
+    const { error } = await supabase.from("receivables").update({
+      status: "partial",
+      paid_amount: value,
+      paid_at: new Date().toISOString().slice(0, 10),
+    }).eq("id", partialTarget.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pagamento parcial registrado.");
+    setPartialTarget(null);
+    setPartialValue("");
     void load();
   };
 
