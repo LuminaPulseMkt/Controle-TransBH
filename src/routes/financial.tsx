@@ -324,6 +324,40 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!partialTarget} onOpenChange={(o) => { if (!o) { setPartialTarget(null); setPartialValue(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="text-display text-2xl">Pagamento Parcial</DialogTitle></DialogHeader>
+          {partialTarget && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                {partialTarget.client_name} · Total {brl(partialTarget.amount)}
+              </div>
+              <div>
+                <Label>Valor pago *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={Number(partialTarget.amount) - 0.01}
+                  value={partialValue}
+                  onChange={(e) => setPartialValue(e.target.value)}
+                  autoFocus
+                />
+                {partialValue && Number(partialValue) > 0 && Number(partialValue) < Number(partialTarget.amount) && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Saldo restante: <span className="text-destructive font-medium">{brl(Number(partialTarget.amount) - Number(partialValue))}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPartialTarget(null); setPartialValue(""); }}>Cancelar</Button>
+            <Button onClick={savePartial}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
