@@ -322,11 +322,9 @@ function PayablesTab() {
   };
 
   const total = items?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
-  const monthTotal = items?.filter((p) => {
-    const d = new Date(p.expense_date);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).reduce((s, p) => s + Number(p.amount), 0) ?? 0;
+  const currentYM = new Date().toISOString().slice(0, 7); // "YYYY-MM" — compara como string para evitar bug de fuso
+  const monthTotal = items?.filter((p) => p.expense_date?.startsWith(currentYM))
+    .reduce((s, p) => s + Number(p.amount), 0) ?? 0;
 
   return (
     <>
@@ -447,7 +445,7 @@ function ReportsTab() {
       const revenue = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
       const expenses = pay?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
       setData({ revenue, expenses, receivables: rec ?? [] });
-      setCompany((comp as any) ?? null);
+      setCompany(comp ?? null);
     })();
   }, []);
 
