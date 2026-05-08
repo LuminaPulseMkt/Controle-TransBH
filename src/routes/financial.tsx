@@ -244,7 +244,14 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                 <tr key={r.id} className="border-t border-border/50 hover:bg-muted/30">
                   <td className="px-4 py-3">{r.client_name}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.description || "—"}</td>
-                  <td className={`px-4 py-3 font-medium ${r.status === "overdue" ? "text-destructive" : ""}`}>{brl(r.amount)}</td>
+                  <td className={`px-4 py-3 font-medium ${r.status === "overdue" ? "text-destructive" : ""}`}>
+                    {brl(r.amount)}
+                    {r.status === "partial" && r.paid_amount != null && (
+                      <div className="text-xs font-normal text-muted-foreground">
+                        Pago <span className="text-success">{brl(r.paid_amount)}</span> · Resta <span className="text-destructive">{brl(Number(r.amount) - Number(r.paid_amount))}</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs">{dateBR(r.due_date)}</td>
                   <td className="px-4 py-3"><PaymentStatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-right">
