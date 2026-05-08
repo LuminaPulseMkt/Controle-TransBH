@@ -166,7 +166,8 @@ function TransportDetailPage() {
 
   const updateStatus = async (status: string) => {
     if (!transport || transport === "missing") return;
-    const { error } = await supabase.from("transports").update({ status: status as Transport["status"] as never }).eq("id", transport.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabase.from("transports").update({ status: status as any }).eq("id", transport.id);
     if (error) return toast.error(error.message);
     toast.success(`Status: ${transportStatusLabel[status] ?? status}`);
     void load();
