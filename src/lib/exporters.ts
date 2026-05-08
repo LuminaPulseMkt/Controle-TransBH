@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
 export type Cell = string | number | null | undefined;
@@ -44,6 +42,10 @@ export interface ExportPDFOpts {
 }
 
 export async function exportPDF(opts: ExportPDFOpts): Promise<void> {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const orientation = opts.orientation ?? "portrait";
   const doc = new jsPDF({ orientation });
   const pageWidth = doc.internal.pageSize.getWidth();
