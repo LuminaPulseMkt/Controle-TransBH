@@ -20,8 +20,6 @@ import { brl, dateBR, paymentStatusLabel } from "@/lib/format";
 import { Plus, Loader2, Download } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 
 type FinancialSearch = { tab?: string; status?: string };
@@ -453,6 +451,10 @@ function ReportsTab() {
 
   const exportPDF = async () => {
     if (!data) return;
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF();
     const headerH = 56;
     doc.setFillColor(13, 27, 42);
