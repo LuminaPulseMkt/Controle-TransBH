@@ -250,7 +250,7 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                   <td className="px-4 py-3 text-right">
                     <Select
                       value={["pending", "partial", "paid"].includes(r.status) ? r.status : ""}
-                      onValueChange={(v) => updateStatus(r.id, v as "pending" | "partial" | "paid")}
+                      onValueChange={(v) => updateStatus(r, v as "pending" | "partial" | "paid")}
                     >
                       <SelectTrigger className="h-8 w-36 ml-auto text-xs">
                         <SelectValue placeholder="Alterar status" />
