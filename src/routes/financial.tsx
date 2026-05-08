@@ -92,7 +92,7 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
-  const [form, setForm] = useState({
+  const initialForm = {
     client_name: "",
     client_phone: "",
     client_email: "",
@@ -100,7 +100,8 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     amount: "",
     due_date: new Date().toISOString().slice(0, 10),
     transport_id: "",
-  });
+  };
+  const [form, setForm] = useState(initialForm);
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -136,7 +137,7 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     if (error) return toast.error(error.message);
     toast.success("Recebível criado.");
     setOpen(false);
-    setForm({ ...form, client_name: "", amount: "", description: "" });
+    setForm(initialForm);
     void load();
   };
 
@@ -290,12 +291,13 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
 function PayablesTab() {
   const [items, setItems] = useState<Payable[] | null>(null);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const initialForm = {
     category: "Combustível",
     description: "",
     amount: "",
     expense_date: new Date().toISOString().slice(0, 10),
-  });
+  };
+  const [form, setForm] = useState(initialForm);
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -317,7 +319,7 @@ function PayablesTab() {
     if (error) return toast.error(error.message);
     toast.success("Despesa registrada.");
     setOpen(false);
-    setForm({ ...form, amount: "", description: "" });
+    setForm(initialForm);
     void load();
   };
 
