@@ -50,6 +50,15 @@ interface Receivable {
   transport_id: string | null;
 }
 
+interface Payment {
+  id: string;
+  receivable_id: string;
+  amount: number;
+  paid_at: string;
+  note: string | null;
+  created_at: string;
+}
+
 interface Payable {
   id: string;
   category: string;
