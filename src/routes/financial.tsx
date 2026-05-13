@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, paymentStatusLabel } from "@/lib/format";
-import { Plus, Loader2, Download } from "lucide-react";
+import { Plus, Loader2, Download, History, Trash2 } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
 import { toast } from "sonner";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
@@ -48,6 +48,15 @@ interface Receivable {
   paid_at: string | null;
   status: string;
   transport_id: string | null;
+}
+
+interface Payment {
+  id: string;
+  receivable_id: string;
+  amount: number;
+  paid_at: string;
+  note: string | null;
+  created_at: string;
 }
 
 interface Payable {
@@ -91,8 +100,12 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
-  const [partialTarget, setPartialTarget] = useState<Receivable | null>(null);
-  const [partialValue, setPartialValue] = useState("");
+  const [historyTarget, setHistoryTarget] = useState<Receivable | null>(null);
+  const [payments, setPayments] = useState<Payment[] | null>(null);
+  const [newPayAmount, setNewPayAmount] = useState("");
+  const [newPayDate, setNewPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newPayNote, setNewPayNote] = useState("");
+  const [payBusy, setPayBusy] = useState(false);
   const initialForm = {
     client_name: "",
     client_phone: "",
@@ -142,39 +155,118 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
-  const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
-    if (newStatus === "partial") {
-      setPartialTarget(item);
-      setPartialValue(item.paid_amount != null ? String(item.paid_amount) : "");
-      return;
+  const loadPayments = async (receivableId: string) => {
+    setPayments(null);
+    const { data, error } = await supabase
+      .from("receivable_payments")
+      .select("*")
+      .eq("receivable_id", receivableId)
+      .order("paid_at", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) toast.error(error.message);
+    setPayments((data ?? []) as Payment[]);
+  };
+
+  const openHistory = (item: Receivable) => {
+    setHistoryTarget(item);
+    setNewPayAmount("");
+    setNewPayDate(new Date().toISOString().slice(0, 10));
+    setNewPayNote("");
+    void loadPayments(item.id);
+  };
+
+  const closeHistory = () => {
+    setHistoryTarget(null);
+    setPayments(null);
+  };
+
+  const recalcReceivable = async (item: Receivable, list: Payment[]) => {
+    const totalPaid = list.reduce((s, p) => s + Number(p.amount), 0);
+    const amount = Number(item.amount);
+    let status: "pending" | "partial" | "paid" | "overdue" = "pending";
+    let paid_at: string | null = null;
+    if (totalPaid <= 0) {
+      // sem pagamentos: mantém pending/overdue conforme vencimento
+      status = new Date(item.due_date) < new Date(new Date().toISOString().slice(0, 10))
+        ? "overdue" : "pending";
+      paid_at = null;
+    } else if (totalPaid < amount) {
+      status = "partial";
+      paid_at = list[list.length - 1].paid_at;
+    } else {
+      status = "paid";
+      paid_at = list[list.length - 1].paid_at;
     }
-    const patch: { status: typeof newStatus; paid_at: string | null; paid_amount: number | null } = {
-      status: newStatus,
-      paid_at: newStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
-      paid_amount: newStatus === "paid" ? Number(item.amount) : null,
-    };
-    const { error } = await supabase.from("receivables").update(patch).eq("id", item.id);
-    if (error) return toast.error(error.message);
-    toast.success("Status atualizado.");
+    const { error } = await supabase.from("receivables").update({
+      status,
+      paid_amount: totalPaid > 0 ? totalPaid : null,
+      paid_at,
+    }).eq("id", item.id);
+    if (error) toast.error(error.message);
+  };
+
+  const addPayment = async () => {
+    if (!historyTarget || !payments) return;
+    const value = Number(newPayAmount);
+    if (!Number.isFinite(value) || value <= 0) return toast.error("Informe um valor válido.");
+    const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+    const remaining = Number(historyTarget.amount) - totalPaid;
+    if (value > remaining + 0.001) {
+      return toast.error(`Valor excede o saldo restante (${brl(remaining)}).`);
+    }
+    setPayBusy(true);
+    const { data, error } = await supabase.from("receivable_payments").insert({
+      receivable_id: historyTarget.id,
+      amount: value,
+      paid_at: newPayDate,
+      note: newPayNote || null,
+    }).select().single();
+    if (error) {
+      setPayBusy(false);
+      return toast.error(error.message);
+    }
+    const updated = [...payments, data as Payment].sort((a, b) =>
+      a.paid_at.localeCompare(b.paid_at) || a.created_at.localeCompare(b.created_at),
+    );
+    setPayments(updated);
+    await recalcReceivable(historyTarget, updated);
+    setNewPayAmount("");
+    setNewPayNote("");
+    setPayBusy(false);
+    toast.success("Pagamento registrado.");
     void load();
   };
 
-  const savePartial = async () => {
-    if (!partialTarget) return;
-    const value = Number(partialValue);
-    if (!Number.isFinite(value) || value <= 0) return toast.error("Informe um valor válido.");
-    if (value >= Number(partialTarget.amount)) {
-      return toast.error("Valor parcial deve ser menor que o total. Use 'Pago' para quitar.");
+  const deletePayment = async (paymentId: string) => {
+    if (!historyTarget || !payments) return;
+    if (!confirm("Excluir este pagamento?")) return;
+    const { error } = await supabase.from("receivable_payments").delete().eq("id", paymentId);
+    if (error) return toast.error(error.message);
+    const updated = payments.filter((p) => p.id !== paymentId);
+    setPayments(updated);
+    await recalcReceivable(historyTarget, updated);
+    toast.success("Pagamento excluído.");
+    void load();
+  };
+
+  const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
+    if (newStatus === "partial" || newStatus === "paid") {
+      // Abre o histórico para registrar pagamento(s)
+      openHistory(item);
+      return;
+    }
+    // Voltar para pendente: confirma e remove todos os pagamentos
+    if (Number(item.paid_amount ?? 0) > 0) {
+      if (!confirm("Voltar para Pendente removerá todos os pagamentos registrados. Continuar?")) return;
+      const { error: delErr } = await supabase
+        .from("receivable_payments").delete().eq("receivable_id", item.id);
+      if (delErr) return toast.error(delErr.message);
     }
     const { error } = await supabase.from("receivables").update({
-      status: "partial",
-      paid_amount: value,
-      paid_at: new Date().toISOString().slice(0, 10),
-    }).eq("id", partialTarget.id);
+      status: "pending", paid_at: null, paid_amount: null,
+    }).eq("id", item.id);
     if (error) return toast.error(error.message);
-    toast.success("Pagamento parcial registrado.");
-    setPartialTarget(null);
-    setPartialValue("");
+    toast.success("Status atualizado.");
     void load();
   };
 
@@ -255,19 +347,30 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                   <td className="px-4 py-3 text-xs">{dateBR(r.due_date)}</td>
                   <td className="px-4 py-3"><PaymentStatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-right">
-                    <Select
-                      value={["pending", "partial", "paid"].includes(r.status) ? r.status : ""}
-                      onValueChange={(v) => updateStatus(r, v as "pending" | "partial" | "paid")}
-                    >
-                      <SelectTrigger className="h-8 w-36 ml-auto text-xs">
-                        <SelectValue placeholder="Alterar status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="partial">Pago Parcial</SelectItem>
-                        <SelectItem value="paid">Pago</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => openHistory(r)}
+                        title="Histórico de pagamentos"
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                      <Select
+                        value={["pending", "partial", "paid"].includes(r.status) ? r.status : ""}
+                        onValueChange={(v) => updateStatus(r, v as "pending" | "partial" | "paid")}
+                      >
+                        <SelectTrigger className="h-8 w-36 text-xs">
+                          <SelectValue placeholder="Alterar status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pendente</SelectItem>
+                          <SelectItem value="partial">Pago Parcial</SelectItem>
+                          <SelectItem value="paid">Pago</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -325,36 +428,118 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!partialTarget} onOpenChange={(o) => { if (!o) { setPartialTarget(null); setPartialValue(""); } }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="text-display text-2xl">Pagamento Parcial</DialogTitle></DialogHeader>
-          {partialTarget && (
-            <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">
-                {partialTarget.client_name} · Total {brl(partialTarget.amount)}
-              </div>
-              <div>
-                <Label>Valor pago *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={Number(partialTarget.amount) - 0.01}
-                  value={partialValue}
-                  onChange={(e) => setPartialValue(e.target.value)}
-                  autoFocus
-                />
-                {partialValue && Number(partialValue) > 0 && Number(partialValue) < Number(partialTarget.amount) && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Saldo restante: <span className="text-destructive font-medium">{brl(Number(partialTarget.amount) - Number(partialValue))}</span>
-                  </div>
+      <Dialog open={!!historyTarget} onOpenChange={(o) => { if (!o) closeHistory(); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-display text-2xl">Histórico de Pagamentos</DialogTitle>
+          </DialogHeader>
+          {historyTarget && (
+            <div className="space-y-4">
+              <div className="text-sm">
+                <div className="font-medium">{historyTarget.client_name}</div>
+                {historyTarget.description && (
+                  <div className="text-xs text-muted-foreground">{historyTarget.description}</div>
                 )}
               </div>
+
+              {(() => {
+                const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+                const remaining = Number(historyTarget.amount) - totalPaid;
+                return (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded border border-border p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+                      <div className="font-medium">{brl(historyTarget.amount)}</div>
+                    </div>
+                    <div className="rounded border border-border p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pago</div>
+                      <div className="font-medium text-success">{brl(totalPaid)}</div>
+                    </div>
+                    <div className="rounded border border-border p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo</div>
+                      <div className={`font-medium ${remaining > 0 ? "text-destructive" : "text-success"}`}>{brl(remaining)}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="border border-border rounded overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40">
+                    <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="px-3 py-2">Data</th>
+                      <th className="px-3 py-2 text-right">Valor</th>
+                      <th className="px-3 py-2">Observação</th>
+                      <th className="px-3 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments == null ? (
+                      <tr><td colSpan={4} className="p-4"><Skeleton className="h-6 w-full" /></td></tr>
+                    ) : payments.length === 0 ? (
+                      <tr><td colSpan={4} className="p-4 text-center text-xs text-muted-foreground">Nenhum pagamento registrado.</td></tr>
+                    ) : payments.map((p) => (
+                      <tr key={p.id} className="border-t border-border/50">
+                        <td className="px-3 py-2 text-xs">{dateBR(p.paid_at)}</td>
+                        <td className="px-3 py-2 text-right font-mono">{brl(p.amount)}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{p.note || "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => deletePayment(p.id)} title="Excluir">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {(() => {
+                const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+                const remaining = Number(historyTarget.amount) - totalPaid;
+                if (remaining <= 0.001) {
+                  return <div className="text-xs text-success text-center">Recebível totalmente quitado.</div>;
+                }
+                return (
+                  <div className="border border-border rounded p-3 space-y-2">
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Adicionar pagamento</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Valor</Label>
+                        <Input
+                          type="number" step="0.01" min="0.01" max={remaining}
+                          value={newPayAmount}
+                          onChange={(e) => setNewPayAmount(e.target.value)}
+                          placeholder={brl(remaining)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Data</Label>
+                        <Input type="date" value={newPayDate} onChange={(e) => setNewPayDate(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Observação</Label>
+                        <Input value={newPayNote} onChange={(e) => setNewPayNote(e.target.value)} placeholder="PIX, TED…" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
+                        variant="outline" size="sm"
+                        onClick={() => { setNewPayAmount(String(remaining.toFixed(2))); }}
+                      >
+                        Quitar saldo
+                      </Button>
+                      <Button size="sm" onClick={addPayment} disabled={payBusy}>
+                        {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Adicionar"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPartialTarget(null); setPartialValue(""); }}>Cancelar</Button>
-            <Button onClick={savePartial}>Salvar</Button>
+            <Button variant="outline" onClick={closeHistory}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -512,16 +697,13 @@ function ReportsTab() {
       const monthStart = new Date();
       monthStart.setDate(1);
       const iso = monthStart.toISOString().slice(0, 10);
-      const [{ data: paid }, { data: partials }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
-        supabase.from("receivables").select("amount, paid_at").eq("status", "paid").gte("paid_at", iso),
-        supabase.from("receivables").select("paid_amount, paid_at").eq("status", "partial").gte("paid_at", iso),
+      const [{ data: monthPayments }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
+        supabase.from("receivable_payments").select("amount, paid_at").gte("paid_at", iso),
         supabase.from("payables").select("amount, expense_date").gte("expense_date", iso),
         supabase.from("receivables").select("*").eq("status", "overdue").order("due_date"),
         supabase.from("company_settings").select("name,logo_url").maybeSingle(),
       ]);
-      const revenuePaid = paid?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
-      const revenuePartial = partials?.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0) ?? 0;
-      const revenue = revenuePaid + revenuePartial;
+      const revenue = monthPayments?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
       const expenses = pay?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
       setData({ revenue, expenses, receivables: rec ?? [] });
       setCompany(comp ?? null);
