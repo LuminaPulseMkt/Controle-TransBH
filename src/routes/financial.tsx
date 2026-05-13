@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, paymentStatusLabel } from "@/lib/format";
-import { Plus, Loader2, Download } from "lucide-react";
+import { Plus, Loader2, Download, History, Trash2 } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
 import { toast } from "sonner";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
