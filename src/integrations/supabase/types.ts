@@ -14,16 +14,774 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      collection_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string
+          receivable_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note: string
+          receivable_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string
+          receivable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_notes_receivable_id_fkey"
+            columns: ["receivable_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_settings: {
+        Row: {
+          address: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          facebook_url: string | null
+          google_business_url: string | null
+          google_review_url: string | null
+          id: string
+          instagram_url: string | null
+          logo_url: string | null
+          name: string
+          phone: string | null
+          singleton: boolean
+          updated_at: string
+          whatsapp: string | null
+          whatsapp_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          facebook_url?: string | null
+          google_business_url?: string | null
+          google_review_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          singleton?: boolean
+          updated_at?: string
+          whatsapp?: string | null
+          whatsapp_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          facebook_url?: string | null
+          google_business_url?: string | null
+          google_review_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          singleton?: boolean
+          updated_at?: string
+          whatsapp?: string | null
+          whatsapp_url?: string | null
+        }
+        Relationships: []
+      }
+      document_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          extra: number
+          id: string
+          insurance: number
+          kind: Database["public"]["Enums"]["document_type"]
+          name: string
+          notes: string
+          service_value: number
+          template_key: Database["public"]["Enums"]["contract_template"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          extra?: number
+          id?: string
+          insurance?: number
+          kind: Database["public"]["Enums"]["document_type"]
+          name: string
+          notes?: string
+          service_value?: number
+          template_key?: Database["public"]["Enums"]["contract_template"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          extra?: number
+          id?: string
+          insurance?: number
+          kind?: Database["public"]["Enums"]["document_type"]
+          name?: string
+          notes?: string
+          service_value?: number
+          template_key?: Database["public"]["Enums"]["contract_template"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          accepted_at: string | null
+          accepted_contract_id: string | null
+          accepted_ip: string | null
+          accepted_receivable_id: string | null
+          accepted_transport_id: string | null
+          body: Json
+          client_document: string | null
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          created_by: string | null
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id: string
+          pdf_url: string | null
+          public_token: string
+          template: Database["public"]["Enums"]["contract_template"] | null
+          title: string
+          total_amount: number | null
+          transport_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_contract_id?: string | null
+          accepted_ip?: string | null
+          accepted_receivable_id?: string | null
+          accepted_transport_id?: string | null
+          body?: Json
+          client_document?: string | null
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id?: string
+          pdf_url?: string | null
+          public_token?: string
+          template?: Database["public"]["Enums"]["contract_template"] | null
+          title: string
+          total_amount?: number | null
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_contract_id?: string | null
+          accepted_ip?: string | null
+          accepted_receivable_id?: string | null
+          accepted_transport_id?: string | null
+          body?: Json
+          client_document?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_type?: Database["public"]["Enums"]["document_type"]
+          id?: string
+          pdf_url?: string | null
+          public_token?: string
+          template?: Database["public"]["Enums"]["contract_template"] | null
+          title?: string
+          total_amount?: number | null
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_accepted_contract_id_fkey"
+            columns: ["accepted_contract_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_accepted_receivable_id_fkey"
+            columns: ["accepted_receivable_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_accepted_transport_id_fkey"
+            columns: ["accepted_transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          body: string
+          id: string
+          key: string
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          id?: string
+          key: string
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          key?: string
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partners: {
+        Row: {
+          base_city: string | null
+          created_at: string
+          created_by: string | null
+          default_amount: number
+          document: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          pricing_notes: string | null
+          routes: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          base_city?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_amount?: number
+          document?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          pricing_notes?: string | null
+          routes?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          base_city?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_amount?: number
+          document?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          pricing_notes?: string | null
+          routes?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      payables: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string
+          id: string
+          transport_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payables_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      receivable_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          paid_at: string
+          receivable_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string
+          receivable_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string
+          receivable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivable_payments_receivable_id_fkey"
+            columns: ["receivable_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receivables: {
+        Row: {
+          amount: number
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          paid_amount: number | null
+          paid_at: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          transport_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivables_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_feedback: {
+        Row: {
+          client_name: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          transport_code: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          transport_code?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          transport_code?: string | null
+        }
+        Relationships: []
+      }
+      transport_location_updates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          location: string
+          note: string | null
+          transport_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location: string
+          note?: string | null
+          transport_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string
+          note?: string | null
+          transport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_location_updates_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_url: string
+          transport_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url: string
+          transport_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string
+          transport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_photos_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transports: {
+        Row: {
+          client_document: string | null
+          client_name: string
+          client_phone: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          current_location: string | null
+          destination_city: string
+          destination_state: string
+          driver_name: string | null
+          estimated_delivery: string | null
+          id: string
+          location_updated_at: string | null
+          notes: string | null
+          origin_city: string
+          origin_state: string
+          partner_id: string | null
+          partner_notified_at: string | null
+          partner_quoted_amount: number | null
+          photo_url: string | null
+          status: Database["public"]["Enums"]["transport_status"]
+          updated_at: string
+          vehicle_brand: string | null
+          vehicle_chassis: string | null
+          vehicle_color: string | null
+          vehicle_model: string | null
+          vehicle_plate: string
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+          vehicle_year: number | null
+        }
+        Insert: {
+          client_document?: string | null
+          client_name: string
+          client_phone?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_location?: string | null
+          destination_city: string
+          destination_state: string
+          driver_name?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          location_updated_at?: string | null
+          notes?: string | null
+          origin_city: string
+          origin_state: string
+          partner_id?: string | null
+          partner_notified_at?: string | null
+          partner_quoted_amount?: number | null
+          photo_url?: string | null
+          status?: Database["public"]["Enums"]["transport_status"]
+          updated_at?: string
+          vehicle_brand?: string | null
+          vehicle_chassis?: string | null
+          vehicle_color?: string | null
+          vehicle_model?: string | null
+          vehicle_plate: string
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+          vehicle_year?: number | null
+        }
+        Update: {
+          client_document?: string | null
+          client_name?: string
+          client_phone?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_location?: string | null
+          destination_city?: string
+          destination_state?: string
+          driver_name?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          location_updated_at?: string | null
+          notes?: string | null
+          origin_city?: string
+          origin_state?: string
+          partner_id?: string | null
+          partner_notified_at?: string | null
+          partner_quoted_amount?: number | null
+          photo_url?: string | null
+          status?: Database["public"]["Enums"]["transport_status"]
+          updated_at?: string
+          vehicle_brand?: string | null
+          vehicle_chassis?: string | null
+          vehicle_color?: string | null
+          vehicle_model?: string | null
+          vehicle_plate?: string
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+          vehicle_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transports_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted: boolean
+          permission: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted?: boolean
+          permission: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted?: boolean
+          permission?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_contract_token_for_budget: {
+        Args: { _budget_token: string }
+        Returns: string
+      }
+      get_document_by_token: {
+        Args: { _token: string }
+        Returns: {
+          accepted_at: string
+          accepted_contract_id: string
+          body: Json
+          client_document: string
+          client_email: string
+          client_name: string
+          client_phone: string
+          created_at: string
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id: string
+          public_token: string
+          title: string
+          total_amount: number
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_authenticated: { Args: never; Returns: boolean }
+      mark_overdue_receivables: { Args: never; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "administrator" | "collaborator"
+      contract_template: "standard" | "fragile" | "express"
+      document_type: "budget" | "contract"
+      payment_status: "paid" | "pending" | "overdue" | "negotiated" | "partial"
+      transport_status: "pending" | "in_transit" | "delivered" | "cancelled"
+      vehicle_type: "car" | "motorcycle" | "truck" | "machinery"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +908,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["administrator", "collaborator"],
+      contract_template: ["standard", "fragile", "express"],
+      document_type: ["budget", "contract"],
+      payment_status: ["paid", "pending", "overdue", "negotiated", "partial"],
+      transport_status: ["pending", "in_transit", "delivered", "cancelled"],
+      vehicle_type: ["car", "motorcycle", "truck", "machinery"],
+    },
   },
 } as const
