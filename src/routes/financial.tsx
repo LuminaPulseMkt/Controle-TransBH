@@ -100,8 +100,12 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
-  const [partialTarget, setPartialTarget] = useState<Receivable | null>(null);
-  const [partialValue, setPartialValue] = useState("");
+  const [historyTarget, setHistoryTarget] = useState<Receivable | null>(null);
+  const [payments, setPayments] = useState<Payment[] | null>(null);
+  const [newPayAmount, setNewPayAmount] = useState("");
+  const [newPayDate, setNewPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newPayNote, setNewPayNote] = useState("");
+  const [payBusy, setPayBusy] = useState(false);
   const initialForm = {
     client_name: "",
     client_phone: "",
@@ -151,39 +155,118 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
-  const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
-    if (newStatus === "partial") {
-      setPartialTarget(item);
-      setPartialValue(item.paid_amount != null ? String(item.paid_amount) : "");
-      return;
+  const loadPayments = async (receivableId: string) => {
+    setPayments(null);
+    const { data, error } = await supabase
+      .from("receivable_payments")
+      .select("*")
+      .eq("receivable_id", receivableId)
+      .order("paid_at", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) toast.error(error.message);
+    setPayments((data ?? []) as Payment[]);
+  };
+
+  const openHistory = (item: Receivable) => {
+    setHistoryTarget(item);
+    setNewPayAmount("");
+    setNewPayDate(new Date().toISOString().slice(0, 10));
+    setNewPayNote("");
+    void loadPayments(item.id);
+  };
+
+  const closeHistory = () => {
+    setHistoryTarget(null);
+    setPayments(null);
+  };
+
+  const recalcReceivable = async (item: Receivable, list: Payment[]) => {
+    const totalPaid = list.reduce((s, p) => s + Number(p.amount), 0);
+    const amount = Number(item.amount);
+    let status: "pending" | "partial" | "paid" | "overdue" = "pending";
+    let paid_at: string | null = null;
+    if (totalPaid <= 0) {
+      // sem pagamentos: mantém pending/overdue conforme vencimento
+      status = new Date(item.due_date) < new Date(new Date().toISOString().slice(0, 10))
+        ? "overdue" : "pending";
+      paid_at = null;
+    } else if (totalPaid < amount) {
+      status = "partial";
+      paid_at = list[list.length - 1].paid_at;
+    } else {
+      status = "paid";
+      paid_at = list[list.length - 1].paid_at;
     }
-    const patch: { status: typeof newStatus; paid_at: string | null; paid_amount: number | null } = {
-      status: newStatus,
-      paid_at: newStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
-      paid_amount: newStatus === "paid" ? Number(item.amount) : null,
-    };
-    const { error } = await supabase.from("receivables").update(patch).eq("id", item.id);
-    if (error) return toast.error(error.message);
-    toast.success("Status atualizado.");
+    const { error } = await supabase.from("receivables").update({
+      status,
+      paid_amount: totalPaid > 0 ? totalPaid : null,
+      paid_at,
+    }).eq("id", item.id);
+    if (error) toast.error(error.message);
+  };
+
+  const addPayment = async () => {
+    if (!historyTarget || !payments) return;
+    const value = Number(newPayAmount);
+    if (!Number.isFinite(value) || value <= 0) return toast.error("Informe um valor válido.");
+    const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+    const remaining = Number(historyTarget.amount) - totalPaid;
+    if (value > remaining + 0.001) {
+      return toast.error(`Valor excede o saldo restante (${brl(remaining)}).`);
+    }
+    setPayBusy(true);
+    const { data, error } = await supabase.from("receivable_payments").insert({
+      receivable_id: historyTarget.id,
+      amount: value,
+      paid_at: newPayDate,
+      note: newPayNote || null,
+    }).select().single();
+    if (error) {
+      setPayBusy(false);
+      return toast.error(error.message);
+    }
+    const updated = [...payments, data as Payment].sort((a, b) =>
+      a.paid_at.localeCompare(b.paid_at) || a.created_at.localeCompare(b.created_at),
+    );
+    setPayments(updated);
+    await recalcReceivable(historyTarget, updated);
+    setNewPayAmount("");
+    setNewPayNote("");
+    setPayBusy(false);
+    toast.success("Pagamento registrado.");
     void load();
   };
 
-  const savePartial = async () => {
-    if (!partialTarget) return;
-    const value = Number(partialValue);
-    if (!Number.isFinite(value) || value <= 0) return toast.error("Informe um valor válido.");
-    if (value >= Number(partialTarget.amount)) {
-      return toast.error("Valor parcial deve ser menor que o total. Use 'Pago' para quitar.");
+  const deletePayment = async (paymentId: string) => {
+    if (!historyTarget || !payments) return;
+    if (!confirm("Excluir este pagamento?")) return;
+    const { error } = await supabase.from("receivable_payments").delete().eq("id", paymentId);
+    if (error) return toast.error(error.message);
+    const updated = payments.filter((p) => p.id !== paymentId);
+    setPayments(updated);
+    await recalcReceivable(historyTarget, updated);
+    toast.success("Pagamento excluído.");
+    void load();
+  };
+
+  const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
+    if (newStatus === "partial" || newStatus === "paid") {
+      // Abre o histórico para registrar pagamento(s)
+      openHistory(item);
+      return;
+    }
+    // Voltar para pendente: confirma e remove todos os pagamentos
+    if (Number(item.paid_amount ?? 0) > 0) {
+      if (!confirm("Voltar para Pendente removerá todos os pagamentos registrados. Continuar?")) return;
+      const { error: delErr } = await supabase
+        .from("receivable_payments").delete().eq("receivable_id", item.id);
+      if (delErr) return toast.error(delErr.message);
     }
     const { error } = await supabase.from("receivables").update({
-      status: "partial",
-      paid_amount: value,
-      paid_at: new Date().toISOString().slice(0, 10),
-    }).eq("id", partialTarget.id);
+      status: "pending", paid_at: null, paid_amount: null,
+    }).eq("id", item.id);
     if (error) return toast.error(error.message);
-    toast.success("Pagamento parcial registrado.");
-    setPartialTarget(null);
-    setPartialValue("");
+    toast.success("Status atualizado.");
     void load();
   };
 
