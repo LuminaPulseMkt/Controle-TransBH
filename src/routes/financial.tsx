@@ -428,36 +428,118 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!partialTarget} onOpenChange={(o) => { if (!o) { setPartialTarget(null); setPartialValue(""); } }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="text-display text-2xl">Pagamento Parcial</DialogTitle></DialogHeader>
-          {partialTarget && (
-            <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">
-                {partialTarget.client_name} · Total {brl(partialTarget.amount)}
-              </div>
-              <div>
-                <Label>Valor pago *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={Number(partialTarget.amount) - 0.01}
-                  value={partialValue}
-                  onChange={(e) => setPartialValue(e.target.value)}
-                  autoFocus
-                />
-                {partialValue && Number(partialValue) > 0 && Number(partialValue) < Number(partialTarget.amount) && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Saldo restante: <span className="text-destructive font-medium">{brl(Number(partialTarget.amount) - Number(partialValue))}</span>
-                  </div>
+      <Dialog open={!!historyTarget} onOpenChange={(o) => { if (!o) closeHistory(); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-display text-2xl">Histórico de Pagamentos</DialogTitle>
+          </DialogHeader>
+          {historyTarget && (
+            <div className="space-y-4">
+              <div className="text-sm">
+                <div className="font-medium">{historyTarget.client_name}</div>
+                {historyTarget.description && (
+                  <div className="text-xs text-muted-foreground">{historyTarget.description}</div>
                 )}
               </div>
+
+              {(() => {
+                const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+                const remaining = Number(historyTarget.amount) - totalPaid;
+                return (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded border border-border p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+                      <div className="font-medium">{brl(historyTarget.amount)}</div>
+                    </div>
+                    <div className="rounded border border-border p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pago</div>
+                      <div className="font-medium text-success">{brl(totalPaid)}</div>
+                    </div>
+                    <div className="rounded border border-border p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo</div>
+                      <div className={`font-medium ${remaining > 0 ? "text-destructive" : "text-success"}`}>{brl(remaining)}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="border border-border rounded overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40">
+                    <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="px-3 py-2">Data</th>
+                      <th className="px-3 py-2 text-right">Valor</th>
+                      <th className="px-3 py-2">Observação</th>
+                      <th className="px-3 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments == null ? (
+                      <tr><td colSpan={4} className="p-4"><Skeleton className="h-6 w-full" /></td></tr>
+                    ) : payments.length === 0 ? (
+                      <tr><td colSpan={4} className="p-4 text-center text-xs text-muted-foreground">Nenhum pagamento registrado.</td></tr>
+                    ) : payments.map((p) => (
+                      <tr key={p.id} className="border-t border-border/50">
+                        <td className="px-3 py-2 text-xs">{dateBR(p.paid_at)}</td>
+                        <td className="px-3 py-2 text-right font-mono">{brl(p.amount)}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{p.note || "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => deletePayment(p.id)} title="Excluir">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {(() => {
+                const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+                const remaining = Number(historyTarget.amount) - totalPaid;
+                if (remaining <= 0.001) {
+                  return <div className="text-xs text-success text-center">Recebível totalmente quitado.</div>;
+                }
+                return (
+                  <div className="border border-border rounded p-3 space-y-2">
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Adicionar pagamento</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Valor</Label>
+                        <Input
+                          type="number" step="0.01" min="0.01" max={remaining}
+                          value={newPayAmount}
+                          onChange={(e) => setNewPayAmount(e.target.value)}
+                          placeholder={brl(remaining)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Data</Label>
+                        <Input type="date" value={newPayDate} onChange={(e) => setNewPayDate(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Observação</Label>
+                        <Input value={newPayNote} onChange={(e) => setNewPayNote(e.target.value)} placeholder="PIX, TED…" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
+                        variant="outline" size="sm"
+                        onClick={() => { setNewPayAmount(String(remaining.toFixed(2))); }}
+                      >
+                        Quitar saldo
+                      </Button>
+                      <Button size="sm" onClick={addPayment} disabled={payBusy}>
+                        {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Adicionar"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPartialTarget(null); setPartialValue(""); }}>Cancelar</Button>
-            <Button onClick={savePartial}>Salvar</Button>
+            <Button variant="outline" onClick={closeHistory}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
