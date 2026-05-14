@@ -52,7 +52,7 @@ function LoginPage() {
     <div className="min-h-screen bg-background bg-grid flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 border-border bg-card">
         <div className="flex flex-col items-center mb-6">
-          <img src={logo} alt="TransBH" className="h-20 w-auto object-contain mb-2" />
+          <BrandLogo size="lg" className="mb-2" />
           <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
             Gestão de Transporte de Veículos
           </p>
