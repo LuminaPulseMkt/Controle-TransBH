@@ -743,6 +743,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_settings: { Args: { _uid: string }; Returns: boolean }
       get_contract_token_for_budget: {
         Args: { _budget_token: string }
         Returns: string
