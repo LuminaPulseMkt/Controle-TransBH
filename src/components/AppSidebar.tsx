@@ -11,7 +11,7 @@ import {
   LogOut,
   Handshake,
 } from "lucide-react";
-import logo from "@/assets/logo-transbh.png";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   Sidebar,
   SidebarContent,
@@ -55,11 +55,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex flex-col items-center gap-1 px-2 py-3">
-          <img
-            src={logo}
-            alt="TransBH - Transportes de Veículos"
-            className={collapsed ? "h-7 w-auto object-contain" : "h-12 w-auto object-contain"}
-          />
+          <BrandLogo size={collapsed ? "sm" : "md"} alt="TransBH - Transportes de Veículos" />
           {!collapsed && (
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
               {isAdmin ? "Administrador" : "Colaborador"}
