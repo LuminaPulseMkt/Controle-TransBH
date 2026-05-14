@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import logo from "@/assets/logo-transbh.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
