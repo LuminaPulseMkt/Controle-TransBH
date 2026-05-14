@@ -43,8 +43,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
             <img
               src={company.logo_url}
               alt={company?.name || "Logo"}
-              className="w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
-              style={{ height: "180px" }}
+              className="h-20 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
             />
           ) : (
             <>
