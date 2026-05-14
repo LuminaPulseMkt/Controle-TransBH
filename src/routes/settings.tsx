@@ -76,7 +76,19 @@ function CompanyTab() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const path = `logo-${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+    const sanitize = (name: string) => {
+      const dot = name.lastIndexOf(".");
+      const base = (dot > 0 ? name.slice(0, dot) : name)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_-]+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "")
+        .slice(0, 80) || "logo";
+      const ext = (dot > 0 ? name.slice(dot + 1) : "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "png";
+      return `${base}.${ext}`;
+    };
+    const path = `logo-${Date.now()}-${sanitize(file.name)}`;
     const { error } = await supabase.storage.from("company-assets").upload(path, file, { upsert: true });
     if (error) {
       toast.error(error.message);
