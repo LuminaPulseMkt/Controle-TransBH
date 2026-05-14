@@ -227,7 +227,6 @@ function DashboardPage() {
 
   return (
     <AppLayout
-      title="Dashboard"
       actions={
         <div className="flex gap-2">
           <ExportMenu
@@ -249,6 +248,16 @@ function DashboardPage() {
       }
     >
       <div className="space-y-6">
+        {/* Brand header */}
+        <div className="flex items-center gap-4">
+          <BrandLogo size="lg" />
+          <div className="min-w-0">
+            <h1 className="text-display text-3xl text-foreground leading-tight">Painel</h1>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
+              Gestão de Transporte de Veículos
+            </p>
+          </div>
+        </div>
         {/* Period filter */}
         <Card className="p-3 flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">Período:</span>
