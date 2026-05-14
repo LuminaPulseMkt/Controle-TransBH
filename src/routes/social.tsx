@@ -291,9 +291,10 @@ function SocialPage() {
                 ))}
               </div>
 
-              {/* Logo - canto superior direito (fundo transparente, maior) */}
+              {/* Logo - canto superior direito (dentro do esquadro) */}
               <div style={{
-                position: "absolute", top: "-2cqw", right: "-2cqw",
+                position: "absolute", top: "3cqw", right: "3cqw",
+                display: "flex", justifyContent: "flex-end", alignItems: "flex-start",
               }}>
                 {logoUrl ? (
                   <img
@@ -301,13 +302,13 @@ function SocialPage() {
                     alt="Logo"
                     crossOrigin="anonymous"
                     style={{
-                      height: "28cqw", width: "auto", display: "block", objectFit: "contain",
+                      height: "14cqw", width: "auto", display: "block", objectFit: "contain",
                       filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
                     }}
                   />
                 ) : (
                   <div style={{
-                    fontFamily: "Bebas Neue", fontSize: "10cqw", lineHeight: 1,
+                    fontFamily: "Bebas Neue", fontSize: "6.5cqw", lineHeight: 1,
                     color: "white", letterSpacing: 2,
                     textShadow: "0 3px 8px rgba(0,0,0,0.6)",
                   }}>
