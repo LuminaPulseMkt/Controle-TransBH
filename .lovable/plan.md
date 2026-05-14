@@ -1,42 +1,54 @@
-## Padronizar logo TransBH (login, home, sidebar e cards)
+## Causa do erro
 
-**Referência única**: altura 80px (h-20) para hero/branding (login + home), versão reduzida proporcional para chrome (sidebar) e tamanho relativo no card de mídia. Fonte: `company_settings.logo_url` com fallback no asset estático `@/assets/logo-transbh.png`.
+As policies do bucket `company-assets` (em `storage.objects`) exigem o role `administrator`:
 
-### Mudanças
+```
+bucket_id = 'company-assets' AND has_role(auth.uid(), 'administrator')
+```
 
-**1. Helper compartilhado** — `src/components/BrandLogo.tsx` (novo)
-- Componente único: lê `company_settings.logo_url` (cache em memória, evita refetch), faz fallback para o asset local.
-- Props: `size?: "sm" | "md" | "lg"` → `h-7` / `h-12` / `h-20`, `className?`.
-- `alt="TransBH"`, `object-contain`, `w-auto`.
-- Garante mesmo arquivo em todo lugar e centraliza o tamanho.
+A página `/settings` é liberada para qualquer usuário com a permissão `settings.manage` concedida — inclusive colaboradores não-admin. Esses usuários conseguem abrir o formulário e disparar o upload, mas o INSERT em `storage.objects` é bloqueado pela RLS porque não têm o role `administrator`. Por isso o Supabase responde `new row violates row-level security policy`.
 
-**2. Login** — `src/routes/login.tsx`
-- Trocar `<img src={logo} … h-20 …>` por `<BrandLogo size="lg" />`. Mantém o tamanho atual (h-20) e o `mb-2`.
+Em resumo: a permissão da UI (`settings.manage`) e a permissão do storage (`administrator`) estão desalinhadas.
 
-**3. Home `/`** — `src/routes/index.tsx`
-- Inserir, no topo do conteúdo do `<DashboardPage>` (dentro de `AppLayout`), um bloco de marca:
-  - `<div className="flex items-center gap-4 mb-6"><BrandLogo size="lg" /><div><h1 className="text-display text-3xl">Painel</h1><p className="text-xs uppercase tracking-widest text-muted-foreground">Gestão de Transporte de Veículos</p></div></div>`
-- Remover o `title="Dashboard"` do `AppLayout` apenas nesta página (evita H1 duplicado).
+## Correção (apenas banco — uma migration)
 
-**4. Sidebar** — `src/components/AppSidebar.tsx`
-- Trocar `<img src={logo} … h-12 / h-7 …>` por `<BrandLogo size={collapsed ? "sm" : "md"} />`.
-- Mesmo arquivo e mesma fonte de dados que login/home — apenas reduzido (`h-12` expandido, `h-7` colapsado) por restrição do header da sidebar.
+1. Criar função auxiliar:
 
-**5. Card de entrega (social)** — `src/routes/social.tsx`
-- Já ajustado na rodada anterior (top/right 3cqw, height 14cqw). Manter como está — o card é renderizado em pixels reais (1080x1350), então `cqw` é o equivalente proporcional ao h-20 do hero.
+   ```sql
+   create or replace function public.can_manage_settings(_uid uuid)
+   returns boolean
+   language sql
+   stable
+   security definer
+   set search_path = public
+   as $$
+     select
+       public.has_role(_uid, 'administrator'::public.app_role)
+       or exists (
+         select 1 from public.user_permissions
+         where user_id = _uid
+           and permission = 'settings.manage'
+           and granted = true
+       )
+   $$;
+   ```
 
-**6. Cabeçalho de documentos** — `src/components/DocumentView.tsx`
-- O logo do header está em `height: 180px` (gigante e fora do padrão). Reduzir para `height: 80px` (alinhado a h-20) e remover `style` inline, usando `className="h-20 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"`.
-- Não alterar exporters de PDF (`src/lib/exporters.ts`) — o tamanho lá é controlado por jsPDF e não afeta a tela.
+2. Substituir policies de `storage.objects` para o bucket `company-assets`:
+   - `DROP POLICY "Admins upload company assets"` (INSERT)
+   - `DROP POLICY "Admins update company assets"` (UPDATE)
+   - (se houver) `DROP POLICY` equivalente para DELETE
+   - Recriar INSERT / UPDATE / DELETE com:
+     ```
+     bucket_id = 'company-assets'
+     AND public.can_manage_settings(auth.uid())
+     ```
+   - SELECT permanece público (bucket público).
 
-### Fora de escopo
-- PDF/exportações (jsPDF) — tamanho impresso é outro contexto.
-- Feedback público / página `/d/$token` (já usa `DocumentView`, herda a correção).
-- Mudanças de cor/forma do logo.
+## Sem mudanças no código
 
-### Validação
-- `/login`: logo h-20 centralizado.
-- `/` (home): novo bloco de marca no topo, logo h-20 ao lado de "Painel".
-- Sidebar: logo h-12 (expandido) / h-7 (colapsado), mesmo arquivo do login.
-- `/documents` preview e `/d/{token}`: logo no cabeçalho em h-20 (não mais 180px).
-- `/social` card de entrega: inalterado, já proporcional.
+O `sanitize()` em `src/routes/settings.tsx` já está correto e não tem relação com essa falha. Nenhum arquivo do front-end será alterado.
+
+## Fora de escopo
+
+- Buckets `transport-photos` e `documents`.
+- Refatoração do modelo de permissões da aplicação.
