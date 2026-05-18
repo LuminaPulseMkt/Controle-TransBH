@@ -27,9 +27,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2 } from "lucide-react";
+import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2, Car, Truck, X } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { generateContractAssets } from "@/server/generate-contract-assets.functions";
 
 import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
@@ -39,6 +41,38 @@ import { loadLogoDataUrl } from "@/lib/pdf-logo";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
 import { ExportMenu } from "@/components/ExportMenu";
+
+type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
+interface VehicleForm {
+  description: string;
+  plate: string;
+  color: string;
+  type: VehicleType;
+  value: string;
+}
+const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "" });
+
+function bodyToVehicles(body: any): VehicleForm[] {
+  if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
+    return body.vehicles.map((v: any) => ({
+      description: v.description ?? "",
+      plate: v.plate ?? "",
+      color: v.color ?? "",
+      type: (v.type ?? "sedan") as VehicleType,
+      value: v.value != null ? String(v.value) : "",
+    }));
+  }
+  if (body?.vehicle || body?.vehicle_plate) {
+    return [{
+      description: body.vehicle ?? "",
+      plate: body.vehicle_plate ?? "",
+      color: body.vehicle_color ?? "",
+      type: "sedan",
+      value: body.service_value != null ? String(body.service_value) : "",
+    }];
+  }
+  return [emptyVehicle()];
+}
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
