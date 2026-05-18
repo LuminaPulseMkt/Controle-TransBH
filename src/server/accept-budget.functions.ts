@@ -196,7 +196,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
           destination_city: destination.city,
           destination_state: destination.state,
           vehicle_plate: plate,
-          vehicle_type: "car",
+          vehicle_type: "sedan",
           notes: body.vehicle ? `Veículo informado: ${body.vehicle}` : null,
           estimated_delivery: data.estimated_delivery || null,
           status: "pending",
