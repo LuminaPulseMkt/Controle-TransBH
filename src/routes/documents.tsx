@@ -1001,6 +1001,8 @@ function DocRow({
   onPreview,
   onPDF,
   onWhatsApp,
+  onGenerate,
+  generating,
 }: {
   d: Document;
   canEdit?: boolean;
@@ -1010,8 +1012,12 @@ function DocRow({
   onPreview: () => void;
   onPDF: () => void;
   onWhatsApp: () => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }) {
   const isAcceptedBudget = d.doc_type === "budget" && !!d.accepted_at;
+  const isContract = d.doc_type === "contract";
+  const alreadyGenerated = isContract && !!d.generated_at;
   return (
     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
       <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
@@ -1029,13 +1035,24 @@ function DocRow({
                 <CheckCircle2 className="h-3 w-3" /> Aceito {dateBR(d.accepted_at)}
               </span>
             )}
+            {alreadyGenerated && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-primary/15 text-primary">
+                <Truck className="h-3 w-3" /> Transporte/cobrança gerados
+              </span>
+            )}
           </div>
           <div className="text-sm text-foreground/70">
             {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
           </div>
         </div>
       </button>
-      <div className="flex gap-2 shrink-0">
+      <div className="flex gap-2 shrink-0 flex-wrap">
+        {isContract && onGenerate && !alreadyGenerated && (
+          <Button size="sm" onClick={onGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Truck className="h-4 w-4 mr-1" />}
+            Gerar transporte e cobrança
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={onPreview}>
           <Eye className="h-4 w-4 mr-1" /> Visualizar
         </Button>
