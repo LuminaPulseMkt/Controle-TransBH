@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 import { Route as DTokenRouteImport } from './routes/d.$token'
+import { Route as ChecklistsHistoricoRouteImport } from './routes/checklists.historico'
 import { Route as ChecklistsIdRouteImport } from './routes/checklists.$id'
 import { Route as FinancialClientsNameRouteImport } from './routes/financial.clients.$name'
 
@@ -96,6 +97,11 @@ const DTokenRoute = DTokenRouteImport.update({
   path: '/d/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChecklistsHistoricoRoute = ChecklistsHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => ChecklistsRoute,
+} as any)
 const ChecklistsIdRoute = ChecklistsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/checklists/$id': typeof ChecklistsIdRoute
+  '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/transports/': typeof TransportsIndexRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/checklists/$id': typeof ChecklistsIdRoute
+  '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/transports': typeof TransportsIndexRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/checklists/$id': typeof ChecklistsIdRoute
+  '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/transports/': typeof TransportsIndexRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/social'
     | '/users'
     | '/checklists/$id'
+    | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/transports/'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/social'
     | '/users'
     | '/checklists/$id'
+    | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/transports'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/social'
     | '/users'
     | '/checklists/$id'
+    | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/transports/'
@@ -336,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checklists/historico': {
+      id: '/checklists/historico'
+      path: '/historico'
+      fullPath: '/checklists/historico'
+      preLoaderRoute: typeof ChecklistsHistoricoRouteImport
+      parentRoute: typeof ChecklistsRoute
+    }
     '/checklists/$id': {
       id: '/checklists/$id'
       path: '/$id'
@@ -355,10 +374,12 @@ declare module '@tanstack/react-router' {
 
 interface ChecklistsRouteChildren {
   ChecklistsIdRoute: typeof ChecklistsIdRoute
+  ChecklistsHistoricoRoute: typeof ChecklistsHistoricoRoute
 }
 
 const ChecklistsRouteChildren: ChecklistsRouteChildren = {
   ChecklistsIdRoute: ChecklistsIdRoute,
+  ChecklistsHistoricoRoute: ChecklistsHistoricoRoute,
 }
 
 const ChecklistsRouteWithChildren = ChecklistsRoute._addFileChildren(
@@ -396,12 +417,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
