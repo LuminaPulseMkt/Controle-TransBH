@@ -1,4 +1,4 @@
-import { brl, dateBR } from "@/lib/format";
+import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
 import { FileText } from "lucide-react";
 
 export interface DocumentViewData {
