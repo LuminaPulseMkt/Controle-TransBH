@@ -125,7 +125,7 @@ function ChecklistEditorPage() {
       {loading || !data ? (
         <div className="text-center text-muted-foreground py-12">Carregando…</div>
       ) : (
-        <ChecklistForm data={data} onChange={setData} checklistId={id} />
+        <ChecklistForm data={data} onChange={setData} checklistId={id} company={company} />
       )}
     </AppLayout>
   );
