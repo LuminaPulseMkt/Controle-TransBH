@@ -491,7 +491,7 @@ function DocumentsPage() {
 
   const shareWhatsApp = async (d: Document) => {
     const phone = (d.client_phone ?? "").replace(/\D/g, "");
-    const link = d.public_token ? `${window.location.origin}/d/${d.public_token}` : "";
+    const link = d.public_token ? publicDocUrl(d.public_token) : "";
     const vars = {
       client_name: d.client_name,
       title: d.title,
