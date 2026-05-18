@@ -41,7 +41,7 @@ export function DocumentPreviewDialog({ doc, open, onOpenChange, onExportPDF, on
 
   const copyLink = async () => {
     if (!doc.public_token) return toast.error("Link público indisponível.");
-    const url = `${window.location.origin}/d/${doc.public_token}`;
+    const url = publicDocUrl(doc.public_token);
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copiado!");
