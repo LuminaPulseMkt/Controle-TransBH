@@ -782,7 +782,7 @@ export type Database = {
       document_type: "budget" | "contract"
       payment_status: "paid" | "pending" | "overdue" | "negotiated" | "partial"
       transport_status: "pending" | "in_transit" | "delivered" | "cancelled"
-      vehicle_type: "car" | "motorcycle" | "truck" | "machinery"
+      vehicle_type: "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -915,7 +915,7 @@ export const Constants = {
       document_type: ["budget", "contract"],
       payment_status: ["paid", "pending", "overdue", "negotiated", "partial"],
       transport_status: ["pending", "in_transit", "delivered", "cancelled"],
-      vehicle_type: ["car", "motorcycle", "truck", "machinery"],
+      vehicle_type: ["motorcycle", "sedan", "hatch", "caminhonete", "suv"],
     },
   },
 } as const
