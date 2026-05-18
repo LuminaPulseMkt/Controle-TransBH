@@ -93,7 +93,7 @@ const emptyForm = {
   vehicle_year: "",
   vehicle_color: "",
   vehicle_chassis: "",
-  vehicle_type: "car",
+  vehicle_type: "sedan",
   origin_city: "",
   origin_state: "",
   destination_city: "",
