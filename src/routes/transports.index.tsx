@@ -621,10 +621,11 @@ function TransportsPage() {
                   <Select value={form.vehicle_type} onValueChange={(v) => setForm({ ...form, vehicle_type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="car">Carro</SelectItem>
                       <SelectItem value="motorcycle">Moto</SelectItem>
-                      <SelectItem value="truck">Caminhão</SelectItem>
-                      <SelectItem value="machinery">Maquinário</SelectItem>
+                      <SelectItem value="sedan">Sedan</SelectItem>
+                      <SelectItem value="hatch">Hatch</SelectItem>
+                      <SelectItem value="caminhonete">Caminhonete</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
