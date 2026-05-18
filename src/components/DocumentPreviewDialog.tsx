@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Download, MessageCircle, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentView, type DocumentViewData } from "./DocumentView";
+import { publicDocUrl } from "@/lib/public-url";
 
 interface DocumentPreview extends DocumentViewData {
   template: string | null;
