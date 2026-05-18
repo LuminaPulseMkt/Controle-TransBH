@@ -752,6 +752,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_budget_by_token: {
+        Args: { _estimated_delivery?: string; _token: string }
+        Returns: Json
+      }
       can_manage_settings: { Args: { _uid: string }; Returns: boolean }
       get_contract_token_for_budget: {
         Args: { _budget_token: string }
