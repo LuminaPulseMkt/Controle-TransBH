@@ -154,7 +154,8 @@ export const generateContractAssets = createServerFn({ method: "POST" })
 
       // WhatsApp best-effort
       if (contract.client_phone && contract.public_token) {
-        const link = `https://transbh-fleetflow.lovable.app/d/${contract.public_token}`;
+        const { publicDocUrl } = await import("@/lib/public-url");
+        const link = publicDocUrl(contract.public_token);
         const valor = totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         const venc = new Date(dueStr + "T00:00:00").toLocaleDateString("pt-BR");
         const fallback =
