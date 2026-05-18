@@ -180,38 +180,71 @@ export const acceptBudget = createServerFn({ method: "POST" })
       stage = "create_transport";
       const origin = parseLocation(body.origin);
       const destination = parseLocation(body.destination);
-      const vehiclePlateMatch = (body.vehicle ?? "").match(/[A-Z]{3}[-\s]?\d[A-Z\d]\d{2}/i);
-      const plate = vehiclePlateMatch
-        ? vehiclePlateMatch[0].toUpperCase().replace(/\s/g, "")
-        : "A DEFINIR";
 
-      const { data: transport, error: transportErr } = await supabaseAdmin
-        .from("transports")
-        .insert({
-          client_name: budget.client_name,
-          client_document: budget.client_document,
-          client_phone: budget.client_phone,
-          origin_city: origin.city,
-          origin_state: origin.state,
-          destination_city: destination.city,
-          destination_state: destination.state,
-          vehicle_plate: plate,
-          vehicle_type: "sedan",
-          notes: body.vehicle ? `Veículo informado: ${body.vehicle}` : null,
-          estimated_delivery: data.estimated_delivery || null,
-          status: "pending",
-          created_by: budget.created_by,
-        })
-        .select("id")
-        .single();
-
-      if (transportErr || !transport) {
-        console.error("[acceptBudget]", stage, transportErr);
-        return {
-          ok: false as const,
-          error: "Não foi possível processar a solicitação. Tente novamente.",
-        };
+      type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
+      interface VehicleItem {
+        description?: string;
+        plate?: string;
+        color?: string;
+        type?: VehicleType;
+        brand?: string;
+        model?: string;
+        year?: number;
+        value?: number;
       }
+
+      const vehicles: VehicleItem[] = Array.isArray(body.vehicles) && body.vehicles.length > 0
+        ? (body.vehicles as VehicleItem[])
+        : [{
+            description: body.vehicle ?? undefined,
+            plate: (() => {
+              const m = (body.vehicle ?? "").match(/[A-Z]{3}[-\s]?\d[A-Z\d]\d{2}/i);
+              return m ? m[0].toUpperCase().replace(/\s/g, "") : (body.vehicle_plate ?? undefined);
+            })(),
+            color: body.vehicle_color ?? undefined,
+            type: "sedan",
+            value: Number(body.service_value ?? totalAmount),
+          }];
+
+      const transportIds: string[] = [];
+      for (const v of vehicles) {
+        const plate = (v.plate || "A DEFINIR").toUpperCase().replace(/\s/g, "");
+        const { data: tr, error: trErr } = await supabaseAdmin
+          .from("transports")
+          .insert({
+            client_name: budget.client_name,
+            client_document: budget.client_document,
+            client_phone: budget.client_phone,
+            origin_city: origin.city,
+            origin_state: origin.state,
+            destination_city: destination.city,
+            destination_state: destination.state,
+            vehicle_plate: plate,
+            vehicle_type: (v.type ?? "sedan") as VehicleType,
+            vehicle_brand: v.brand ?? null,
+            vehicle_model: v.model ?? v.description ?? null,
+            vehicle_year: v.year ?? null,
+            vehicle_color: v.color ?? null,
+            notes: v.description ? `Veículo: ${v.description}` : null,
+            estimated_delivery: data.estimated_delivery || null,
+            status: "pending",
+            created_by: budget.created_by,
+          })
+          .select("id")
+          .single();
+
+        if (trErr || !tr) {
+          console.error("[acceptBudget]", stage, trErr);
+          return {
+            ok: false as const,
+            error: "Não foi possível processar a solicitação. Tente novamente.",
+          };
+        }
+        transportIds.push(tr.id);
+      }
+      const firstTransportId = transportIds[0]!;
+      const firstVehicle = vehicles[0] ?? {};
+      const plate = (firstVehicle.plate || "A DEFINIR").toUpperCase().replace(/\s/g, "");
 
       stage = "create_receivable";
       const due = new Date();
@@ -228,7 +261,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
           due_date: dueStr,
           status: "pending",
           description: `Aceite do orçamento "${budget.title}"`,
-          transport_id: transport.id,
+          transport_id: firstTransportId,
         })
         .select("id, amount, due_date")
         .single();
@@ -248,10 +281,20 @@ export const acceptBudget = createServerFn({ method: "POST" })
           accepted_at: new Date().toISOString(),
           accepted_ip: ip,
           accepted_contract_id: contract.id,
-          accepted_transport_id: transport.id,
+          accepted_transport_id: firstTransportId,
           accepted_receivable_id: receivable.id,
         })
         .eq("id", budget.id);
+
+      // Marca o contrato gerado também (idempotência futura)
+      await supabaseAdmin
+        .from("documents")
+        .update({
+          generated_at: new Date().toISOString(),
+          generated_receivable_id: receivable.id,
+          generated_transport_ids: transportIds,
+        })
+        .eq("id", contract.id);
 
       if (updErr) {
         console.error("[acceptBudget]", stage, updErr);
@@ -301,7 +344,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
         contract_token: contract.public_token,
         accepted_at: new Date().toISOString(),
         receivable: { amount: Number(receivable.amount), due_date: receivable.due_date },
-        vehicle: { plate: plate, brand: null as string | null, model: body.vehicle ?? null },
+        vehicle: { plate: plate, brand: firstVehicle.brand ?? null, model: firstVehicle.model ?? firstVehicle.description ?? null },
         client_name: budget.client_name,
       };
     } catch (err) {

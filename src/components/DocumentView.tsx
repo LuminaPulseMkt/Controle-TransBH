@@ -86,7 +86,37 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
           {body.client_address && <Field label="Endereço" value={body.client_address} />}
         </Section>
 
-        {(body.vehicle || body.vehicle_plate || body.vehicle_color || body.origin || body.destination) && (
+        {Array.isArray(body.vehicles) && body.vehicles.length > 0 ? (
+          <Section title={body.vehicles.length > 1 ? "Veículos" : "Veículo"}>
+            <div className="space-y-3">
+              {body.vehicles.map((v: any, i: number) => (
+                <div key={i} className="rounded-md border border-border/60 p-3">
+                  <div className="flex items-baseline justify-between gap-2 mb-2">
+                    <div className="text-sm font-semibold text-foreground">
+                      {v.description || `Veículo ${i + 1}`}
+                      {v.type && <span className="text-xs text-muted-foreground ml-2">({vehicleTypeLabel[v.type] ?? v.type})</span>}
+                    </div>
+                    {typeof v.value === "number" && v.value > 0 && (
+                      <div className="text-sm font-semibold text-primary">{brl(v.value)}</div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+                    {v.plate && <Field label="Placa" value={v.plate} />}
+                    {v.color && <Field label="Cor" value={v.color} />}
+                    {v.brand && <Field label="Marca" value={v.brand} />}
+                    {v.model && <Field label="Modelo" value={v.model} />}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(body.origin || body.destination) && (
+              <div className="mt-3 pt-3 border-t border-border space-y-1">
+                {body.origin && <Field label="Origem" value={body.origin} />}
+                {body.destination && <Field label="Destino" value={body.destination} />}
+              </div>
+            )}
+          </Section>
+        ) : (body.vehicle || body.vehicle_plate || body.vehicle_color || body.origin || body.destination) && (
           <Section title="Detalhes do Serviço">
             {body.vehicle && <Field label="Veículo" value={body.vehicle} />}
             {body.vehicle_plate && <Field label="Placa" value={body.vehicle_plate} />}
@@ -97,7 +127,17 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
         )}
 
         <Section title="Valores">
-          <Field label="Frete" value={brl(body.service_value ?? 0)} />
+          {Array.isArray(body.vehicles) && body.vehicles.length > 0 ? (
+            body.vehicles.map((v: any, i: number) => (
+              <Field
+                key={i}
+                label={v.description || `Veículo ${i + 1}`}
+                value={brl(Number(v.value ?? 0))}
+              />
+            ))
+          ) : (
+            <Field label="Frete" value={brl(body.service_value ?? 0)} />
+          )}
           {body.extra ? <Field label="Adicionais" value={brl(body.extra)} /> : null}
           {body.pickup_value ? <Field label="Coleta" value={brl(body.pickup_value)} /> : null}
           {body.delivery_value ? <Field label="Entrega" value={brl(body.delivery_value)} /> : null}
