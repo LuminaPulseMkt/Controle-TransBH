@@ -26,8 +26,9 @@ export const paymentStatusLabel: Record<string, string> = {
 };
 
 export const vehicleTypeLabel: Record<string, string> = {
-  car: "Carro",
   motorcycle: "Moto",
-  truck: "Caminhão",
-  machinery: "Maquinário",
+  sedan: "Sedan",
+  hatch: "Hatch",
+  caminhonete: "Caminhonete",
+  suv: "SUV",
 };
