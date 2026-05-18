@@ -27,9 +27,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { brl, dateBR } from "@/lib/format";
-import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2 } from "lucide-react";
+import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
+import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2, Car, Truck, X } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { generateContractAssets } from "@/server/generate-contract-assets.functions";
 
 import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
@@ -39,6 +41,38 @@ import { loadLogoDataUrl } from "@/lib/pdf-logo";
 import { sendWhatsAppManual } from "@/server/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
 import { ExportMenu } from "@/components/ExportMenu";
+
+type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
+interface VehicleForm {
+  description: string;
+  plate: string;
+  color: string;
+  type: VehicleType;
+  value: string;
+}
+const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "" });
+
+function bodyToVehicles(body: any): VehicleForm[] {
+  if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
+    return body.vehicles.map((v: any) => ({
+      description: v.description ?? "",
+      plate: v.plate ?? "",
+      color: v.color ?? "",
+      type: (v.type ?? "sedan") as VehicleType,
+      value: v.value != null ? String(v.value) : "",
+    }));
+  }
+  if (body?.vehicle || body?.vehicle_plate) {
+    return [{
+      description: body.vehicle ?? "",
+      plate: body.vehicle_plate ?? "",
+      color: body.vehicle_color ?? "",
+      type: "sedan",
+      value: body.service_value != null ? String(body.service_value) : "",
+    }];
+  }
+  return [emptyVehicle()];
+}
 
 const TEMPLATE_ICONS: Record<string, typeof Sparkles> = {
   standard: FileCheck2,
@@ -69,6 +103,9 @@ interface Document {
   public_token: string | null;
   accepted_at: string | null;
   accepted_contract_id: string | null;
+  generated_at: string | null;
+  generated_receivable_id: string | null;
+  generated_transport_ids: string[] | null;
 }
 
 function DocumentsPage() {
@@ -103,13 +140,12 @@ function DocumentsPage() {
     destination: "",
     pickup_value: "",
     delivery_value: "",
-    vehicle: "",
-    vehicle_plate: "",
-    vehicle_color: "",
-    service_value: "",
     extra: "",
     notes: "",
   });
+  const [vehicles, setVehicles] = useState<VehicleForm[]>([emptyVehicle()]);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const generateFn = useServerFn(generateContractAssets);
 
   const load = async () => {
     const { data } = await supabase.from("documents").select("*").order("created_at", { ascending: false });
@@ -208,17 +244,22 @@ function DocumentsPage() {
   const toggleClient = (key: string) =>
     setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  const vehiclesTotal = useMemo(
+    () => vehicles.reduce((s, v) => s + (Number(v.value) || 0), 0),
+    [vehicles],
+  );
   const total = useMemo(() => {
-    return (Number(form.service_value) || 0)
+    return vehiclesTotal
       + (Number(form.extra) || 0)
       + (Number(form.pickup_value) || 0)
       + (Number(form.delivery_value) || 0);
-  }, [form]);
+  }, [form, vehiclesTotal]);
 
   const openNew = (type: "budget" | "contract") => {
     setDocType(type);
     setEditingDoc(null);
     setStep("template");
+    setVehicles([emptyVehicle()]);
     setOpen(true);
   };
 
@@ -237,13 +278,10 @@ function DocumentsPage() {
       destination: d.body?.destination ?? "",
       pickup_value: d.body?.pickup_value != null ? String(d.body.pickup_value) : "",
       delivery_value: d.body?.delivery_value != null ? String(d.body.delivery_value) : "",
-      vehicle: d.body?.vehicle ?? "",
-      vehicle_plate: d.body?.vehicle_plate ?? "",
-      vehicle_color: d.body?.vehicle_color ?? "",
-      service_value: d.body?.service_value != null ? String(d.body.service_value) : "",
       extra: d.body?.extra != null ? String(d.body.extra) : "",
       notes: d.body?.notes ?? "",
     });
+    setVehicles(bodyToVehicles(d.body));
     setStep("form");
     setOpen(true);
   };
@@ -253,10 +291,14 @@ function DocumentsPage() {
       ...form,
       title: tpl.defaults.title,
       template: tpl.templateKey,
-      service_value: tpl.defaults.service_value,
       extra: tpl.defaults.extra,
       notes: tpl.defaults.notes,
     });
+    setVehicles((prev) =>
+      prev.length === 1 && !prev[0].value
+        ? [{ ...prev[0], value: tpl.defaults.service_value ?? "" }]
+        : prev,
+    );
     setStep("form");
   };
 
@@ -265,26 +307,37 @@ function DocumentsPage() {
       ...form,
       title: docType === "budget" ? "Orçamento" : "Contrato de Transporte",
       template: "standard",
-      service_value: "",
       extra: "",
       notes: "",
     });
+    setVehicles([emptyVehicle()]);
     setStep("form");
   };
 
   const save = async () => {
     if (!form.client_name) return toast.error("Cliente é obrigatório.");
+    if (vehicles.length === 0) return toast.error("Adicione pelo menos um veículo.");
     setBusy(true);
-    const body = {
+    const vehiclesPayload = vehicles.map((v) => ({
+      description: v.description,
+      plate: v.plate.toUpperCase(),
+      color: v.color,
+      type: v.type,
+      value: Number(v.value) || 0,
+    }));
+    const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
+    const body: Record<string, any> = {
       origin: form.origin,
       destination: form.destination,
       pickup_value: Number(form.pickup_value) || 0,
       delivery_value: Number(form.delivery_value) || 0,
       client_address: form.client_address || null,
-      vehicle: form.vehicle,
-      vehicle_plate: form.vehicle_plate.toUpperCase(),
-      vehicle_color: form.vehicle_color,
-      service_value: Number(form.service_value) || 0,
+      vehicles: vehiclesPayload,
+      // legacy mirror (compat com PDFs / dialogs antigos)
+      vehicle: single?.description ?? "",
+      vehicle_plate: single?.plate ?? "",
+      vehicle_color: single?.color ?? "",
+      service_value: vehiclesTotal,
       extra: Number(form.extra) || 0,
       notes: form.notes,
     };
@@ -389,9 +442,20 @@ function DocumentsPage() {
     doc.setFontSize(12);
     doc.text("Detalhes do Serviço", 14, y); y += 6;
     doc.setFontSize(10);
-    if (d.body?.vehicle) { doc.text(`Veículo: ${d.body.vehicle}`, 14, y); y += 5; }
-    if (d.body?.vehicle_plate) { doc.text(`Placa: ${d.body.vehicle_plate}`, 14, y); y += 5; }
-    if (d.body?.vehicle_color) { doc.text(`Cor: ${d.body.vehicle_color}`, 14, y); y += 5; }
+    const vehiclesList: any[] = Array.isArray(d.body?.vehicles) && d.body.vehicles.length > 0
+      ? d.body.vehicles
+      : (d.body?.vehicle || d.body?.vehicle_plate
+          ? [{ description: d.body?.vehicle, plate: d.body?.vehicle_plate, color: d.body?.vehicle_color, type: "sedan", value: d.body?.service_value }]
+          : []);
+    if (vehiclesList.length > 0) {
+      doc.text("Veículos:", 14, y); y += 5;
+      vehiclesList.forEach((v, i) => {
+        const typeLabel = vehicleTypeLabel[v.type] ?? v.type ?? "";
+        const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
+        const valStr = v.value != null ? ` — ${brl(Number(v.value) || 0)}` : "";
+        doc.text(`  ${i + 1}. ${parts}${valStr}`, 14, y); y += 5;
+      });
+    }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { doc.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
 
@@ -456,6 +520,32 @@ function DocumentsPage() {
       toast.dismiss(t);
       toast.error("Falha ao enviar. Abrindo WhatsApp Web...");
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const generateAssets = async (d: Document) => {
+    if (d.doc_type !== "contract") return;
+    if (d.generated_at) {
+      toast.info("Transporte e cobrança já foram gerados para este contrato.");
+      return;
+    }
+    setGeneratingId(d.id);
+    try {
+      const res = await generateFn({ data: { contract_id: d.id } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        res.already
+          ? "Transporte e cobrança já existiam."
+          : `Gerados ${res.transport_ids.length} transporte(s) e 1 cobrança.`,
+      );
+      void load();
+    } catch {
+      toast.error("Falha ao gerar. Tente novamente.");
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -558,6 +648,8 @@ function DocumentsPage() {
                           onPreview={() => setPreviewDoc(d)}
                           onPDF={() => exportPDF(d)}
                           onWhatsApp={() => shareWhatsApp(d)}
+                          onGenerate={() => generateAssets(d)}
+                          generating={generatingId === d.id}
                         />
                       ))}
                     </div>
@@ -580,6 +672,8 @@ function DocumentsPage() {
                 onPreview={() => setPreviewDoc(d)}
                 onPDF={() => exportPDF(d)}
                 onWhatsApp={() => shareWhatsApp(d)}
+                onGenerate={() => generateAssets(d)}
+                generating={generatingId === d.id}
               />
             </Card>
           ))}
@@ -723,23 +817,86 @@ function DocumentsPage() {
                     placeholder="Rua, número, bairro, cidade/UF"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <Label>Veículo</Label>
-                  <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020" />
-                </div>
-                <div>
-                  <Label>Placa</Label>
-                  <Input
-                    value={form.vehicle_plate}
-                    onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
-                    placeholder="ABC1D23"
-                    maxLength={8}
-                    className="uppercase font-mono"
-                  />
-                </div>
-                <div>
-                  <Label>Cor</Label>
-                  <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} placeholder="Prata" />
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Veículos do contrato</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setVehicles((prev) => [...prev, emptyVehicle()])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar veículo
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {vehicles.map((v, i) => (
+                      <div key={i} className="rounded-md border border-border p-3 space-y-2 bg-muted/20 relative">
+                        {vehicles.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setVehicles((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="absolute top-2 right-2 h-6 w-6 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center"
+                            title="Remover veículo"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="md:col-span-2">
+                            <Label className="text-xs">Descrição</Label>
+                            <Input
+                              value={v.description}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, description: e.target.value } : p))}
+                              placeholder="Honda Civic 2020"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Placa</Label>
+                            <Input
+                              value={v.plate}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, plate: e.target.value.toUpperCase() } : p))}
+                              placeholder="ABC1D23"
+                              maxLength={8}
+                              className="uppercase font-mono"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Tipo</Label>
+                            <Select
+                              value={v.type}
+                              onValueChange={(val) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, type: val as VehicleType } : p))}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(vehicleTypeLabel).map(([k, label]) => (
+                                  <SelectItem key={k} value={k}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Cor</Label>
+                            <Input
+                              value={v.color}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, color: e.target.value } : p))}
+                              placeholder="Prata"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Valor (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={v.value}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, value: e.target.value } : p))}
+                              placeholder="0,00"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label>Origem</Label>
@@ -758,8 +915,12 @@ function DocumentsPage() {
                   <Input type="number" step="0.01" value={form.delivery_value} onChange={(e) => setForm({ ...form, delivery_value: e.target.value })} placeholder="0,00" />
                 </div>
                 <div>
-                  <Label>Frete</Label>
-                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
+                  <Label>Frete (soma dos veículos)</Label>
+                  <Input value={brl(vehiclesTotal)} readOnly className="font-medium" />
+                </div>
+                <div>
+                  <Label>Adicionais</Label>
+                  <Input type="number" step="0.01" value={form.extra} onChange={(e) => setForm({ ...form, extra: e.target.value })} />
                 </div>
                 <div>
                   <Label>Adicionais</Label>
@@ -844,6 +1005,8 @@ function DocRow({
   onPreview,
   onPDF,
   onWhatsApp,
+  onGenerate,
+  generating,
 }: {
   d: Document;
   canEdit?: boolean;
@@ -853,8 +1016,12 @@ function DocRow({
   onPreview: () => void;
   onPDF: () => void;
   onWhatsApp: () => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }) {
   const isAcceptedBudget = d.doc_type === "budget" && !!d.accepted_at;
+  const isContract = d.doc_type === "contract";
+  const alreadyGenerated = isContract && !!d.generated_at;
   return (
     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
       <button onClick={onPreview} className="flex items-start gap-3 min-w-0 text-left flex-1 hover:opacity-80 transition-opacity">
@@ -872,13 +1039,24 @@ function DocRow({
                 <CheckCircle2 className="h-3 w-3" /> Aceito {dateBR(d.accepted_at)}
               </span>
             )}
+            {alreadyGenerated && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-primary/15 text-primary">
+                <Truck className="h-3 w-3" /> Transporte/cobrança gerados
+              </span>
+            )}
           </div>
           <div className="text-sm text-foreground/70">
             {dateBR(d.created_at)} · {brl(d.total_amount ?? 0)}
           </div>
         </div>
       </button>
-      <div className="flex gap-2 shrink-0">
+      <div className="flex gap-2 shrink-0 flex-wrap">
+        {isContract && onGenerate && !alreadyGenerated && (
+          <Button size="sm" onClick={onGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Truck className="h-4 w-4 mr-1" />}
+            Gerar transporte e cobrança
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={onPreview}>
           <Eye className="h-4 w-4 mr-1" /> Visualizar
         </Button>
