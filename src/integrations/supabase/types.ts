@@ -166,6 +166,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           doc_type: Database["public"]["Enums"]["document_type"]
+          generated_at: string | null
+          generated_receivable_id: string | null
+          generated_transport_ids: string[]
           id: string
           pdf_url: string | null
           public_token: string
@@ -189,6 +192,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           doc_type: Database["public"]["Enums"]["document_type"]
+          generated_at?: string | null
+          generated_receivable_id?: string | null
+          generated_transport_ids?: string[]
           id?: string
           pdf_url?: string | null
           public_token?: string
@@ -212,6 +218,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           doc_type?: Database["public"]["Enums"]["document_type"]
+          generated_at?: string | null
+          generated_receivable_id?: string | null
+          generated_transport_ids?: string[]
           id?: string
           pdf_url?: string | null
           public_token?: string
