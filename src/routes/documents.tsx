@@ -442,9 +442,20 @@ function DocumentsPage() {
     doc.setFontSize(12);
     doc.text("Detalhes do Serviço", 14, y); y += 6;
     doc.setFontSize(10);
-    if (d.body?.vehicle) { doc.text(`Veículo: ${d.body.vehicle}`, 14, y); y += 5; }
-    if (d.body?.vehicle_plate) { doc.text(`Placa: ${d.body.vehicle_plate}`, 14, y); y += 5; }
-    if (d.body?.vehicle_color) { doc.text(`Cor: ${d.body.vehicle_color}`, 14, y); y += 5; }
+    const vehiclesList: any[] = Array.isArray(d.body?.vehicles) && d.body.vehicles.length > 0
+      ? d.body.vehicles
+      : (d.body?.vehicle || d.body?.vehicle_plate
+          ? [{ description: d.body?.vehicle, plate: d.body?.vehicle_plate, color: d.body?.vehicle_color, type: "sedan", value: d.body?.service_value }]
+          : []);
+    if (vehiclesList.length > 0) {
+      doc.text("Veículos:", 14, y); y += 5;
+      vehiclesList.forEach((v, i) => {
+        const typeLabel = vehicleTypeLabel[v.type] ?? v.type ?? "";
+        const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
+        const valStr = v.value != null ? ` — ${brl(Number(v.value) || 0)}` : "";
+        doc.text(`  ${i + 1}. ${parts}${valStr}`, 14, y); y += 5;
+      });
+    }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { doc.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
 
