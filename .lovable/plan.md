@@ -1,51 +1,79 @@
+# Aba Checklists — modelo em branco idêntico ao PDF
+
 ## Objetivo
-Criar uma nova aba **Checklists** no sistema, reproduzindo o modelo de "Check List de Transporte" enviado (UNIPORT LOG). O usuário poderá criar, editar, salvar, listar e exportar em PDF. Também ficará disponível um atalho na página de detalhes de cada transporte.
+A aba `Checklists` na sidebar passa a abrir **direto no formulário em branco**, com layout visualmente idêntico ao PDF `CHECK_LIST_CARRO_UNIPORT_LOG`. O usuário preenche, salva e exporta PDF. A lista de checklists salvos vai para uma tela secundária acessível pelo botão "Histórico".
 
-## Estrutura do checklist (do PDF)
-- **Cabeçalho**: Cliente, Placa, Modelo, DUT, Cor, KM, Local, Data, Hora.
-- **Itens do veículo (OK / Não OK)**: Documento Original, Chave Original, Chave Reserva, Controle do Alarme, Manual Uso/Manutenção, Extintor, Triângulo, Chave de Roda, Macaco, Rádio, CD Player, Bateria.
-- **Pneus** (Dianteiro Dir/Esq, Traseiro Dir/Esq, Estepe): Medida, Marca, condição (Bom/Médio/Ruim/Furado).
-- **Combustível**: 0, 1/4, 1/2, 3/4, Cheio.
-- **Observações**.
-- **Coleta** e **Entrega**: nome do motorista, RG, cidade, estado, declaração de acordo, **assinatura digital**, nome do responsável, RG, **assinatura do responsável**, data e hora.
+## Mudanças
 
-## Banco de dados (Supabase)
-Nova tabela `vehicle_checklists`:
-- `transport_id` (uuid, nullable) — link opcional ao transporte.
-- `client_name`, `plate`, `model`, `dut`, `color`, `km`, `location` (text).
-- `checklist_date` (date), `checklist_time` (text).
-- `items` (jsonb) — estado OK/Não OK de cada item.
-- `tires` (jsonb) — array com 5 pneus (posição, medida, marca, condição).
-- `fuel_level` (text) — `0|1/4|1/2|3/4|cheio`.
-- `observations` (text).
-- `pickup` (jsonb) — { driver_name, driver_rg, city, state, agreed, signature_url, responsible_name, responsible_rg, responsible_signature_url, date, time }.
-- `delivery` (jsonb) — mesma forma de `pickup`.
-- `created_by`, `created_at`, `updated_at`.
+### 1. Rota `/checklists` (`src/routes/checklists.tsx`)
+- Deixa de ser uma listagem.
+- Vira **editor de um novo checklist em branco** (estado local, sem criar registro no banco até clicar em Salvar).
+- Topo da página com 3 ações:
+  - **Salvar** — faz `insert` no `vehicle_checklists` e redireciona para `/checklists/$id`.
+  - **Exportar PDF** — gera PDF do estado atual (sem precisar salvar).
+  - **Histórico** — link para `/checklists/historico`.
 
-RLS: autenticados podem ver/criar/editar; admins podem deletar (mesmo padrão de `transports`).
+### 2. Nova rota `/checklists/historico` (`src/routes/checklists.historico.tsx`)
+- Move o conteúdo de listagem atual (busca, tabela, abrir, excluir) para cá.
+- Mantém RLS e permissões existentes.
 
-Storage: usar bucket existente `transport-photos` para salvar imagens de assinatura (PNG, pasta `checklists/{id}/`).
+### 3. Rota `/checklists/$id` (`src/routes/checklists.$id.tsx`)
+- Mantida como está (editor de checklist salvo, com Exportar PDF).
 
-## Rotas e UI
-- `src/routes/checklists.tsx` — listagem com busca, criar novo, abrir editor.
-- `src/routes/checklists.$id.tsx` — editor/visualização do checklist (formulário completo).
-- Sidebar: novo item "Checklists" (ícone `ClipboardCheck`) com permissão `transports.view`.
-- Página de detalhes do transporte (`src/routes/transports.$id.tsx`): seção "Checklists" com botão "Novo checklist" (pré-preenche placa, modelo, cor, cliente) e lista de checklists vinculados.
+### 4. Reformatar `ChecklistForm.tsx` para refletir o PDF
+Reescrita visual para espelhar o documento original:
 
-## Componentes
-- `src/components/checklist/ChecklistForm.tsx` — formulário completo (cabeçalho, grid de itens OK/Não OK, tabela de pneus, combustível, observações, abas Coleta/Entrega).
-- `src/components/checklist/SignaturePad.tsx` — canvas para desenhar assinatura (mouse + touch), botão "Limpar", upload para storage e retorno da URL.
-- `src/components/checklist/ChecklistView.tsx` — renderização read-only usada na exportação PDF e visualização.
+```text
+┌──────────────────────────────────────────────────────────┐
+│  [LOGO]      CHECK LIST DE VEÍCULO                       │
+├──────────────────────────────────────────────────────────┤
+│  Cliente: __________________________________________      │
+│  Placa: ______  Modelo: ______  DUT: ____  Cor: ____      │
+│  KM: ______   Local: ______   Data: __/__/__  Hora: __:__ │
+├──────────────────────────────────────────────────────────┤
+│  INTERIOR DO VEÍCULO            │  COMBUSTÍVEL            │
+│  □ DOCUMENTO ORIGINAL   OK/NOK  │  [0][1/4][1/2][3/4][C] │
+│  □ CHAVE ORIGINAL       OK/NOK  ├─────────────────────────┤
+│  □ CHAVE RESERVA        OK/NOK  │  PNEUS                  │
+│  ... (12 itens em 2 colunas)    │  Pos │Medida│Marca│Cond │
+│                                 │  DD  │      │     │     │
+│                                 │  DE  │      │     │     │
+│                                 │  TD/TE/Estepe ...       │
+├──────────────────────────────────────────────────────────┤
+│  OBSERVAÇÕES                                              │
+│  [textarea grande]                                        │
+├──────────────────────────────┬───────────────────────────┤
+│  COLETA                      │  ENTREGA                  │
+│  Motorista / RG              │  Motorista / RG           │
+│  Cidade / UF                 │  Cidade / UF              │
+│  ☐ De acordo                 │  ☐ De acordo              │
+│  [Assinatura motorista]      │  [Assinatura motorista]   │
+│  Responsável / RG            │  Responsável / RG         │
+│  [Assinatura responsável]    │  [Assinatura responsável] │
+│  Data / Hora                 │  Data / Hora              │
+└──────────────────────────────┴───────────────────────────┘
+```
 
-## Exportação PDF
-- `src/lib/checklist-pdf.ts` — gera PDF A4 usando `jspdf` + `jspdf-autotable` (já no projeto, conforme padrão de `exporters.ts`), com logo da empresa e layout fiel ao modelo (cabeçalho, grid de itens com caixas marcadas, tabela de pneus, combustível, observações, blocos de coleta/entrega com assinaturas embutidas como imagem).
-- Botão "Baixar PDF" no editor e na listagem.
+Detalhes visuais:
+- Cabeçalho com logo da empresa (lendo `company_settings.logo_url`) e título centralizado.
+- Bordas finas separando blocos, igual ao PDF (`border` + cantos retos).
+- Itens do interior em grade com checkboxes OK/NOK na lateral direita de cada linha.
+- Pneus como tabela compacta (DD / DE / TD / TE / Estepe).
+- Coleta e Entrega lado a lado em telas md+; empilham no mobile.
+- Tudo em fundo branco / texto escuro para parecer um documento (mesmo no tema dark do app), envolto em `Card` com `bg-white text-black print:shadow-none`.
+
+### 5. Sidebar
+- Item "Checklists" continua apontando para `/checklists` (agora abre o formulário direto).
 
 ## Critérios de aceitação
-- Novo item "Checklists" na barra lateral abre a listagem.
-- É possível criar um checklist em branco ou a partir de um transporte (placa/modelo pré-preenchidos).
-- Todos os campos do PDF original estão presentes e editáveis.
-- Assinaturas podem ser desenhadas com mouse/touch, limpas e salvas.
-- O checklist é salvo no Supabase e pode ser reaberto/editado.
-- "Baixar PDF" gera um arquivo com layout semelhante ao modelo enviado, com assinaturas embutidas.
-- Atalho funcional na página de detalhes do transporte.
+- Ao clicar em "Checklists" na sidebar, abre um formulário **vazio**, idêntico ao PDF.
+- Todos os campos do PDF são editáveis (texto, OK/NOK, pneus, combustível, observações, assinaturas digitais coleta+entrega).
+- Botão **Salvar** persiste no banco e leva para `/checklists/$id`.
+- Botão **Exportar PDF** gera o PDF mesmo sem salvar.
+- Botão **Histórico** mostra a lista que existia antes (busca, abrir, excluir).
+- O layout impresso/exportado é visualmente fiel ao modelo original.
+
+## Fora de escopo
+- Não muda schema do banco (`vehicle_checklists` já cobre todos os campos).
+- Não altera o atalho a partir do detalhe do transporte.
+- Não altera permissões/RLS.
