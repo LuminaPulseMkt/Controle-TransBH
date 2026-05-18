@@ -82,12 +82,12 @@ function ChecklistEditorPage() {
         location: data.location || null,
         checklist_date: data.checklist_date || null,
         checklist_time: data.checklist_time || null,
-        items: data.items,
-        tires: data.tires,
+        items: data.items as unknown as Record<string, string>,
+        tires: data.tires as unknown as Record<string, string>[],
         fuel_level: data.fuel_level,
         observations: data.observations || null,
-        pickup: data.pickup,
-        delivery: data.delivery,
+        pickup: data.pickup as unknown as Record<string, string>,
+        delivery: data.delivery as unknown as Record<string, string>,
       })
       .eq("id", id);
     setSaving(false);
