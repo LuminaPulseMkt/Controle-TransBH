@@ -244,17 +244,22 @@ function DocumentsPage() {
   const toggleClient = (key: string) =>
     setOpenClients((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  const vehiclesTotal = useMemo(
+    () => vehicles.reduce((s, v) => s + (Number(v.value) || 0), 0),
+    [vehicles],
+  );
   const total = useMemo(() => {
-    return (Number(form.service_value) || 0)
+    return vehiclesTotal
       + (Number(form.extra) || 0)
       + (Number(form.pickup_value) || 0)
       + (Number(form.delivery_value) || 0);
-  }, [form]);
+  }, [form, vehiclesTotal]);
 
   const openNew = (type: "budget" | "contract") => {
     setDocType(type);
     setEditingDoc(null);
     setStep("template");
+    setVehicles([emptyVehicle()]);
     setOpen(true);
   };
 
@@ -273,13 +278,10 @@ function DocumentsPage() {
       destination: d.body?.destination ?? "",
       pickup_value: d.body?.pickup_value != null ? String(d.body.pickup_value) : "",
       delivery_value: d.body?.delivery_value != null ? String(d.body.delivery_value) : "",
-      vehicle: d.body?.vehicle ?? "",
-      vehicle_plate: d.body?.vehicle_plate ?? "",
-      vehicle_color: d.body?.vehicle_color ?? "",
-      service_value: d.body?.service_value != null ? String(d.body.service_value) : "",
       extra: d.body?.extra != null ? String(d.body.extra) : "",
       notes: d.body?.notes ?? "",
     });
+    setVehicles(bodyToVehicles(d.body));
     setStep("form");
     setOpen(true);
   };
@@ -289,10 +291,14 @@ function DocumentsPage() {
       ...form,
       title: tpl.defaults.title,
       template: tpl.templateKey,
-      service_value: tpl.defaults.service_value,
       extra: tpl.defaults.extra,
       notes: tpl.defaults.notes,
     });
+    setVehicles((prev) =>
+      prev.length === 1 && !prev[0].value
+        ? [{ ...prev[0], value: tpl.defaults.service_value ?? "" }]
+        : prev,
+    );
     setStep("form");
   };
 
@@ -301,26 +307,37 @@ function DocumentsPage() {
       ...form,
       title: docType === "budget" ? "Orçamento" : "Contrato de Transporte",
       template: "standard",
-      service_value: "",
       extra: "",
       notes: "",
     });
+    setVehicles([emptyVehicle()]);
     setStep("form");
   };
 
   const save = async () => {
     if (!form.client_name) return toast.error("Cliente é obrigatório.");
+    if (vehicles.length === 0) return toast.error("Adicione pelo menos um veículo.");
     setBusy(true);
-    const body = {
+    const vehiclesPayload = vehicles.map((v) => ({
+      description: v.description,
+      plate: v.plate.toUpperCase(),
+      color: v.color,
+      type: v.type,
+      value: Number(v.value) || 0,
+    }));
+    const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
+    const body: Record<string, any> = {
       origin: form.origin,
       destination: form.destination,
       pickup_value: Number(form.pickup_value) || 0,
       delivery_value: Number(form.delivery_value) || 0,
       client_address: form.client_address || null,
-      vehicle: form.vehicle,
-      vehicle_plate: form.vehicle_plate.toUpperCase(),
-      vehicle_color: form.vehicle_color,
-      service_value: Number(form.service_value) || 0,
+      vehicles: vehiclesPayload,
+      // legacy mirror (compat com PDFs / dialogs antigos)
+      vehicle: single?.description ?? "",
+      vehicle_plate: single?.plate ?? "",
+      vehicle_color: single?.color ?? "",
+      service_value: vehiclesTotal,
       extra: Number(form.extra) || 0,
       notes: form.notes,
     };
