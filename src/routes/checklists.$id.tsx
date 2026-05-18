@@ -42,9 +42,9 @@ function ChecklistEditorPage() {
       // ensure all keys exist
       for (const k of CHECKLIST_ITEMS) if (!(k in items)) items[k] = null;
       const tires = Array.isArray(row.tires) && row.tires.length === 5
-        ? (row.tires as ChecklistData["tires"])
+        ? (row.tires as unknown as ChecklistData["tires"])
         : TIRE_POSITIONS.map((position, i) => {
-            const t = (row.tires as ChecklistData["tires"] | null)?.[i];
+            const t = (row.tires as unknown as ChecklistData["tires"] | null)?.[i];
             return t ?? { position, size: "", brand: "", condition: null };
           });
       setData({
