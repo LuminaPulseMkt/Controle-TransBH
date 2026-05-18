@@ -344,7 +344,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
         contract_token: contract.public_token,
         accepted_at: new Date().toISOString(),
         receivable: { amount: Number(receivable.amount), due_date: receivable.due_date },
-        vehicle: { plate: plate, brand: null as string | null, model: body.vehicle ?? null },
+        vehicle: { plate: plate, brand: firstVehicle.brand ?? null, model: firstVehicle.model ?? firstVehicle.description ?? null },
         client_name: budget.client_name,
       };
     } catch (err) {
