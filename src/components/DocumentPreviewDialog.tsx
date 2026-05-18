@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Download, MessageCircle, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentView, type DocumentViewData } from "./DocumentView";
+import { publicDocUrl } from "@/lib/public-url";
 
 interface DocumentPreview extends DocumentViewData {
   template: string | null;
@@ -40,7 +41,7 @@ export function DocumentPreviewDialog({ doc, open, onOpenChange, onExportPDF, on
 
   const copyLink = async () => {
     if (!doc.public_token) return toast.error("Link público indisponível.");
-    const url = `${window.location.origin}/d/${doc.public_token}`;
+    const url = publicDocUrl(doc.public_token);
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copiado!");

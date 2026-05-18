@@ -306,7 +306,8 @@ export const acceptBudget = createServerFn({ method: "POST" })
 
       // Notify client via WhatsApp (best-effort, never blocks)
       if (budget.client_phone && contract.public_token) {
-        const link = `https://transbh-fleetflow.lovable.app/d/${contract.public_token}`;
+        const { publicDocUrl } = await import("@/lib/public-url");
+        const link = publicDocUrl(contract.public_token);
         const valor = totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         const venc = new Date(receivable.due_date + "T00:00:00").toLocaleDateString("pt-BR");
         const fallback =

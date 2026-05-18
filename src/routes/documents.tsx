@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
+import { publicDocUrl } from "@/lib/public-url";
 import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2, Car, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -374,7 +375,7 @@ function DocumentsPage() {
 
     // Auto-send WhatsApp on new budget creation
     if (!editingDoc && docType === "budget" && form.client_phone && createdToken) {
-      const link = `${window.location.origin}/d/${createdToken}`;
+      const link = publicDocUrl(createdToken);
       const vars = {
         client_name: form.client_name,
         title: payload.title,
@@ -490,7 +491,7 @@ function DocumentsPage() {
 
   const shareWhatsApp = async (d: Document) => {
     const phone = (d.client_phone ?? "").replace(/\D/g, "");
-    const link = d.public_token ? `${window.location.origin}/d/${d.public_token}` : "";
+    const link = d.public_token ? publicDocUrl(d.public_token) : "";
     const vars = {
       client_name: d.client_name,
       title: d.title,
