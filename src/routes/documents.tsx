@@ -776,23 +776,86 @@ function DocumentsPage() {
                     placeholder="Rua, número, bairro, cidade/UF"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <Label>Veículo</Label>
-                  <Input value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} placeholder="Honda Civic 2020" />
-                </div>
-                <div>
-                  <Label>Placa</Label>
-                  <Input
-                    value={form.vehicle_plate}
-                    onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
-                    placeholder="ABC1D23"
-                    maxLength={8}
-                    className="uppercase font-mono"
-                  />
-                </div>
-                <div>
-                  <Label>Cor</Label>
-                  <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} placeholder="Prata" />
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Veículos do contrato</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setVehicles((prev) => [...prev, emptyVehicle()])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar veículo
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {vehicles.map((v, i) => (
+                      <div key={i} className="rounded-md border border-border p-3 space-y-2 bg-muted/20 relative">
+                        {vehicles.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setVehicles((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="absolute top-2 right-2 h-6 w-6 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center"
+                            title="Remover veículo"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="md:col-span-2">
+                            <Label className="text-xs">Descrição</Label>
+                            <Input
+                              value={v.description}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, description: e.target.value } : p))}
+                              placeholder="Honda Civic 2020"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Placa</Label>
+                            <Input
+                              value={v.plate}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, plate: e.target.value.toUpperCase() } : p))}
+                              placeholder="ABC1D23"
+                              maxLength={8}
+                              className="uppercase font-mono"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Tipo</Label>
+                            <Select
+                              value={v.type}
+                              onValueChange={(val) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, type: val as VehicleType } : p))}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(vehicleTypeLabel).map(([k, label]) => (
+                                  <SelectItem key={k} value={k}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Cor</Label>
+                            <Input
+                              value={v.color}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, color: e.target.value } : p))}
+                              placeholder="Prata"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Valor (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={v.value}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, value: e.target.value } : p))}
+                              placeholder="0,00"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label>Origem</Label>
@@ -811,8 +874,12 @@ function DocumentsPage() {
                   <Input type="number" step="0.01" value={form.delivery_value} onChange={(e) => setForm({ ...form, delivery_value: e.target.value })} placeholder="0,00" />
                 </div>
                 <div>
-                  <Label>Frete</Label>
-                  <Input type="number" step="0.01" value={form.service_value} onChange={(e) => setForm({ ...form, service_value: e.target.value })} />
+                  <Label>Frete (soma dos veículos)</Label>
+                  <Input value={brl(vehiclesTotal)} readOnly className="font-medium" />
+                </div>
+                <div>
+                  <Label>Adicionais</Label>
+                  <Input type="number" step="0.01" value={form.extra} onChange={(e) => setForm({ ...form, extra: e.target.value })} />
                 </div>
                 <div>
                   <Label>Adicionais</Label>
