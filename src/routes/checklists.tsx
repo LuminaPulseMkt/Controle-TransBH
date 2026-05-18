@@ -61,10 +61,10 @@ function ChecklistsPage() {
         created_by: user.id,
         checklist_date: blank.checklist_date,
         checklist_time: blank.checklist_time,
-        items: blank.items,
-        tires: blank.tires,
-        pickup: blank.pickup,
-        delivery: blank.delivery,
+        items: blank.items as unknown as Record<string, string>,
+        tires: blank.tires as unknown as Record<string, string>[],
+        pickup: blank.pickup as unknown as Record<string, string>,
+        delivery: blank.delivery as unknown as Record<string, string>,
       })
       .select("id")
       .single();
