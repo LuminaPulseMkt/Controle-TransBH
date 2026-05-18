@@ -35,10 +35,10 @@ export const acceptBudget = createServerFn({ method: "POST" })
     let stage = "init";
     try {
       // Verifica env vars antes de tocar no proxy
-      const hasUrl = process.env.PROJECT_URL || process.env.SUPABASE_URL;
-      const hasKey = process.env.SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const hasUrl = process.env.SUPABASE_URL || process.env.PROJECT_URL;
+      const hasKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
       if (!hasUrl || !hasKey) {
-        const missing = [!hasUrl && "PROJECT_URL", !hasKey && "SERVICE_ROLE_KEY"]
+        const missing = [!hasUrl && "SUPABASE_URL", !hasKey && "SUPABASE_SERVICE_ROLE_KEY"]
           .filter(Boolean)
           .join(", ");
         console.error("[acceptBudget] missing env:", missing);
