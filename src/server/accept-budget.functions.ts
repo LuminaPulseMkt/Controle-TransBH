@@ -261,7 +261,7 @@ export const acceptBudget = createServerFn({ method: "POST" })
           due_date: dueStr,
           status: "pending",
           description: `Aceite do orçamento "${budget.title}"`,
-          transport_id: transport.id,
+          transport_id: firstTransportId,
         })
         .select("id, amount, due_date")
         .single();
