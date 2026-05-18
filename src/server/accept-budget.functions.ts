@@ -281,10 +281,20 @@ export const acceptBudget = createServerFn({ method: "POST" })
           accepted_at: new Date().toISOString(),
           accepted_ip: ip,
           accepted_contract_id: contract.id,
-          accepted_transport_id: transport.id,
+          accepted_transport_id: firstTransportId,
           accepted_receivable_id: receivable.id,
         })
         .eq("id", budget.id);
+
+      // Marca o contrato gerado também (idempotência futura)
+      await supabaseAdmin
+        .from("documents")
+        .update({
+          generated_at: new Date().toISOString(),
+          generated_receivable_id: receivable.id,
+          generated_transport_ids: transportIds,
+        })
+        .eq("id", contract.id);
 
       if (updErr) {
         console.error("[acceptBudget]", stage, updErr);
