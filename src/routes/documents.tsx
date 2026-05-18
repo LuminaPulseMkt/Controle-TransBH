@@ -140,12 +140,12 @@ function DocumentsPage() {
     destination: "",
     pickup_value: "",
     delivery_value: "",
-    vehicle: "",
-    vehicle_plate: "",
-    vehicle_color: "",
-    service_value: "",
     extra: "",
     notes: "",
+  });
+  const [vehicles, setVehicles] = useState<VehicleForm[]>([emptyVehicle()]);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const generateFn = useServerFn(generateContractAssets);
   });
 
   const load = async () => {
