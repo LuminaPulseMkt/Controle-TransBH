@@ -747,6 +747,83 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_checklists: {
+        Row: {
+          checklist_date: string | null
+          checklist_time: string | null
+          client_name: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          delivery: Json
+          dut: string | null
+          fuel_level: string | null
+          id: string
+          items: Json
+          km: string | null
+          location: string | null
+          model: string | null
+          observations: string | null
+          pickup: Json
+          plate: string | null
+          tires: Json
+          transport_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          checklist_date?: string | null
+          checklist_time?: string | null
+          client_name?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery?: Json
+          dut?: string | null
+          fuel_level?: string | null
+          id?: string
+          items?: Json
+          km?: string | null
+          location?: string | null
+          model?: string | null
+          observations?: string | null
+          pickup?: Json
+          plate?: string | null
+          tires?: Json
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checklist_date?: string | null
+          checklist_time?: string | null
+          client_name?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery?: Json
+          dut?: string | null
+          fuel_level?: string | null
+          id?: string
+          items?: Json
+          km?: string | null
+          location?: string | null
+          model?: string | null
+          observations?: string | null
+          pickup?: Json
+          plate?: string | null
+          tires?: Json
+          transport_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_checklists_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
