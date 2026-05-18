@@ -523,6 +523,32 @@ function DocumentsPage() {
     }
   };
 
+  const generateAssets = async (d: Document) => {
+    if (d.doc_type !== "contract") return;
+    if (d.generated_at) {
+      toast.info("Transporte e cobrança já foram gerados para este contrato.");
+      return;
+    }
+    setGeneratingId(d.id);
+    try {
+      const res = await generateFn({ data: { contract_id: d.id } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        res.already
+          ? "Transporte e cobrança já existiam."
+          : `Gerados ${res.transport_ids.length} transporte(s) e 1 cobrança.`,
+      );
+      void load();
+    } catch {
+      toast.error("Falha ao gerar. Tente novamente.");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
   return (
     <AppLayout
       title="Contratos & Orçamentos"
