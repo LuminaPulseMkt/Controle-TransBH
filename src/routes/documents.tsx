@@ -103,6 +103,9 @@ interface Document {
   public_token: string | null;
   accepted_at: string | null;
   accepted_contract_id: string | null;
+  generated_at: string | null;
+  generated_receivable_id: string | null;
+  generated_transport_ids: string[] | null;
 }
 
 function DocumentsPage() {
