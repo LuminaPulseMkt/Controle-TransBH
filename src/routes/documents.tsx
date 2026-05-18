@@ -146,7 +146,6 @@ function DocumentsPage() {
   const [vehicles, setVehicles] = useState<VehicleForm[]>([emptyVehicle()]);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const generateFn = useServerFn(generateContractAssets);
-  });
 
   const load = async () => {
     const { data } = await supabase.from("documents").select("*").order("created_at", { ascending: false });
