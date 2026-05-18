@@ -672,6 +672,8 @@ function DocumentsPage() {
                 onPreview={() => setPreviewDoc(d)}
                 onPDF={() => exportPDF(d)}
                 onWhatsApp={() => shareWhatsApp(d)}
+                onGenerate={() => generateAssets(d)}
+                generating={generatingId === d.id}
               />
             </Card>
           ))}
