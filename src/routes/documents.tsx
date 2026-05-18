@@ -375,7 +375,7 @@ function DocumentsPage() {
 
     // Auto-send WhatsApp on new budget creation
     if (!editingDoc && docType === "budget" && form.client_phone && createdToken) {
-      const link = `${window.location.origin}/d/${createdToken}`;
+      const link = publicDocUrl(createdToken);
       const vars = {
         client_name: form.client_name,
         title: payload.title,
