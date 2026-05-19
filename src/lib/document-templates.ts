@@ -23,6 +23,22 @@ export interface DocTemplate {
   };
 }
 
+const CONTRACT_CLAUSES =
+  "CLÁUSULA PRIMEIRA – DO BEM A SER TRANSPORTADO\n" +
+  "1.1 A CONTRATADA obriga-se a proceder o transporte do veículo do presente instrumento, devendo ser considerado e observado todos os defeitos e avarias apontados, conforme vistoria ou fotos. A CONTRATADA não se responsabiliza por qualquer objeto ou pertences pessoais transportados junto ao veículo. A CONTRATADA não se responsabiliza pelo não funcionamento do veículo em decorrência de travamento de motor, descarregamento de bateria, vícios ou defeitos ocultos na parte elétrica ou mecânica. Em caso de avaria no veículo transportado, a CONTRATADA se responsabilizará pelo conserto utilizando sua rede credenciada.\n\n" +
+  "CLÁUSULA SEGUNDA – DOS SERVIÇOS\n" +
+  "2.1 Quaisquer atrasos ocorridos por culpa do CONTRATANTE serão repassados a este, os custos decorrentes de tal atraso, conforme tarifas vigentes, a que se refere os 5 (cinco) dias de atraso.\n\n" +
+  "CLÁUSULA TERCEIRA – DO SEGURO\n" +
+  "A CONTRATADA, visando oferecer uma melhor proteção do veículo transportado, compromete-se a contratar seguro que tem por objeto os danos materiais que ocorram durante o transporte e sejam causados diretamente por: colisão, e/ou capotagem e/ou abalroamento e/ou tombamento do veículo transportador, incêndio ou explosão no veículo transportado. Para efeito de cobertura de seguro, o CONTRATANTE declara que os valores constantes na solicitação correspondem ao valor real do veículo no mercado, e servirão como base para todos os efeitos de indenização, não se levando em conta valores estimativos ou sentimentais, obedecendo-se sempre a tabela de mercado. Os valores declarados representam, em qualquer hipótese, o limite de responsabilidade da CONTRATADA e da SEGURADORA, que poderão exigir a prova do veículo transportado. Nº da apólice: 540 00320910. Seguradora: Tokio Marine. Os bens segurados são avaliados, pela seguradora, de acordo com a tabela FIPE. VEÍCULOS DE LEILÃO SÃO AVALIADOS, PELA SEGURADORA, DE ACORDO COM O VALOR DA NOTA. Caso o CONTRATANTE opte por assegurar o veículo com outra seguradora, a CONTRATADA não será responsável por eventuais avarias ou sinistros ocorridos em decorrência do transporte, devendo em qualquer hipótese fornecer o valor do veículo transportado. Para fins de indenização/seguro, a CONTRATADA não será responsável pela perda do veículo em função de arresto, sequestro, penhora com remoção, busca e apreensão ou qualquer outra medida judicial que recaia sobre ele.\n\n" +
+  "CLÁUSULA QUARTA – PAGAMENTOS\n" +
+  "Nenhuma avaria ou sinistro será motivo justificável para que o CONTRATANTE retenha os valores pactuados; contudo, o pagamento poderá ser efetuado após a devida reparação e entrega do veículo pela CONTRATADA. O pagamento será creditado pelo CONTRATANTE, em nome da CONTRATADA, mediante ordem bancária em conta corrente.\n\n" +
+  "CLÁUSULA QUINTA – DAS DISPOSIÇÕES FINAIS\n" +
+  "A alteração de quaisquer cláusulas deste instrumento só poderá ser feita através de aditamento, mediante a concordância e assinatura em termo próprio pelo CONTRATANTE e pela CONTRATADA. Fica eleito o foro da sede da CONTRATADA, com a renúncia de qualquer outro, por mais privilegiado que seja, para dirimir quaisquer dúvidas que forem suscitadas em decorrência do presente instrumento.\n\n" +
+  "CLÁUSULA SEXTA – MULTAS\n" +
+  "Na quebra de contrato de transporte será cobrado o valor de R$ 200,00 por veículo. O CONTRATANTE terá o prazo de 3 dias úteis para retirada do veículo após a chegada ao destino; depois do prazo vencido será cobrada estadia de R$ 50,00 por dia.\n\n" +
+  "CLÁUSULA SÉTIMA – DAS CONDIÇÕES DO RECEBIMENTO DO OBJETO\n" +
+  "A CONTRATADA não se responsabiliza pelo estado de limpeza do objeto transportado, tendo em vista que irá acondicionado, em sua maioria, em equipamentos com carroceria aberta. Em referência ao uso, funcionamento e manobras do objeto, sendo veículo automotor, pela CONTRATADA para fins de carregamento, descarregamento ou traslados de balsas autorizados pelo CONTRATANTE, caso supere o anotado em check list 50 km (cinquenta quilômetros), será automaticamente de responsabilidade da CONTRATADA a indenização em favor do CONTRATANTE no valor de R$ 0,72 (setenta e dois centavos) por km rodado. Em caso de avaria no veículo, fica desde já autorizada a utilização de peças novas, originais ou não, nacionais ou importadas, ou peças usadas, observadas as disposições da Lei nº 12.977/2014, que regula e disciplina a atividade de desmontagem de veículos automotores terrestres. Havendo avaria no bem, o CONTRATANTE concorda que eventuais reparos sejam realizados na rede credenciada da CONTRATADA, a qual arcará com os custos.";
+
 export const DOCUMENT_TEMPLATES: DocTemplate[] = [
   // ---------- ORÇAMENTOS ----------
   {
@@ -88,11 +104,7 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       service_value: "1500",
       insurance: "0",
       extra: "0",
-      notes:
-        "1. O CONTRATADO se responsabiliza pelo transporte do veículo descrito acima entre os locais de origem e destino.\n" +
-        "2. O CONTRATANTE declara que o veículo está em condições de transporte e devidamente documentado.\n" +
-        "3. O pagamento será realizado conforme as condições acordadas: 50% na coleta e 50% na entrega.\n" +
-        "4. Prazo estimado de entrega: até 5 dias úteis após a coleta.",
+      notes: CONTRACT_CLAUSES,
     },
   },
   {
@@ -107,10 +119,9 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       insurance: "450",
       extra: "150",
       notes:
-        "1. O veículo será transportado com cintas e proteções especiais para veículos de coleção/alto valor.\n" +
-        "2. Está incluso seguro com cobertura ampla durante todo o trajeto.\n" +
-        "3. Carregamento e descarregamento serão acompanhados por vistoria fotográfica detalhada.\n" +
-        "4. O CONTRATANTE declara estar ciente das características frágeis do veículo.",
+        CONTRACT_CLAUSES +
+        "\n\nOBSERVAÇÕES ESPECÍFICAS — VEÍCULO FRÁGIL\n" +
+        "Veículo de alto valor / coleção: transporte realizado com cintas e proteções especiais. Vistoria fotográfica detalhada na coleta e na entrega.",
     },
   },
   {
@@ -125,10 +136,9 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       insurance: "200",
       extra: "300",
       notes:
-        "1. O CONTRATADO compromete-se com a entrega expressa em até 48 horas após a coleta.\n" +
-        "2. Pagamento integral antecipado é condição para a coleta.\n" +
-        "3. Em caso de atraso por responsabilidade do CONTRATADO, será concedido desconto proporcional.\n" +
-        "4. Coleta e entrega ocorrerão em horário comercial, salvo acordo prévio.",
+        CONTRACT_CLAUSES +
+        "\n\nOBSERVAÇÕES ESPECÍFICAS — ENTREGA EXPRESSA\n" +
+        "Entrega expressa em até 48 horas após a coleta. Pagamento integral antecipado é condição para a coleta. Em caso de atraso por responsabilidade da CONTRATADA, será concedido desconto proporcional.",
     },
   },
 ];

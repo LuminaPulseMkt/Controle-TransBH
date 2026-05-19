@@ -1,79 +1,53 @@
-# Aba Checklists — modelo em branco idêntico ao PDF
-
 ## Objetivo
-A aba `Checklists` na sidebar passa a abrir **direto no formulário em branco**, com layout visualmente idêntico ao PDF `CHECK_LIST_CARRO_UNIPORT_LOG`. O usuário preenche, salva e exporta PDF. A lista de checklists salvos vai para uma tela secundária acessível pelo botão "Histórico".
+Substituir o conteúdo da cláusula/observações dos contratos em `src/lib/document-templates.ts` pelas 7 cláusulas fornecidas (PRIMEIRA a SÉTIMA), para que todo contrato gerado já saia com esse texto padrão.
 
-## Mudanças
+## Onde alterar
+- Arquivo único: `src/lib/document-templates.ts`
+- Campo: `defaults.notes` dos 3 modelos de contrato:
+  - `contract-standard` (Contrato Padrão)
+  - `contract-fragile` (Contrato Veículo Frágil)
+  - `contract-express` (Contrato Entrega Expressa)
 
-### 1. Rota `/checklists` (`src/routes/checklists.tsx`)
-- Deixa de ser uma listagem.
-- Vira **editor de um novo checklist em branco** (estado local, sem criar registro no banco até clicar em Salvar).
-- Topo da página com 3 ações:
-  - **Salvar** — faz `insert` no `vehicle_checklists` e redireciona para `/checklists/$id`.
-  - **Exportar PDF** — gera PDF do estado atual (sem precisar salvar).
-  - **Histórico** — link para `/checklists/historico`.
+## O que será feito
+1. Definir uma constante `CONTRACT_CLAUSES` com o texto exato enviado, formatado com quebras de linha entre as cláusulas (cada CLÁUSULA em parágrafo próprio, com título em maiúsculas seguido do corpo).
+2. Em **Contrato Padrão**: substituir `notes` por `CONTRACT_CLAUSES` puro.
+3. Em **Contrato Veículo Frágil**: `CONTRACT_CLAUSES` + parágrafo extra "Observações específicas: veículo de alto valor, transporte com cintas e proteções especiais; vistoria fotográfica detalhada na coleta e entrega."
+4. Em **Contrato Entrega Expressa**: `CONTRACT_CLAUSES` + parágrafo extra "Observações específicas: entrega expressa em até 48h após a coleta; pagamento integral antecipado é condição para a coleta; em caso de atraso por responsabilidade da CONTRATADA, será concedido desconto proporcional."
+5. Manter `service_value`, `insurance`, `extra` e `title` como estão hoje.
 
-### 2. Nova rota `/checklists/historico` (`src/routes/checklists.historico.tsx`)
-- Move o conteúdo de listagem atual (busca, tabela, abrir, excluir) para cá.
-- Mantém RLS e permissões existentes.
-
-### 3. Rota `/checklists/$id` (`src/routes/checklists.$id.tsx`)
-- Mantida como está (editor de checklist salvo, com Exportar PDF).
-
-### 4. Reformatar `ChecklistForm.tsx` para refletir o PDF
-Reescrita visual para espelhar o documento original:
+## Texto das cláusulas (preservado integralmente)
+Será inserido exatamente o conteúdo enviado pelo usuário, organizado assim:
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│  [LOGO]      CHECK LIST DE VEÍCULO                       │
-├──────────────────────────────────────────────────────────┤
-│  Cliente: __________________________________________      │
-│  Placa: ______  Modelo: ______  DUT: ____  Cor: ____      │
-│  KM: ______   Local: ______   Data: __/__/__  Hora: __:__ │
-├──────────────────────────────────────────────────────────┤
-│  INTERIOR DO VEÍCULO            │  COMBUSTÍVEL            │
-│  □ DOCUMENTO ORIGINAL   OK/NOK  │  [0][1/4][1/2][3/4][C] │
-│  □ CHAVE ORIGINAL       OK/NOK  ├─────────────────────────┤
-│  □ CHAVE RESERVA        OK/NOK  │  PNEUS                  │
-│  ... (12 itens em 2 colunas)    │  Pos │Medida│Marca│Cond │
-│                                 │  DD  │      │     │     │
-│                                 │  DE  │      │     │     │
-│                                 │  TD/TE/Estepe ...       │
-├──────────────────────────────────────────────────────────┤
-│  OBSERVAÇÕES                                              │
-│  [textarea grande]                                        │
-├──────────────────────────────┬───────────────────────────┤
-│  COLETA                      │  ENTREGA                  │
-│  Motorista / RG              │  Motorista / RG           │
-│  Cidade / UF                 │  Cidade / UF              │
-│  ☐ De acordo                 │  ☐ De acordo              │
-│  [Assinatura motorista]      │  [Assinatura motorista]   │
-│  Responsável / RG            │  Responsável / RG         │
-│  [Assinatura responsável]    │  [Assinatura responsável] │
-│  Data / Hora                 │  Data / Hora              │
-└──────────────────────────────┴───────────────────────────┘
+CLÁUSULA PRIMEIRA – DO BEM A SER TRANSPORTADO
+1.1 A CONTRATADA obriga-se a proceder o transporte do veículo …
+[…texto integral…]
+
+CLÁUSULA SEGUNDA – DOS SERVIÇOS
+2.1 Quaisquer atrasos ocorridos por culpa do contratante …
+
+CLÁUSULA TERCEIRA – DO SEGURO
+A CONTRATADA, visando oferecer uma melhor proteção …
+N° da apólice: 540 00320910. Seguradora: Tokio Marine. […]
+
+CLÁUSULA QUARTA – PAGAMENTOS
+Nenhuma avaria ou sinistro será motivo justificável …
+
+CLÁUSULA QUINTA – DAS DISPOSIÇÕES FINAIS
+A alteração de quaisquer cláusulas deste instrumento …
+
+CLÁUSULA SEXTA – MULTAS
+Na quebra de contrato de transporte será cobrado R$ 200,00 por veículo …
+
+CLÁUSULA SÉTIMA – DAS CONDIÇÕES DO RECEBIMENTO DO OBJETO
+A CONTRATADA não se responsabiliza pelo estado de limpeza …
 ```
 
-Detalhes visuais:
-- Cabeçalho com logo da empresa (lendo `company_settings.logo_url`) e título centralizado.
-- Bordas finas separando blocos, igual ao PDF (`border` + cantos retos).
-- Itens do interior em grade com checkboxes OK/NOK na lateral direita de cada linha.
-- Pneus como tabela compacta (DD / DE / TD / TE / Estepe).
-- Coleta e Entrega lado a lado em telas md+; empilham no mobile.
-- Tudo em fundo branco / texto escuro para parecer um documento (mesmo no tema dark do app), envolto em `Card` com `bg-white text-black print:shadow-none`.
+## Observações
+- Modelos customizados salvos no banco (`document_templates`) não serão afetados — só os 3 modelos fixos do código.
+- Documentos já criados também não mudam; só novos contratos criados a partir desses modelos receberão o texto novo.
+- Nenhuma migração de banco é necessária.
 
-### 5. Sidebar
-- Item "Checklists" continua apontando para `/checklists` (agora abre o formulário direto).
-
-## Critérios de aceitação
-- Ao clicar em "Checklists" na sidebar, abre um formulário **vazio**, idêntico ao PDF.
-- Todos os campos do PDF são editáveis (texto, OK/NOK, pneus, combustível, observações, assinaturas digitais coleta+entrega).
-- Botão **Salvar** persiste no banco e leva para `/checklists/$id`.
-- Botão **Exportar PDF** gera o PDF mesmo sem salvar.
-- Botão **Histórico** mostra a lista que existia antes (busca, abrir, excluir).
-- O layout impresso/exportado é visualmente fiel ao modelo original.
-
-## Fora de escopo
-- Não muda schema do banco (`vehicle_checklists` já cobre todos os campos).
-- Não altera o atalho a partir do detalhe do transporte.
-- Não altera permissões/RLS.
+## Detalhes técnicos
+- Editar apenas `DOCUMENT_TEMPLATES` em `src/lib/document-templates.ts`.
+- Sem alteração em rotas, componentes, ou geração de PDF — o componente `DocumentView` já renderiza `notes` preservando quebras de linha.
