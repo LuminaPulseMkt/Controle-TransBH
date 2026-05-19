@@ -123,6 +123,7 @@ function DocumentsPage() {
   const [tplDialogOpen, setTplDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<any | null>(null);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [groupByClient, setGroupByClient] = useState(true);
   const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
@@ -939,6 +940,54 @@ function DocumentsPage() {
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setStep("template")}>Voltar</Button>
+                <Button
+                  variant="secondary"
+                  disabled={!form.client_name || vehicles.length === 0}
+                  onClick={() => {
+                    const vehiclesPayload = vehicles.map((v) => ({
+                      description: v.description,
+                      plate: v.plate.toUpperCase(),
+                      color: v.color,
+                      type: v.type,
+                      value: Number(v.value) || 0,
+                    }));
+                    const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
+                    setPreviewDraft({
+                      id: "draft",
+                      doc_type: docType,
+                      template: docType === "contract" ? form.template : null,
+                      title: form.title || (docType === "budget" ? "Orçamento" : "Contrato"),
+                      client_name: form.client_name,
+                      client_document: form.client_document || null,
+                      client_phone: form.client_phone || null,
+                      client_email: form.client_email || null,
+                      total_amount: total,
+                      created_at: new Date().toISOString(),
+                      public_token: null,
+                      accepted_at: null,
+                      accepted_contract_id: null,
+                      generated_at: null,
+                      generated_receivable_id: null,
+                      generated_transport_ids: null,
+                      body: {
+                        origin: form.origin,
+                        destination: form.destination,
+                        pickup_value: Number(form.pickup_value) || 0,
+                        delivery_value: Number(form.delivery_value) || 0,
+                        client_address: form.client_address || null,
+                        vehicles: vehiclesPayload,
+                        vehicle: single?.description ?? "",
+                        vehicle_plate: single?.plate ?? "",
+                        vehicle_color: single?.color ?? "",
+                        service_value: vehiclesTotal,
+                        extra: Number(form.extra) || 0,
+                        notes: form.notes,
+                      },
+                    });
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" />Pré-visualizar
+                </Button>
                 <Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
               </DialogFooter>
             </>
@@ -960,6 +1009,13 @@ function DocumentsPage() {
         onOpenChange={(v) => !v && setPreviewDoc(null)}
         onExportPDF={exportPDF}
         onShareWhatsApp={shareWhatsApp}
+        company={company}
+      />
+
+      <DocumentPreviewDialog
+        doc={previewDraft}
+        open={!!previewDraft}
+        onOpenChange={(v) => !v && setPreviewDraft(null)}
         company={company}
       />
 
