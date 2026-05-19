@@ -104,11 +104,7 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       service_value: "1500",
       insurance: "0",
       extra: "0",
-      notes:
-        "1. O CONTRATADO se responsabiliza pelo transporte do veículo descrito acima entre os locais de origem e destino.\n" +
-        "2. O CONTRATANTE declara que o veículo está em condições de transporte e devidamente documentado.\n" +
-        "3. O pagamento será realizado conforme as condições acordadas: 50% na coleta e 50% na entrega.\n" +
-        "4. Prazo estimado de entrega: até 5 dias úteis após a coleta.",
+      notes: CONTRACT_CLAUSES,
     },
   },
   {
@@ -123,10 +119,9 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       insurance: "450",
       extra: "150",
       notes:
-        "1. O veículo será transportado com cintas e proteções especiais para veículos de coleção/alto valor.\n" +
-        "2. Está incluso seguro com cobertura ampla durante todo o trajeto.\n" +
-        "3. Carregamento e descarregamento serão acompanhados por vistoria fotográfica detalhada.\n" +
-        "4. O CONTRATANTE declara estar ciente das características frágeis do veículo.",
+        CONTRACT_CLAUSES +
+        "\n\nOBSERVAÇÕES ESPECÍFICAS — VEÍCULO FRÁGIL\n" +
+        "Veículo de alto valor / coleção: transporte realizado com cintas e proteções especiais. Vistoria fotográfica detalhada na coleta e na entrega.",
     },
   },
   {
@@ -141,10 +136,9 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       insurance: "200",
       extra: "300",
       notes:
-        "1. O CONTRATADO compromete-se com a entrega expressa em até 48 horas após a coleta.\n" +
-        "2. Pagamento integral antecipado é condição para a coleta.\n" +
-        "3. Em caso de atraso por responsabilidade do CONTRATADO, será concedido desconto proporcional.\n" +
-        "4. Coleta e entrega ocorrerão em horário comercial, salvo acordo prévio.",
+        CONTRACT_CLAUSES +
+        "\n\nOBSERVAÇÕES ESPECÍFICAS — ENTREGA EXPRESSA\n" +
+        "Entrega expressa em até 48 horas após a coleta. Pagamento integral antecipado é condição para a coleta. Em caso de atraso por responsabilidade da CONTRATADA, será concedido desconto proporcional.",
     },
   },
 ];
