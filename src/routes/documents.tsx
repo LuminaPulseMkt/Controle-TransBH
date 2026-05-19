@@ -1012,6 +1012,13 @@ function DocumentsPage() {
         company={company}
       />
 
+      <DocumentPreviewDialog
+        doc={previewDraft}
+        open={!!previewDraft}
+        onOpenChange={(v) => !v && setPreviewDraft(null)}
+        company={company}
+      />
+
       <AlertDialog open={!!deletingDoc} onOpenChange={(v) => !v && !deletingDocBusy && setDeletingDoc(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
