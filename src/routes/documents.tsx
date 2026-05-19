@@ -123,6 +123,7 @@ function DocumentsPage() {
   const [tplDialogOpen, setTplDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<any | null>(null);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [groupByClient, setGroupByClient] = useState(true);
   const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
