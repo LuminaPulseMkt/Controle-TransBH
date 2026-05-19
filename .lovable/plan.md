@@ -1,53 +1,26 @@
 ## Objetivo
-Substituir o conteúdo da cláusula/observações dos contratos em `src/lib/document-templates.ts` pelas 7 cláusulas fornecidas (PRIMEIRA a SÉTIMA), para que todo contrato gerado já saia com esse texto padrão.
+Adicionar um botão **Pré-visualizar** no diálogo de criação/edição de documentos (`/documents`) que abre o contrato (ou orçamento) renderizado com `DocumentView`, usando o estado atual do formulário — sem salvar no banco.
 
 ## Onde alterar
-- Arquivo único: `src/lib/document-templates.ts`
-- Campo: `defaults.notes` dos 3 modelos de contrato:
-  - `contract-standard` (Contrato Padrão)
-  - `contract-fragile` (Contrato Veículo Frágil)
-  - `contract-express` (Contrato Entrega Expressa)
+Arquivo único: `src/routes/documents.tsx`
 
-## O que será feito
-1. Definir uma constante `CONTRACT_CLAUSES` com o texto exato enviado, formatado com quebras de linha entre as cláusulas (cada CLÁUSULA em parágrafo próprio, com título em maiúsculas seguido do corpo).
-2. Em **Contrato Padrão**: substituir `notes` por `CONTRACT_CLAUSES` puro.
-3. Em **Contrato Veículo Frágil**: `CONTRACT_CLAUSES` + parágrafo extra "Observações específicas: veículo de alto valor, transporte com cintas e proteções especiais; vistoria fotográfica detalhada na coleta e entrega."
-4. Em **Contrato Entrega Expressa**: `CONTRACT_CLAUSES` + parágrafo extra "Observações específicas: entrega expressa em até 48h após a coleta; pagamento integral antecipado é condição para a coleta; em caso de atraso por responsabilidade da CONTRATADA, será concedido desconto proporcional."
-5. Manter `service_value`, `insurance`, `extra` e `title` como estão hoje.
-
-## Texto das cláusulas (preservado integralmente)
-Será inserido exatamente o conteúdo enviado pelo usuário, organizado assim:
-
-```text
-CLÁUSULA PRIMEIRA – DO BEM A SER TRANSPORTADO
-1.1 A CONTRATADA obriga-se a proceder o transporte do veículo …
-[…texto integral…]
-
-CLÁUSULA SEGUNDA – DOS SERVIÇOS
-2.1 Quaisquer atrasos ocorridos por culpa do contratante …
-
-CLÁUSULA TERCEIRA – DO SEGURO
-A CONTRATADA, visando oferecer uma melhor proteção …
-N° da apólice: 540 00320910. Seguradora: Tokio Marine. […]
-
-CLÁUSULA QUARTA – PAGAMENTOS
-Nenhuma avaria ou sinistro será motivo justificável …
-
-CLÁUSULA QUINTA – DAS DISPOSIÇÕES FINAIS
-A alteração de quaisquer cláusulas deste instrumento …
-
-CLÁUSULA SEXTA – MULTAS
-Na quebra de contrato de transporte será cobrado R$ 200,00 por veículo …
-
-CLÁUSULA SÉTIMA – DAS CONDIÇÕES DO RECEBIMENTO DO OBJETO
-A CONTRATADA não se responsabiliza pelo estado de limpeza …
-```
-
-## Observações
-- Modelos customizados salvos no banco (`document_templates`) não serão afetados — só os 3 modelos fixos do código.
-- Documentos já criados também não mudam; só novos contratos criados a partir desses modelos receberão o texto novo.
-- Nenhuma migração de banco é necessária.
+## Mudanças
+1. **Novo estado** `previewDraft: DocumentViewData | null` (separado de `previewDoc`, que é usado para documentos já salvos).
+2. **Função `buildDraftPreview()`** — monta um `DocumentViewData` a partir do `form` atual:
+   - `id`: `"draft"`
+   - `doc_type`, `title`, dados do cliente, `total_amount` (= `total`)
+   - `body`: mesmo objeto montado em `save()` (vehicles, origin, destination, notes, extra, insurance, service_value, etc.)
+   - `created_at`: `new Date().toISOString()`
+3. **Botão "Pré-visualizar"** no `DialogFooter` (linha ~940), ao lado de "Voltar" e "Salvar":
+   - `<Button variant="secondary" onClick={() => setPreviewDraft(buildDraftPreview())}>` com ícone `Eye`.
+   - Desabilitado se `client_name` estiver vazio (mesma validação mínima do salvar).
+4. **Reaproveitar `DocumentPreviewDialog`** já existente para mostrar o rascunho:
+   - Renderizar uma segunda instância apontando para `previewDraft`.
+   - **Sem** `onExportPDF` e **sem** `onShareWhatsApp` (é apenas rascunho).
+   - Passar `company={company}` para manter o cabeçalho idêntico ao real.
+5. Diálogo de criação continua aberto por baixo — ao fechar a pré-visualização, o usuário volta ao formulário e pode ajustar antes de salvar.
 
 ## Detalhes técnicos
-- Editar apenas `DOCUMENT_TEMPLATES` em `src/lib/document-templates.ts`.
-- Sem alteração em rotas, componentes, ou geração de PDF — o componente `DocumentView` já renderiza `notes` preservando quebras de linha.
+- `DocumentPreviewDialog` espera campos extras (`template`, `public_token`, `accepted_at`, etc.) — preencher com `null` no rascunho; ele só usa esses campos para o rodapé (copiar link / aceito) que ficam ocultos sem token.
+- Sem chamadas ao Supabase, sem efeitos colaterais — apenas estado local.
+- Nenhuma mudança em rotas, migrations, PDF ou outros componentes.
