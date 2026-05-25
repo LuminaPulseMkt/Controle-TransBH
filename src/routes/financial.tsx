@@ -380,6 +380,15 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                           <SelectItem value="paid">Pago</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => deleteReceivable(r)}
+                        title="Excluir recebível"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
