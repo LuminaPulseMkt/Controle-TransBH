@@ -461,6 +461,9 @@ function DocumentsPage() {
         const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
         const valStr = v.value != null ? ` — ${brl(Number(v.value) || 0)}` : "";
         doc.text(`  ${i + 1}. ${parts}${valStr}`, 14, y); y += 5;
+        if (d.doc_type === "contract" && v.market_value != null && Number(v.market_value) > 0) {
+          doc.text(`     Valor do veículo: ${brl(Number(v.market_value))}`, 14, y); y += 5;
+        }
       });
     }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
@@ -491,6 +494,27 @@ function DocumentsPage() {
       doc.text("Cliente", 14, y + 5);
       doc.text(company?.name || "TransBH", 120, y + 5);
     }
+
+    // Rodapé com dados da empresa
+    const pageH = doc.internal.pageSize.getHeight();
+    const footerY = pageH - 22;
+    doc.setDrawColor(200);
+    doc.line(14, footerY, 196, footerY);
+    doc.setTextColor(120, 120, 120);
+    doc.setFontSize(8);
+    let fy = footerY + 5;
+    doc.setFont(undefined as any, "bold");
+    doc.text(company?.name || "TransBH", 14, fy);
+    doc.setFont(undefined as any, "normal");
+    const footerLine1 = [company?.cnpj && `CNPJ: ${company.cnpj}`, company?.address].filter(Boolean).join(" · ");
+    if (footerLine1) { fy += 4; doc.text(footerLine1, 14, fy); }
+    const footerLine2 = [
+      company?.phone && `Tel: ${company.phone}`,
+      company?.whatsapp && `WhatsApp: ${company.whatsapp}`,
+      company?.email,
+      company?.website,
+    ].filter(Boolean).join(" · ");
+    if (footerLine2) { fy += 4; doc.text(footerLine2, 14, fy); }
 
     doc.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);
   };
