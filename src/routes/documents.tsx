@@ -900,6 +900,19 @@ function DocumentsPage() {
                               placeholder="0,00"
                             />
                           </div>
+                          {docType === "contract" && (
+                            <div className="md:col-span-2">
+                              <Label className="text-xs">Valor do veículo (R$)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={v.market_value}
+                                onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, market_value: e.target.value } : p))}
+                                placeholder="0,00"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">Valor de referência do veículo — não soma ao total.</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -955,6 +968,7 @@ function DocumentsPage() {
                       color: v.color,
                       type: v.type,
                       value: Number(v.value) || 0,
+                      market_value: v.market_value !== "" ? Number(v.market_value) || 0 : null,
                     }));
                     const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
                     setPreviewDraft({
