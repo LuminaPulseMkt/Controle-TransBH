@@ -1,27 +1,28 @@
 ## Objetivo
-Adicionar opção de **excluir** registros na aba Financeiro — tanto em **Contas a Receber** quanto em **Contas a Pagar**.
+Fazer a logo aparecer no cabeçalho do **orçamento** (pré-visualização interna, página pública `/d/{token}` e PDF exportado) usando a logo embutida `src/assets/logo-transbh.png` como **fallback** quando `company_settings.logo_url` estiver vazia.
 
-## Onde alterar
-Arquivo único: `src/routes/financial.tsx`
+## Causa raiz
+O código já renderiza `company.logo_url` no cabeçalho do orçamento em três pontos, mas no banco `company_settings.logo_url` está `NULL` — então nada aparece. A logo embutida (já usada na sidebar via `BrandLogo`) será o fallback.
 
 ## Mudanças
 
-### 1. Contas a Receber (`ReceivablesTab`)
-- Nova função `deleteReceivable(item)` que:
-  - Pede confirmação via `confirm()` (padrão já usado no arquivo) com mensagem explícita: `"Excluir o recebível de {cliente} ({valor})? Esta ação não pode ser desfeita."`.
-  - Remove primeiro os pagamentos vinculados (`receivable_payments` por `receivable_id`) para evitar registros órfãos.
-  - Deleta o registro em `receivables`.
-  - `toast.success` + `void load()`.
-- Novo botão `Trash2` (ghost, vermelho) na coluna **Ações** da tabela, ao lado do botão de Histórico e do Select de status.
+### 1. `src/components/DocumentView.tsx`
+- Importar `fallbackLogo from "@/assets/logo-transbh.png"`.
+- No cabeçalho, quando `!isContract`, usar `company?.logo_url ?? fallbackLogo` no `<img src>` — assim sempre renderiza a logo no orçamento, nunca cai no bloco "FileText + nome".
+- Manter o branch atual (FileText + nome) só para contratos.
 
-### 2. Contas a Pagar (`PayablesTab`)
-- Nova função `deletePayable(item)` com `confirm()` + delete em `payables` + reload.
-- Adicionar coluna **Ações** na tabela (hoje só tem Data/Categoria/Descrição/Valor) com um botão `Trash2` por linha.
+### 2. `src/lib/pdf-logo.ts`
+- Suportar **import de asset local** além de URL remota: se o `url` recebido começar com `data:` ou for um caminho relativo do bundler (ex.: `/assets/...`), seguir o fluxo de `fetch` normalmente (já funciona para URLs servidas pelo Vite).
+- Sem mudança de assinatura.
 
-## Permissões
-As RLS já restringem `DELETE` em `receivables`, `receivable_payments` e `payables` a administradores — colaboradores receberão erro do Supabase, que será exibido via `toast.error`. Nenhuma migration necessária.
+### 3. `src/routes/documents.tsx` (PDF interno)
+- Importar `fallbackLogo from "@/assets/logo-transbh.png"`.
+- Na geração do PDF do orçamento (`!isContract`), passar `company?.logo_url ?? fallbackLogo` para `loadLogoDataUrl(...)`.
 
-## Detalhes
-- Reaproveitar o ícone `Trash2` já importado.
-- Sem mudanças em rotas, tipos, ou outros componentes.
-- Sem AlertDialog novo — manter o padrão `confirm()` já usado em `deletePayment`.
+### 4. `src/routes/d.$token.tsx` (PDF da página pública)
+- Mesmo ajuste: `loadLogoDataUrl(company?.logo_url ?? fallbackLogo)` para orçamentos.
+
+## Fora de escopo
+- Contratos continuam sem logo no cabeçalho (comportamento atual preservado — mantém o visual sóbrio do contrato com assinaturas no rodapé).
+- Nenhuma migration; nenhum upload automático ao bucket.
+- Quando você subir uma logo definitiva em **Configurações da empresa**, ela passa a sobrescrever o fallback automaticamente em todos os pontos.
