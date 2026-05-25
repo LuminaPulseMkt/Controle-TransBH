@@ -1,26 +1,27 @@
 ## Objetivo
-Adicionar um botão **Pré-visualizar** no diálogo de criação/edição de documentos (`/documents`) que abre o contrato (ou orçamento) renderizado com `DocumentView`, usando o estado atual do formulário — sem salvar no banco.
+Adicionar opção de **excluir** registros na aba Financeiro — tanto em **Contas a Receber** quanto em **Contas a Pagar**.
 
 ## Onde alterar
-Arquivo único: `src/routes/documents.tsx`
+Arquivo único: `src/routes/financial.tsx`
 
 ## Mudanças
-1. **Novo estado** `previewDraft: DocumentViewData | null` (separado de `previewDoc`, que é usado para documentos já salvos).
-2. **Função `buildDraftPreview()`** — monta um `DocumentViewData` a partir do `form` atual:
-   - `id`: `"draft"`
-   - `doc_type`, `title`, dados do cliente, `total_amount` (= `total`)
-   - `body`: mesmo objeto montado em `save()` (vehicles, origin, destination, notes, extra, insurance, service_value, etc.)
-   - `created_at`: `new Date().toISOString()`
-3. **Botão "Pré-visualizar"** no `DialogFooter` (linha ~940), ao lado de "Voltar" e "Salvar":
-   - `<Button variant="secondary" onClick={() => setPreviewDraft(buildDraftPreview())}>` com ícone `Eye`.
-   - Desabilitado se `client_name` estiver vazio (mesma validação mínima do salvar).
-4. **Reaproveitar `DocumentPreviewDialog`** já existente para mostrar o rascunho:
-   - Renderizar uma segunda instância apontando para `previewDraft`.
-   - **Sem** `onExportPDF` e **sem** `onShareWhatsApp` (é apenas rascunho).
-   - Passar `company={company}` para manter o cabeçalho idêntico ao real.
-5. Diálogo de criação continua aberto por baixo — ao fechar a pré-visualização, o usuário volta ao formulário e pode ajustar antes de salvar.
 
-## Detalhes técnicos
-- `DocumentPreviewDialog` espera campos extras (`template`, `public_token`, `accepted_at`, etc.) — preencher com `null` no rascunho; ele só usa esses campos para o rodapé (copiar link / aceito) que ficam ocultos sem token.
-- Sem chamadas ao Supabase, sem efeitos colaterais — apenas estado local.
-- Nenhuma mudança em rotas, migrations, PDF ou outros componentes.
+### 1. Contas a Receber (`ReceivablesTab`)
+- Nova função `deleteReceivable(item)` que:
+  - Pede confirmação via `confirm()` (padrão já usado no arquivo) com mensagem explícita: `"Excluir o recebível de {cliente} ({valor})? Esta ação não pode ser desfeita."`.
+  - Remove primeiro os pagamentos vinculados (`receivable_payments` por `receivable_id`) para evitar registros órfãos.
+  - Deleta o registro em `receivables`.
+  - `toast.success` + `void load()`.
+- Novo botão `Trash2` (ghost, vermelho) na coluna **Ações** da tabela, ao lado do botão de Histórico e do Select de status.
+
+### 2. Contas a Pagar (`PayablesTab`)
+- Nova função `deletePayable(item)` com `confirm()` + delete em `payables` + reload.
+- Adicionar coluna **Ações** na tabela (hoje só tem Data/Categoria/Descrição/Valor) com um botão `Trash2` por linha.
+
+## Permissões
+As RLS já restringem `DELETE` em `receivables`, `receivable_payments` e `payables` a administradores — colaboradores receberão erro do Supabase, que será exibido via `toast.error`. Nenhuma migration necessária.
+
+## Detalhes
+- Reaproveitar o ícone `Trash2` já importado.
+- Sem mudanças em rotas, tipos, ou outros componentes.
+- Sem AlertDialog novo — manter o padrão `confirm()` já usado em `deletePayment`.

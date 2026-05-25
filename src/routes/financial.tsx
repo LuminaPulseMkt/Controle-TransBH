@@ -249,6 +249,16 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
+  const deleteReceivable = async (item: Receivable) => {
+    if (!confirm(`Excluir o recebível de ${item.client_name} (${brl(item.amount)})? Esta ação não pode ser desfeita.`)) return;
+    const { error: payErr } = await supabase.from("receivable_payments").delete().eq("receivable_id", item.id);
+    if (payErr) return toast.error(payErr.message);
+    const { error } = await supabase.from("receivables").delete().eq("id", item.id);
+    if (error) return toast.error(error.message);
+    toast.success("Recebível excluído.");
+    void load();
+  };
+
   const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
     if (newStatus === "partial" || newStatus === "paid") {
       // Abre o histórico para registrar pagamento(s)
