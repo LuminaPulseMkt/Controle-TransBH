@@ -23,6 +23,7 @@ interface CompanyInfo {
   address?: string | null;
   cnpj?: string | null;
   logo_url?: string | null;
+  website?: string | null;
 }
 
 interface Props {
@@ -31,7 +32,7 @@ interface Props {
   showFooter?: boolean;
 }
 
-export function DocumentView({ doc, company, showFooter = false }: Props) {
+export function DocumentView({ doc, company }: Props) {
   const isContract = doc.doc_type === "contract";
   const body = doc.body ?? {};
 
@@ -106,6 +107,9 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
                     {v.color && <Field label="Cor" value={v.color} />}
                     {v.brand && <Field label="Marca" value={v.brand} />}
                     {v.model && <Field label="Modelo" value={v.model} />}
+                    {isContract && typeof v.market_value === "number" && v.market_value > 0 && (
+                      <Field label="Valor do veículo" value={brl(v.market_value)} />
+                    )}
                   </div>
                 </div>
               ))}
@@ -173,7 +177,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
           </div>
         )}
 
-        {showFooter && company && (
+        {company && (
           <div className="pt-6 mt-6 border-t border-border text-sm text-muted-foreground space-y-1">
             <div className="font-semibold text-foreground/80">{company.name || "TransBH"}</div>
             {company.cnpj && <div>CNPJ: {company.cnpj}</div>}
@@ -182,6 +186,7 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
               {company.phone && <span>Tel: {company.phone}</span>}
               {company.whatsapp && <span>WhatsApp: {company.whatsapp}</span>}
               {company.email && <span>{company.email}</span>}
+              {company.website && <span>{company.website}</span>}
             </div>
           </div>
         )}
