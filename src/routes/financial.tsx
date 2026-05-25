@@ -249,6 +249,16 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     void load();
   };
 
+  const deleteReceivable = async (item: Receivable) => {
+    if (!confirm(`Excluir o recebível de ${item.client_name} (${brl(item.amount)})? Esta ação não pode ser desfeita.`)) return;
+    const { error: payErr } = await supabase.from("receivable_payments").delete().eq("receivable_id", item.id);
+    if (payErr) return toast.error(payErr.message);
+    const { error } = await supabase.from("receivables").delete().eq("id", item.id);
+    if (error) return toast.error(error.message);
+    toast.success("Recebível excluído.");
+    void load();
+  };
+
   const updateStatus = async (item: Receivable, newStatus: "pending" | "partial" | "paid") => {
     if (newStatus === "partial" || newStatus === "paid") {
       // Abre o histórico para registrar pagamento(s)
@@ -370,6 +380,15 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
                           <SelectItem value="paid">Pago</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => deleteReceivable(r)}
+                        title="Excluir recebível"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -582,6 +601,14 @@ function PayablesTab() {
     void load();
   };
 
+  const deletePayable = async (item: Payable) => {
+    if (!confirm(`Excluir a despesa "${item.description || item.category}" (${brl(item.amount)})? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("payables").delete().eq("id", item.id);
+    if (error) return toast.error(error.message);
+    toast.success("Despesa excluída.");
+    void load();
+  };
+
   const total = items?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
   const currentYM = new Date().toISOString().slice(0, 7); // "YYYY-MM" — compara como string para evitar bug de fuso
   const monthTotal = items?.filter((p) => p.expense_date?.startsWith(currentYM))
@@ -632,6 +659,7 @@ function PayablesTab() {
                 <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Descrição</th>
                 <th className="px-4 py-3 text-right">Valor</th>
+                <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -641,6 +669,17 @@ function PayablesTab() {
                   <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded bg-muted">{p.category}</span></td>
                   <td className="px-4 py-3 text-muted-foreground">{p.description || "—"}</td>
                   <td className="px-4 py-3 text-right font-medium text-destructive">{brl(p.amount)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => deletePayable(p)}
+                      title="Excluir despesa"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
