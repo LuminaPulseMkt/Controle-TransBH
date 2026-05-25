@@ -459,9 +459,8 @@ function DocumentsPage() {
       vehiclesList.forEach((v, i) => {
         const typeLabel = vehicleTypeLabel[v.type] ?? v.type ?? "";
         const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
-        const valStr = v.value != null ? ` — ${brl(Number(v.value) || 0)}` : "";
-        doc.text(`  ${i + 1}. ${parts}${valStr}`, 14, y); y += 5;
-        if (d.doc_type === "contract" && v.market_value != null && Number(v.market_value) > 0) {
+        doc.text(`  ${i + 1}. ${parts}`, 14, y); y += 5;
+        if (v.market_value != null && Number(v.market_value) > 0) {
           doc.text(`     Valor do veículo: ${brl(Number(v.market_value))}`, 14, y); y += 5;
         }
       });
@@ -924,19 +923,17 @@ function DocumentsPage() {
                               placeholder="0,00"
                             />
                           </div>
-                          {docType === "contract" && (
-                            <div className="md:col-span-2">
-                              <Label className="text-xs">Valor do veículo (R$)</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={v.market_value}
-                                onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, market_value: e.target.value } : p))}
-                                placeholder="0,00"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">Valor de referência do veículo — não soma ao total.</p>
-                            </div>
-                          )}
+                          <div className="md:col-span-2">
+                            <Label className="text-xs">Valor do veículo (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={v.market_value}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, market_value: e.target.value } : p))}
+                              placeholder="0,00"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Valor de referência do veículo — não soma ao total.</p>
+                          </div>
                         </div>
                       </div>
                     ))}
