@@ -59,6 +59,7 @@ function CompanyTab() {
         phone: data.phone,
         whatsapp: data.whatsapp,
         email: data.email,
+        website: data.website,
         logo_url: data.logo_url,
         google_review_url: data.google_review_url,
         instagram_url: data.instagram_url,
@@ -139,9 +140,13 @@ function CompanyTab() {
           <Label>WhatsApp</Label>
           <Input value={data.whatsapp ?? ""} onChange={(e) => setData({ ...data, whatsapp: e.target.value })} />
         </div>
-        <div className="md:col-span-2">
+        <div>
           <Label>E-mail</Label>
           <Input type="email" value={data.email ?? ""} onChange={(e) => setData({ ...data, email: e.target.value })} />
+        </div>
+        <div>
+          <Label>Site</Label>
+          <Input type="url" placeholder="https://..." value={data.website ?? ""} onChange={(e) => setData({ ...data, website: e.target.value })} />
         </div>
         <div className="md:col-span-2">
           <Label>Link Google Reviews</Label>

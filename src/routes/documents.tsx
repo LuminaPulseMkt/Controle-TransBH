@@ -51,8 +51,9 @@ interface VehicleForm {
   color: string;
   type: VehicleType;
   value: string;
+  market_value: string;
 }
-const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "" });
+const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "", market_value: "" });
 
 function bodyToVehicles(body: any): VehicleForm[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
@@ -62,6 +63,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
       color: v.color ?? "",
       type: (v.type ?? "sedan") as VehicleType,
       value: v.value != null ? String(v.value) : "",
+      market_value: v.market_value != null ? String(v.market_value) : "",
     }));
   }
   if (body?.vehicle || body?.vehicle_plate) {
@@ -71,6 +73,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
       color: body.vehicle_color ?? "",
       type: "sedan",
       value: body.service_value != null ? String(body.service_value) : "",
+      market_value: "",
     }];
   }
   return [emptyVehicle()];
@@ -115,7 +118,7 @@ function DocumentsPage() {
   const canEditDocs = can("documents.edit");
   const [items, setItems] = useState<Document[] | null>(null);
   const [customTemplates, setCustomTemplates] = useState<DocTemplate[]>([]);
-  const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
+  const [company, setCompany] = useState<{ name: string | null; logo_url: string | null; cnpj: string | null; address: string | null; phone: string | null; whatsapp: string | null; email: string | null; website: string | null } | null>(null);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
@@ -162,7 +165,7 @@ function DocumentsPage() {
     setCustomTemplates(((data ?? []) as unknown as DBTemplateRow[]).map(dbRowToTemplate));
   };
   const loadCompany = async () => {
-    const { data } = await supabase.from("company_settings").select("name,logo_url").maybeSingle();
+    const { data } = await supabase.from("company_settings").select("name,logo_url,cnpj,address,phone,whatsapp,email,website").maybeSingle();
     setCompany((data as any) ?? null);
   };
   useEffect(() => { void load(); void loadTemplates(); void loadCompany(); }, []);
@@ -327,6 +330,7 @@ function DocumentsPage() {
       color: v.color,
       type: v.type,
       value: Number(v.value) || 0,
+      market_value: v.market_value !== "" ? Number(v.market_value) || 0 : null,
     }));
     const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
     const body: Record<string, any> = {
@@ -457,6 +461,9 @@ function DocumentsPage() {
         const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
         const valStr = v.value != null ? ` — ${brl(Number(v.value) || 0)}` : "";
         doc.text(`  ${i + 1}. ${parts}${valStr}`, 14, y); y += 5;
+        if (d.doc_type === "contract" && v.market_value != null && Number(v.market_value) > 0) {
+          doc.text(`     Valor do veículo: ${brl(Number(v.market_value))}`, 14, y); y += 5;
+        }
       });
     }
     if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
@@ -487,6 +494,27 @@ function DocumentsPage() {
       doc.text("Cliente", 14, y + 5);
       doc.text(company?.name || "TransBH", 120, y + 5);
     }
+
+    // Rodapé com dados da empresa
+    const pageH = doc.internal.pageSize.getHeight();
+    const footerY = pageH - 22;
+    doc.setDrawColor(200);
+    doc.line(14, footerY, 196, footerY);
+    doc.setTextColor(120, 120, 120);
+    doc.setFontSize(8);
+    let fy = footerY + 5;
+    doc.setFont(undefined as any, "bold");
+    doc.text(company?.name || "TransBH", 14, fy);
+    doc.setFont(undefined as any, "normal");
+    const footerLine1 = [company?.cnpj && `CNPJ: ${company.cnpj}`, company?.address].filter(Boolean).join(" · ");
+    if (footerLine1) { fy += 4; doc.text(footerLine1, 14, fy); }
+    const footerLine2 = [
+      company?.phone && `Tel: ${company.phone}`,
+      company?.whatsapp && `WhatsApp: ${company.whatsapp}`,
+      company?.email,
+      company?.website,
+    ].filter(Boolean).join(" · ");
+    if (footerLine2) { fy += 4; doc.text(footerLine2, 14, fy); }
 
     doc.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);
   };
@@ -896,6 +924,19 @@ function DocumentsPage() {
                               placeholder="0,00"
                             />
                           </div>
+                          {docType === "contract" && (
+                            <div className="md:col-span-2">
+                              <Label className="text-xs">Valor do veículo (R$)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={v.market_value}
+                                onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, market_value: e.target.value } : p))}
+                                placeholder="0,00"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">Valor de referência do veículo — não soma ao total.</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -951,6 +992,7 @@ function DocumentsPage() {
                       color: v.color,
                       type: v.type,
                       value: Number(v.value) || 0,
+                      market_value: v.market_value !== "" ? Number(v.market_value) || 0 : null,
                     }));
                     const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
                     setPreviewDraft({
