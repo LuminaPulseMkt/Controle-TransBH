@@ -135,6 +135,27 @@ function PublicDocumentPage() {
       pdf.text(split, 14, y);
     }
 
+    // Rodapé com dados da empresa
+    const pageH = pdf.internal.pageSize.getHeight();
+    const footerY = pageH - 22;
+    pdf.setDrawColor(200);
+    pdf.line(14, footerY, 196, footerY);
+    pdf.setTextColor(120, 120, 120);
+    pdf.setFontSize(8);
+    let fy = footerY + 5;
+    pdf.setFont(undefined as any, "bold");
+    pdf.text(company?.name || "TransBH", 14, fy);
+    pdf.setFont(undefined as any, "normal");
+    const fl1 = [company?.cnpj && `CNPJ: ${company.cnpj}`, company?.address].filter(Boolean).join(" · ");
+    if (fl1) { fy += 4; pdf.text(fl1, 14, fy); }
+    const fl2 = [
+      company?.phone && `Tel: ${company.phone}`,
+      company?.whatsapp && `WhatsApp: ${company.whatsapp}`,
+      company?.email,
+      company?.website,
+    ].filter(Boolean).join(" · ");
+    if (fl2) { fy += 4; pdf.text(fl2, 14, fy); }
+
     pdf.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);
   };
 
