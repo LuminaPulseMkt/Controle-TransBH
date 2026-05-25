@@ -407,7 +407,7 @@ function DocumentsPage() {
     doc.setFillColor(13, 27, 42);
     doc.rect(0, 0, 210, headerH, "F");
     const isContract = d.doc_type === "contract";
-    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? null) : null;
+    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? fallbackLogo) : null;
     if (logo) {
       const targetH = 48;
       const targetW = Math.min(logo.widthFor(targetH), 140);

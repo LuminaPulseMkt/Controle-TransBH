@@ -9,6 +9,7 @@ import { brl, dateBR } from "@/lib/format";
 
 import { AcceptBudgetCard } from "@/components/AcceptBudgetCard";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
+import fallbackLogo from "@/assets/logo-transbh.png";
 
 export const Route = createFileRoute("/d/$token")({
   component: PublicDocumentPage,
@@ -72,7 +73,7 @@ function PublicDocumentPage() {
     pdf.setFillColor(13, 27, 42);
     pdf.rect(0, 0, 210, headerH, "F");
     const isContract = d.doc_type === "contract";
-    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? null) : null;
+    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? fallbackLogo) : null;
     if (logo) {
       const targetH = 48;
       const targetW = Math.min(logo.widthFor(targetH), 140);

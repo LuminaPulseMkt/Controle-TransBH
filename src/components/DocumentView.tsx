@@ -1,5 +1,6 @@
 import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
 import { FileText } from "lucide-react";
+import fallbackLogo from "@/assets/logo-transbh.png";
 
 export interface DocumentViewData {
   id: string;
@@ -39,9 +40,9 @@ export function DocumentView({ doc, company, showFooter = false }: Props) {
       {/* Cabeçalho estilo papel */}
       <div className="bg-[#0d1b2a] text-white px-6 py-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {!isContract && company?.logo_url ? (
+          {!isContract ? (
             <img
-              src={company.logo_url}
+              src={company?.logo_url || fallbackLogo}
               alt={company?.name || "Logo"}
               className="h-20 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
             />
