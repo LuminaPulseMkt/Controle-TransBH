@@ -51,8 +51,9 @@ interface VehicleForm {
   color: string;
   type: VehicleType;
   value: string;
+  market_value: string;
 }
-const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "" });
+const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "", market_value: "" });
 
 function bodyToVehicles(body: any): VehicleForm[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
@@ -62,6 +63,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
       color: v.color ?? "",
       type: (v.type ?? "sedan") as VehicleType,
       value: v.value != null ? String(v.value) : "",
+      market_value: v.market_value != null ? String(v.market_value) : "",
     }));
   }
   if (body?.vehicle || body?.vehicle_plate) {
@@ -71,6 +73,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
       color: body.vehicle_color ?? "",
       type: "sedan",
       value: body.service_value != null ? String(body.service_value) : "",
+      market_value: "",
     }];
   }
   return [emptyVehicle()];
@@ -115,7 +118,7 @@ function DocumentsPage() {
   const canEditDocs = can("documents.edit");
   const [items, setItems] = useState<Document[] | null>(null);
   const [customTemplates, setCustomTemplates] = useState<DocTemplate[]>([]);
-  const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
+  const [company, setCompany] = useState<{ name: string | null; logo_url: string | null; cnpj: string | null; address: string | null; phone: string | null; whatsapp: string | null; email: string | null; website: string | null } | null>(null);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
@@ -162,7 +165,7 @@ function DocumentsPage() {
     setCustomTemplates(((data ?? []) as unknown as DBTemplateRow[]).map(dbRowToTemplate));
   };
   const loadCompany = async () => {
-    const { data } = await supabase.from("company_settings").select("name,logo_url").maybeSingle();
+    const { data } = await supabase.from("company_settings").select("name,logo_url,cnpj,address,phone,whatsapp,email,website").maybeSingle();
     setCompany((data as any) ?? null);
   };
   useEffect(() => { void load(); void loadTemplates(); void loadCompany(); }, []);
@@ -327,6 +330,7 @@ function DocumentsPage() {
       color: v.color,
       type: v.type,
       value: Number(v.value) || 0,
+      market_value: v.market_value !== "" ? Number(v.market_value) || 0 : null,
     }));
     const single = vehiclesPayload.length === 1 ? vehiclesPayload[0] : null;
     const body: Record<string, any> = {
