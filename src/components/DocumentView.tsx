@@ -129,15 +129,7 @@ export function DocumentView({ doc, company }: Props) {
         )}
 
         <Section title="Valores">
-          {Array.isArray(body.vehicles) && body.vehicles.length > 0 ? (
-            body.vehicles.map((v: any, i: number) => (
-              <Field
-                key={i}
-                label={v.description || `Veículo ${i + 1}`}
-                value={brl(Number(v.value ?? 0))}
-              />
-            ))
-          ) : (
+          {!(Array.isArray(body.vehicles) && body.vehicles.length > 0) && (
             <Field label="Frete" value={brl(body.service_value ?? 0)} />
           )}
           {body.extra ? <Field label="Adicionais" value={brl(body.extra)} /> : null}
