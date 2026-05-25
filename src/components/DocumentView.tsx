@@ -98,16 +98,13 @@ export function DocumentView({ doc, company }: Props) {
                       {v.description || `Veículo ${i + 1}`}
                       {v.type && <span className="text-xs text-muted-foreground ml-2">({vehicleTypeLabel[v.type] ?? v.type})</span>}
                     </div>
-                    {typeof v.value === "number" && v.value > 0 && (
-                      <div className="text-sm font-semibold text-primary">{brl(v.value)}</div>
-                    )}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
                     {v.plate && <Field label="Placa" value={v.plate} />}
                     {v.color && <Field label="Cor" value={v.color} />}
                     {v.brand && <Field label="Marca" value={v.brand} />}
                     {v.model && <Field label="Modelo" value={v.model} />}
-                    {isContract && typeof v.market_value === "number" && v.market_value > 0 && (
+                    {typeof v.market_value === "number" && v.market_value > 0 && (
                       <Field label="Valor do veículo" value={brl(v.market_value)} />
                     )}
                   </div>
