@@ -62,6 +62,7 @@ export type Database = {
           phone: string | null
           singleton: boolean
           updated_at: string
+          website: string | null
           whatsapp: string | null
           whatsapp_url: string | null
         }
@@ -80,6 +81,7 @@ export type Database = {
           phone?: string | null
           singleton?: boolean
           updated_at?: string
+          website?: string | null
           whatsapp?: string | null
           whatsapp_url?: string | null
         }
@@ -98,6 +100,7 @@ export type Database = {
           phone?: string | null
           singleton?: boolean
           updated_at?: string
+          website?: string | null
           whatsapp?: string | null
           whatsapp_url?: string | null
         }
