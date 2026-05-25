@@ -923,19 +923,17 @@ function DocumentsPage() {
                               placeholder="0,00"
                             />
                           </div>
-                          {docType === "contract" && (
-                            <div className="md:col-span-2">
-                              <Label className="text-xs">Valor do veículo (R$)</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={v.market_value}
-                                onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, market_value: e.target.value } : p))}
-                                placeholder="0,00"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">Valor de referência do veículo — não soma ao total.</p>
-                            </div>
-                          )}
+                          <div className="md:col-span-2">
+                            <Label className="text-xs">Valor do veículo (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={v.market_value}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, market_value: e.target.value } : p))}
+                              placeholder="0,00"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Valor de referência do veículo — não soma ao total.</p>
+                          </div>
                         </div>
                       </div>
                     ))}
