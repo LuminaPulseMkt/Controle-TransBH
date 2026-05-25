@@ -601,6 +601,14 @@ function PayablesTab() {
     void load();
   };
 
+  const deletePayable = async (item: Payable) => {
+    if (!confirm(`Excluir a despesa "${item.description || item.category}" (${brl(item.amount)})? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("payables").delete().eq("id", item.id);
+    if (error) return toast.error(error.message);
+    toast.success("Despesa excluída.");
+    void load();
+  };
+
   const total = items?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
   const currentYM = new Date().toISOString().slice(0, 7); // "YYYY-MM" — compara como string para evitar bug de fuso
   const monthTotal = items?.filter((p) => p.expense_date?.startsWith(currentYM))
