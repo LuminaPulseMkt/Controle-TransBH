@@ -459,9 +459,8 @@ function DocumentsPage() {
       vehiclesList.forEach((v, i) => {
         const typeLabel = vehicleTypeLabel[v.type] ?? v.type ?? "";
         const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
-        const valStr = v.value != null ? ` — ${brl(Number(v.value) || 0)}` : "";
-        doc.text(`  ${i + 1}. ${parts}${valStr}`, 14, y); y += 5;
-        if (d.doc_type === "contract" && v.market_value != null && Number(v.market_value) > 0) {
+        doc.text(`  ${i + 1}. ${parts}`, 14, y); y += 5;
+        if (v.market_value != null && Number(v.market_value) > 0) {
           doc.text(`     Valor do veículo: ${brl(Number(v.market_value))}`, 14, y); y += 5;
         }
       });
