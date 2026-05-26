@@ -859,6 +859,10 @@ export type Database = {
           total_amount: number
         }[]
       }
+      has_permission: {
+        Args: { _perm: string; _uid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
