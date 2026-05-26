@@ -111,7 +111,22 @@ function PublicDocumentPage() {
     pdf.setFontSize(12);
     pdf.text("Detalhes do Serviço", 14, y); y += 6;
     pdf.setFontSize(10);
-    if (d.body?.vehicle) { pdf.text(`Veículo: ${d.body.vehicle}`, 14, y); y += 5; }
+
+    const vehiclesList: any[] = Array.isArray((d.body as any)?.vehicles) && (d.body as any).vehicles.length > 0
+      ? (d.body as any).vehicles
+      : (d.body?.vehicle || (d.body as any)?.vehicle_plate
+          ? [{ description: d.body?.vehicle, plate: (d.body as any)?.vehicle_plate, color: (d.body as any)?.vehicle_color, type: "sedan" }]
+          : []);
+    if (vehiclesList.length > 0) {
+      pdf.text("Veículos:", 14, y); y += 5;
+      vehiclesList.forEach((v: any, i: number) => {
+        const parts = [v.description, v.plate, v.type, v.color].filter(Boolean).join(" · ");
+        pdf.text(`  ${i + 1}. ${parts}`, 14, y); y += 5;
+        if (v.market_value != null && Number(v.market_value) > 0) {
+          pdf.text(`     Valor do veículo: ${brl(Number(v.market_value))}`, 14, y); y += 5;
+        }
+      });
+    }
     if (d.body?.origin) { pdf.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
     if (d.body?.destination) { pdf.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
 
@@ -126,13 +141,29 @@ function PublicDocumentPage() {
     pdf.setFontSize(14);
     pdf.setTextColor(245, 158, 11);
     pdf.text(`TOTAL: ${brl(d.total_amount ?? 0)}`, 14, y + 5);
+    y += 10;
+
+    const pageH0 = pdf.internal.pageSize.getHeight();
+    const bottomLimit = pageH0 - 30;
+    const ensureSpace = (lines: number) => {
+      if (y + lines * 5 > bottomLimit) {
+        pdf.addPage();
+        y = 20;
+      }
+    };
 
     if (d.body?.notes) {
-      y += 18;
+      y += 8;
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
-      const split = pdf.splitTextToSize(d.body.notes, 180);
-      pdf.text(split, 14, y);
+      const split: string[] = pdf.splitTextToSize(d.body.notes, 180);
+      const chunkSize = 5;
+      for (let i = 0; i < split.length; i += chunkSize) {
+        const chunk = split.slice(i, i + chunkSize);
+        ensureSpace(chunk.length);
+        pdf.text(chunk, 14, y);
+        y += chunk.length * 5;
+      }
     }
 
     // Rodapé com dados da empresa

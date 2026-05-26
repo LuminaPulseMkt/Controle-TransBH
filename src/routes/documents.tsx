@@ -480,14 +480,32 @@ function DocumentsPage() {
     doc.setTextColor(245, 158, 11);
     doc.text(`TOTAL: ${brl(d.total_amount ?? 0)}`, 14, y + 5);
 
+    const pageH0 = doc.internal.pageSize.getHeight();
+    const bottomLimit = pageH0 - 30;
+    const ensureSpace = (lines: number) => {
+      if (y + lines * 5 > bottomLimit) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
     if (d.doc_type === "contract") {
-      y += 20;
+      y += 15;
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(10);
-      const text = "As partes acima identificadas têm, entre si, justo e acertado o presente contrato de transporte de veículo, conforme as condições descritas neste documento. O cumprimento das obrigações regerá as condições do serviço prestado.";
-      const split = doc.splitTextToSize(text, 180);
-      doc.text(split, 14, y);
-      y += split.length * 5 + 20;
+      const notes = d.body?.notes ?? "";
+      if (notes) {
+        const split: string[] = doc.splitTextToSize(notes, 180);
+        const chunkSize = 5;
+        for (let i = 0; i < split.length; i += chunkSize) {
+          const chunk = split.slice(i, i + chunkSize);
+          ensureSpace(chunk.length);
+          doc.text(chunk, 14, y);
+          y += chunk.length * 5;
+        }
+      }
+      ensureSpace(8);
+      y += 15;
       doc.text("____________________________", 14, y);
       doc.text("____________________________", 120, y);
       doc.text("Cliente", 14, y + 5);
