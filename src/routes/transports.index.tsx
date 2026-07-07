@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { sendWhatsAppManual } from "@/server/whatsapp.functions";
+import { sendWhatsAppManual } from "@/lib/whatsapp.functions";
 import { ExportMenu } from "@/components/ExportMenu";
 
 type TransportsSearch = { status?: string };
