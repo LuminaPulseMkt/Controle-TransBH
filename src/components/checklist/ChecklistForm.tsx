@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SignaturePad } from "./SignaturePad";
+import fallbackLogo from "@/assets/logo-transbh.png";
 import {
   CHECKLIST_ITEMS,
   type ChecklistData,
