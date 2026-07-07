@@ -1,4 +1,5 @@
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
+import fallbackLogo from "@/assets/logo-transbh.png";
 import {
   CHECKLIST_ITEMS, type ChecklistData, type PartySection,
 } from "@/lib/checklist-types";
