@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { sendWhatsAppManual } from "@/server/whatsapp.functions";
+import { sendWhatsAppManual } from "@/lib/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
 import { ExportMenu } from "@/components/ExportMenu";
 import { paymentStatusLabel } from "@/lib/format";

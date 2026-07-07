@@ -40,7 +40,7 @@ import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
-import { sendWhatsAppManual } from "@/server/whatsapp.functions";
+import { sendWhatsAppManual } from "@/lib/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
 import { ExportMenu } from "@/components/ExportMenu";
 

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sendWhatsAppText } from "./whatsapp.server";
+import { sendWhatsAppText } from "@/server/whatsapp.server";
 
 const Schema = z.object({
   phone: z.string().min(8).max(20),
