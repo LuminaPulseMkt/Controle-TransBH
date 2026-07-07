@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SignaturePad } from "./SignaturePad";
+import fallbackLogo from "@/assets/logo-transbh.png";
 import {
   CHECKLIST_ITEMS,
   type ChecklistData,
@@ -46,11 +47,14 @@ export function ChecklistForm({ data, onChange, checklistId, company }: Props) {
     <div className="bg-white text-black border border-neutral-400 shadow-sm max-w-5xl mx-auto print:shadow-none print:border-0">
       {/* Cabeçalho */}
       <header className="flex items-center gap-4 border-b border-neutral-400 p-4">
-        {company?.logo_url ? (
-          <img src={company.logo_url} alt="Logo" className="h-14 w-auto object-contain" />
-        ) : (
-          <div className="h-14 w-14 border border-neutral-300 grid place-items-center text-xs text-neutral-400">LOGO</div>
-        )}
+        <img
+          src={company?.logo_url || fallbackLogo}
+          alt="Logo"
+          onError={(e) => {
+            if (e.currentTarget.src !== fallbackLogo) e.currentTarget.src = fallbackLogo;
+          }}
+          className="h-14 w-auto object-contain"
+        />
         <div className="flex-1 text-center">
           <h1 className="text-xl font-bold tracking-wide uppercase">Check List de Veículo</h1>
           {company?.name && <p className="text-xs text-neutral-600">{company.name}</p>}
