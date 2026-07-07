@@ -34,7 +34,7 @@ export async function exportChecklistPDF(
   let y = 10;
 
   // Header
-  const logo = await loadLogoDataUrl(company?.logo_url ?? null);
+  const logo = (await loadLogoDataUrl(company?.logo_url ?? null)) ?? (await loadLogoDataUrl(fallbackLogo));
   if (logo) {
     const h = 16;
     const w = Math.min(logo.widthFor(h), 50);
