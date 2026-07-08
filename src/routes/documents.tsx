@@ -33,7 +33,7 @@ import { publicDocUrl } from "@/lib/public-url";
 import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2, Car, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { generateContractAssets } from "@/server/generate-contract-assets.functions";
+import { generateContractAssets } from "@/lib/generate-contract-assets.functions";
 
 import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateRow } from "@/lib/document-templates";
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
