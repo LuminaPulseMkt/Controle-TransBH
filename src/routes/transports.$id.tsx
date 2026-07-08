@@ -285,7 +285,7 @@ function TransportDetailPage() {
         if (up.error) throw new Error(up.error.message);
         const { data } = supabase.storage.from("transport-photos").getPublicUrl(path);
         const { error } = await supabase.from("transport_photos").insert({
-          transport_id: t.id, photo_url: data.publicUrl, caption: caption || null,
+          transport_id: t.id, photo_url: data.publicUrl, caption: caption || null, created_by: user?.id ?? null,
         });
         if (error) throw new Error(error.message);
         ok += 1;
