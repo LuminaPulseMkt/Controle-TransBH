@@ -7,7 +7,7 @@ import { CheckCircle2, Loader2, FileSignature, ArrowRight, Receipt, Car } from "
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { acceptBudget } from "@/server/accept-budget.functions";
+import { acceptBudget } from "@/lib/accept-budget.functions";
 import { brl, dateBR } from "@/lib/format";
 
 interface VehicleInfo {

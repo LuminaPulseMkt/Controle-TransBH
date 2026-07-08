@@ -1,55 +1,52 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendWhatsAppText } from "./whatsapp.server";
 
 const InputSchema = z.object({
   contract_id: z.string().uuid(),
   estimated_delivery: z.string().optional(),
 });
 
-type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
-
-interface VehicleItem {
-  description?: string;
-  plate?: string;
-  color?: string;
-  type?: VehicleType;
-  brand?: string;
-  model?: string;
-  year?: number;
-  value?: number;
-}
-
-function parseLocation(raw: string | undefined | null): { city: string; state: string } {
-  const s = (raw ?? "").trim();
-  if (!s) return { city: "A definir", state: "--" };
-  const m = s.match(/^(.+?)\s*[\/\-,]\s*([A-Za-z]{2})\s*$/);
-  if (m) return { city: m[1].trim(), state: m[2].toUpperCase() };
-  return { city: s, state: "--" };
-}
-
-function normalizeVehicles(body: any): VehicleItem[] {
-  if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
-    return body.vehicles as VehicleItem[];
-  }
-  // legacy single vehicle
-  if (body?.vehicle || body?.vehicle_plate) {
-    return [{
-      description: body.vehicle ?? undefined,
-      plate: body.vehicle_plate ?? undefined,
-      color: body.vehicle_color ?? undefined,
-      type: "sedan",
-      value: Number(body.service_value ?? 0),
-    }];
-  }
-  return [{ type: "sedan" }];
-}
-
 export const generateContractAssets = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }) => {
+    type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
+    interface VehicleItem {
+      description?: string;
+      plate?: string;
+      color?: string;
+      type?: VehicleType;
+      brand?: string;
+      model?: string;
+      year?: number;
+      value?: number;
+    }
+
+    const parseLocation = (raw: string | undefined | null): { city: string; state: string } => {
+      const s = (raw ?? "").trim();
+      if (!s) return { city: "A definir", state: "--" };
+      const m = s.match(/^(.+?)\s*[\/\-,]\s*([A-Za-z]{2})\s*$/);
+      if (m) return { city: m[1].trim(), state: m[2].toUpperCase() };
+      return { city: s, state: "--" };
+    };
+
+    const normalizeVehicles = (body: any): VehicleItem[] => {
+      if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
+        return body.vehicles as VehicleItem[];
+      }
+      if (body?.vehicle || body?.vehicle_plate) {
+        return [{
+          description: body.vehicle ?? undefined,
+          plate: body.vehicle_plate ?? undefined,
+          color: body.vehicle_color ?? undefined,
+          type: "sedan",
+          value: Number(body.service_value ?? 0),
+        }];
+      }
+      return [{ type: "sedan" }];
+    };
+
     try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: contract, error: fetchErr } = await supabaseAdmin
         .from("documents")
         .select("*")
@@ -181,6 +178,7 @@ export const generateContractAssets = createServerFn({ method: "POST" })
         const text = (tpl?.body ?? fallback).replace(/\{(\w+)\}/g, (_: string, k: string) =>
           Object.prototype.hasOwnProperty.call(map, k) ? map[k] : `{${k}}`,
         );
+        const { sendWhatsAppText } = await import("@/server/whatsapp.server");
         sendWhatsAppText({ phone: contract.client_phone, text }).catch((e) =>
           console.error("[generateContractAssets] whatsapp send failed", e),
         );
