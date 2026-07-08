@@ -83,7 +83,9 @@ export function SignaturePad({ label, value, onChange, checklistId, field }: Pro
       const blob: Blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("blob"))), "image/png"),
       );
-      const path = `checklists/${checklistId}/${field}-${Date.now()}.png`;
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData.user?.id ?? "anon";
+      const path = `${uid}/checklists/${checklistId}/${field}-${Date.now()}.png`;
       const { error } = await supabase.storage
         .from("transport-photos")
         .upload(path, blob, { contentType: "image/png", upsert: true });

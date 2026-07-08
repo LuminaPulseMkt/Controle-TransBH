@@ -373,7 +373,7 @@ function TransportsPage() {
 
     // 4. Insert new photo rows in transport_photos
     if (transportId && allExtras.length > 0) {
-      const rows = allExtras.map((url) => ({ transport_id: transportId!, photo_url: url }));
+      const rows = allExtras.map((url) => ({ transport_id: transportId!, photo_url: url, created_by: user?.id ?? null }));
       const { error: photoErr } = await supabase.from("transport_photos").insert(rows);
       if (photoErr) {
         toast.error(`Transporte salvo, mas falhou ao registrar fotos: ${photoErr.message}`);
