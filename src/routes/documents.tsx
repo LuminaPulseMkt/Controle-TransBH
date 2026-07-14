@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
-import fallbackLogo from "@/assets/logo-transbh.png";
+
 import { publicDocUrl } from "@/lib/public-url";
 import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2, Car, Truck, X } from "lucide-react";
 import { toast } from "sonner";
