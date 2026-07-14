@@ -5,11 +5,9 @@ import { DocumentView, type DocumentViewData } from "@/components/DocumentView";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText } from "lucide-react";
-import { brl, dateBR } from "@/lib/format";
 
 import { AcceptBudgetCard } from "@/components/AcceptBudgetCard";
-import { loadLogoDataUrl } from "@/lib/pdf-logo";
-import fallbackLogo from "@/assets/logo-transbh.png";
+import { exportDocumentPdf } from "@/lib/document-pdf";
 
 export const Route = createFileRoute("/d/$token")({
   component: PublicDocumentPage,
