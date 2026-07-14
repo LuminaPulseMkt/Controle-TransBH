@@ -98,6 +98,11 @@
 
   --grid-pattern: linear-gradient(oklch(0.9 0.005 255 / 0.6) 1px, transparent 1px),
                   linear-gradient(90deg, oklch(0.9 0.005 255 / 0.6) 1px, transparent 1px);
+
+  /* TransBH brand colors (used in official orçamento/contrato layout) */
+  --brand-orange: #E85A1E;
+  --brand-orange-soft: #F58A3A;
+  --brand-blue: #1DA1F2;
 }
 
 .dark {

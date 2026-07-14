@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel } from "@/lib/format";
-import fallbackLogo from "@/assets/logo-transbh.png";
+
 import { publicDocUrl } from "@/lib/public-url";
 import { Plus, Download, Loader2, FileText, MessageCircle, Sparkles, FileCheck2, Zap, ShieldCheck, Pencil, Trash2, Eye, ChevronDown, User, CheckCircle2, Car, Truck, X } from "lucide-react";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ import { DOCUMENT_TEMPLATES, dbRowToTemplate, type DocTemplate, type DBTemplateR
 import { CustomTemplateDialog } from "@/components/CustomTemplateDialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { loadLogoDataUrl } from "@/lib/pdf-logo";
+
 import { sendWhatsAppManual } from "@/lib/whatsapp.functions";
 import { renderFromDb } from "@/lib/message-templates";
 import { ExportMenu } from "@/components/ExportMenu";
@@ -406,134 +406,8 @@ function DocumentsPage() {
   };
 
   const exportPDF = async (d: Document) => {
-    const { default: jsPDF } = await import("jspdf");
-    const doc = new jsPDF();
-    const headerH = 56;
-    doc.setFillColor(13, 27, 42);
-    doc.rect(0, 0, 210, headerH, "F");
-    const isContract = d.doc_type === "contract";
-    const logo = !isContract ? await loadLogoDataUrl(company?.logo_url ?? fallbackLogo) : null;
-    if (logo) {
-      const targetH = 48;
-      const targetW = Math.min(logo.widthFor(targetH), 140);
-      doc.addImage(logo.dataUrl, "PNG", 14, (headerH - targetH) / 2, targetW, targetH);
-    } else {
-      doc.setTextColor(245, 158, 11);
-      doc.setFontSize(28);
-      doc.text(company?.name || "TransBH", 14, headerH / 2);
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(11);
-      doc.text("Transporte de Veículos", 14, headerH / 2 + 8);
-    }
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text(d.doc_type === "budget" ? "ORÇAMENTO" : "CONTRATO DE TRANSPORTE", 200, headerH - 8, { align: "right" });
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(16);
-    doc.text(d.title, 14, headerH + 12);
-    doc.setFontSize(10);
-    doc.text(`Data: ${dateBR(d.created_at)}`, 14, headerH + 19);
-
-    let y = headerH + 32;
-    doc.setFontSize(12);
-    doc.text("Cliente", 14, y); y += 6;
-    doc.setFontSize(10);
-    doc.text(`Nome: ${d.client_name}`, 14, y); y += 5;
-    if (d.client_document) { doc.text(`Documento: ${d.client_document}`, 14, y); y += 5; }
-    if (d.client_phone) { doc.text(`Telefone: ${d.client_phone}`, 14, y); y += 5; }
-    if (d.client_email) { doc.text(`E-mail: ${d.client_email}`, 14, y); y += 5; }
-    if (d.body?.client_address) { doc.text(`Endereço: ${d.body.client_address}`, 14, y); y += 5; }
-
-    y += 5;
-    doc.setFontSize(12);
-    doc.text("Detalhes do Serviço", 14, y); y += 6;
-    doc.setFontSize(10);
-    const vehiclesList: any[] = Array.isArray(d.body?.vehicles) && d.body.vehicles.length > 0
-      ? d.body.vehicles
-      : (d.body?.vehicle || d.body?.vehicle_plate
-          ? [{ description: d.body?.vehicle, plate: d.body?.vehicle_plate, color: d.body?.vehicle_color, type: "sedan", value: d.body?.service_value }]
-          : []);
-    if (vehiclesList.length > 0) {
-      doc.text("Veículos:", 14, y); y += 5;
-      vehiclesList.forEach((v, i) => {
-        const typeLabel = vehicleTypeLabel[v.type] ?? v.type ?? "";
-        const parts = [v.description, v.plate, typeLabel, v.color].filter(Boolean).join(" · ");
-        doc.text(`  ${i + 1}. ${parts}`, 14, y); y += 5;
-        if (v.market_value != null && Number(v.market_value) > 0) {
-          doc.text(`     Valor do veículo: ${brl(Number(v.market_value))}`, 14, y); y += 5;
-        }
-      });
-    }
-    if (d.body?.origin) { doc.text(`Origem: ${d.body.origin}`, 14, y); y += 5; }
-    if (d.body?.destination) { doc.text(`Destino: ${d.body.destination}`, 14, y); y += 5; }
-
-    y += 5;
-    doc.setFontSize(12);
-    doc.text("Valores", 14, y); y += 6;
-    doc.setFontSize(10);
-    doc.text(`Frete: ${brl(d.body?.service_value ?? 0)}`, 14, y); y += 5;
-    if (d.body?.extra) { doc.text(`Adicionais: ${brl(d.body.extra)}`, 14, y); y += 5; }
-    if (d.body?.pickup_value) { doc.text(`Coleta: ${brl(d.body.pickup_value)}`, 14, y); y += 5; }
-    if (d.body?.delivery_value) { doc.text(`Entrega: ${brl(d.body.delivery_value)}`, 14, y); y += 5; }
-    doc.setFontSize(14);
-    doc.setTextColor(245, 158, 11);
-    doc.text(`TOTAL: ${brl(d.total_amount ?? 0)}`, 14, y + 5);
-
-    const pageH0 = doc.internal.pageSize.getHeight();
-    const bottomLimit = pageH0 - 30;
-    const ensureSpace = (lines: number) => {
-      if (y + lines * 5 > bottomLimit) {
-        doc.addPage();
-        y = 20;
-      }
-    };
-
-    if (d.doc_type === "contract") {
-      y += 15;
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(10);
-      const notes = d.body?.notes ?? "";
-      if (notes) {
-        const split: string[] = doc.splitTextToSize(notes, 180);
-        const chunkSize = 5;
-        for (let i = 0; i < split.length; i += chunkSize) {
-          const chunk = split.slice(i, i + chunkSize);
-          ensureSpace(chunk.length);
-          doc.text(chunk, 14, y);
-          y += chunk.length * 5;
-        }
-      }
-      ensureSpace(8);
-      y += 15;
-      doc.text("____________________________", 14, y);
-      doc.text("____________________________", 120, y);
-      doc.text("Cliente", 14, y + 5);
-      doc.text(company?.name || "TransBH", 120, y + 5);
-    }
-
-    // Rodapé com dados da empresa
-    const pageH = doc.internal.pageSize.getHeight();
-    const footerY = pageH - 22;
-    doc.setDrawColor(200);
-    doc.line(14, footerY, 196, footerY);
-    doc.setTextColor(120, 120, 120);
-    doc.setFontSize(8);
-    let fy = footerY + 5;
-    doc.setFont(undefined as any, "bold");
-    doc.text(company?.name || "TransBH", 14, fy);
-    doc.setFont(undefined as any, "normal");
-    const footerLine1 = [company?.cnpj && `CNPJ: ${company.cnpj}`, company?.address].filter(Boolean).join(" · ");
-    if (footerLine1) { fy += 4; doc.text(footerLine1, 14, fy); }
-    const footerLine2 = [
-      company?.phone && `Tel: ${company.phone}`,
-      company?.whatsapp && `WhatsApp: ${company.whatsapp}`,
-      company?.email,
-      company?.website,
-    ].filter(Boolean).join(" · ");
-    if (footerLine2) { fy += 4; doc.text(footerLine2, 14, fy); }
-
-    doc.save(`${d.doc_type}-${d.client_name.replace(/\s+/g, "_")}-${Date.now()}.pdf`);
+    const { exportDocumentPdf } = await import("@/lib/document-pdf");
+    await exportDocumentPdf(d, company);
   };
 
   const shareWhatsApp = async (d: Document) => {
