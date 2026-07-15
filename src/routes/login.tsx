@@ -124,6 +124,13 @@ function LoginPage() {
               <Button type="submit" disabled={busy} className="w-full">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
               </Button>
+              <button
+                type="button"
+                onClick={() => { setForgotEmail(email); setForgotOpen(true); }}
+                className="w-full text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              >
+                Esqueci minha senha
+              </button>
             </form>
           </TabsContent>
 
