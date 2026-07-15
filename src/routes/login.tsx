@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +24,24 @@ function LoginPage() {
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
+
+  const onForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return toast.error("Informe seu e-mail.");
+    setForgotBusy(true);
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Enviamos um link de redefinição para o seu e-mail.");
+    setForgotOpen(false);
+    setForgotEmail("");
+  };
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
@@ -105,6 +124,13 @@ function LoginPage() {
               <Button type="submit" disabled={busy} className="w-full">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
               </Button>
+              <button
+                type="button"
+                onClick={() => { setForgotEmail(email); setForgotOpen(true); }}
+                className="w-full text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              >
+                Esqueci minha senha
+              </button>
             </form>
           </TabsContent>
 
@@ -168,6 +194,38 @@ function LoginPage() {
           </Link>
         </div>
       </Card>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir senha</DialogTitle>
+            <DialogDescription>
+              Informe seu e-mail cadastrado. Enviaremos um link seguro para você criar uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={onForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">E-mail</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotBusy}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={forgotBusy}>
+                {forgotBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar link"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

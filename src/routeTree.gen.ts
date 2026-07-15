@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as SocialRouteImport } from './routes/social'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FinancialRouteImport } from './routes/financial'
@@ -40,6 +41,11 @@ const SocialRoute = SocialRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartnersRoute = PartnersRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/login'
     | '/partners'
+    | '/reset-password'
     | '/settings'
     | '/social'
     | '/users'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/login'
     | '/partners'
+    | '/reset-password'
     | '/settings'
     | '/social'
     | '/users'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/login'
     | '/partners'
+    | '/reset-password'
     | '/settings'
     | '/social'
     | '/users'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   FinancialRoute: typeof FinancialRouteWithChildren
   LoginRoute: typeof LoginRoute
   PartnersRoute: typeof PartnersRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   SocialRoute: typeof SocialRoute
   UsersRoute: typeof UsersRoute
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/partners': {
@@ -407,6 +427,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialRoute: FinancialRouteWithChildren,
   LoginRoute: LoginRoute,
   PartnersRoute: PartnersRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   SocialRoute: SocialRoute,
   UsersRoute: UsersRoute,
