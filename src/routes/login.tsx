@@ -194,6 +194,38 @@ function LoginPage() {
           </Link>
         </div>
       </Card>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir senha</DialogTitle>
+            <DialogDescription>
+              Informe seu e-mail cadastrado. Enviaremos um link seguro para você criar uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={onForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">E-mail</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotBusy}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={forgotBusy}>
+                {forgotBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar link"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
