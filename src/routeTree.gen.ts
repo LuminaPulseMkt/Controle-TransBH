@@ -13,6 +13,7 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as SocialRouteImport } from './routes/social'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PlanilhasRouteImport } from './routes/planilhas'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FinancialRouteImport } from './routes/financial'
@@ -46,6 +47,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanilhasRoute = PlanilhasRouteImport.update({
+  id: '/planilhas',
+  path: '/planilhas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartnersRoute = PartnersRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
+  '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
+  '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/financial': typeof FinancialRouteWithChildren
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
+  '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/social': typeof SocialRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/login'
     | '/partners'
+    | '/planilhas'
     | '/reset-password'
     | '/settings'
     | '/social'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/login'
     | '/partners'
+    | '/planilhas'
     | '/reset-password'
     | '/settings'
     | '/social'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/login'
     | '/partners'
+    | '/planilhas'
     | '/reset-password'
     | '/settings'
     | '/social'
@@ -252,6 +264,7 @@ export interface RootRouteChildren {
   FinancialRoute: typeof FinancialRouteWithChildren
   LoginRoute: typeof LoginRoute
   PartnersRoute: typeof PartnersRoute
+  PlanilhasRoute: typeof PlanilhasRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   SocialRoute: typeof SocialRoute
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planilhas': {
+      id: '/planilhas'
+      path: '/planilhas'
+      fullPath: '/planilhas'
+      preLoaderRoute: typeof PlanilhasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/partners': {
@@ -427,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialRoute: FinancialRouteWithChildren,
   LoginRoute: LoginRoute,
   PartnersRoute: PartnersRoute,
+  PlanilhasRoute: PlanilhasRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   SocialRoute: SocialRoute,
@@ -438,3 +459,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
