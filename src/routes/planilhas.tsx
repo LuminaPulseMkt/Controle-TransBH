@@ -1,0 +1,338 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { AuthGate } from "@/components/AuthGate";
+import { AppLayout } from "@/components/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Trash2, Download, MessageCircle, Pencil, Loader2, Save, FileSpreadsheet } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
+import { dateBR } from "@/lib/format";
+import {
+  emptyRow, emptyTripSheet, type TripDirection, type TripRow, type TripSheetData,
+} from "@/lib/trip-sheet-types";
+import { exportTripSheetPDF } from "@/lib/trip-sheet-pdf";
+
+export const Route = createFileRoute("/planilhas")({
+  head: () => ({
+    meta: [
+      { title: "Planilhas de Viagem — TransBH" },
+      { name: "description", content: "Gerencie planilhas de viagem (IDA/VOLTA) da frota, exporte em PDF e compartilhe via WhatsApp." },
+      { property: "og:title", content: "Planilhas de Viagem — TransBH" },
+      { property: "og:description", content: "Planilhas de IDA e VOLTA organizadas por data." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: () => (
+    <AuthGate requirePermission="transports.view">
+      <TripSheetsPage />
+    </AuthGate>
+  ),
+});
+
+interface SheetRow {
+  id: string;
+  title: string;
+  sheet_date: string;
+  phone: string | null;
+  rows: TripRow[];
+  created_at: string;
+  updated_at: string;
+}
+
+function TripSheetsPage() {
+  const { user, isAdmin } = useAuth();
+  const [items, setItems] = useState<SheetRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState<{ name?: string | null; logo_url?: string | null } | null>(null);
+  const [editing, setEditing] = useState<SheetRow | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("trip_sheets")
+      .select("id, title, sheet_date, phone, rows, created_at, updated_at")
+      .order("sheet_date", { ascending: false })
+      .order("created_at", { ascending: false });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    setItems((data ?? []) as SheetRow[]);
+  };
+
+  useEffect(() => {
+    void load();
+    supabase.from("company_settings").select("name, logo_url").maybeSingle()
+      .then(({ data }) => setCompany(data ?? null));
+  }, []);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, SheetRow[]>();
+    for (const it of items) {
+      const key = it.sheet_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(it);
+    }
+    return Array.from(map.entries());
+  }, [items]);
+
+  const remove = async (id: string) => {
+    if (!confirm("Excluir esta planilha?")) return;
+    const { error } = await (supabase as any).from("trip_sheets").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Planilha excluída.");
+    setItems((xs) => xs.filter((x) => x.id !== id));
+  };
+
+  const shareWhatsApp = async (s: SheetRow) => {
+    try {
+      await exportTripSheetPDF(
+        { title: s.title, sheet_date: s.sheet_date, phone: s.phone ?? "", rows: s.rows ?? [] },
+        company,
+      );
+      const text = `Planilha de Viagem — ${dateBR(s.sheet_date)}\n(PDF baixado no seu dispositivo — anexe na conversa)`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const downloadPdf = async (s: SheetRow) => {
+    try {
+      await exportTripSheetPDF(
+        { title: s.title, sheet_date: s.sheet_date, phone: s.phone ?? "", rows: s.rows ?? [] },
+        company,
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  return (
+    <AppLayout
+      title="Planilhas de Viagem"
+      actions={
+        <Button onClick={() => setCreating(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Nova planilha
+        </Button>
+      }
+    >
+      <div className="space-y-6">
+        {loading && (
+          <div className="flex justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+        {!loading && grouped.length === 0 && (
+          <Card className="p-12 text-center text-muted-foreground">
+            <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            Nenhuma planilha criada ainda. Clique em <b>Nova planilha</b> para começar.
+          </Card>
+        )}
+        {grouped.map(([date, sheets]) => (
+          <section key={date} className="space-y-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {dateBR(date)}
+            </h2>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {sheets.map((s) => {
+                const ida = (s.rows ?? []).filter((r) => r.direction === "ida").length;
+                const volta = (s.rows ?? []).filter((r) => r.direction === "volta").length;
+                return (
+                  <Card key={s.id} className="p-4 space-y-3">
+                    <div>
+                      <div className="font-medium truncate">{s.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {ida} IDA · {volta} VOLTA
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setEditing(s)}>
+                        <Pencil className="h-4 w-4 mr-1" /> Editar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => downloadPdf(s)}>
+                        <Download className="h-4 w-4 mr-1" /> PDF
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => shareWhatsApp(s)}>
+                        <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                      </Button>
+                      {(isAdmin || s.id) && (
+                        <Button size="sm" variant="ghost" onClick={() => remove(s.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {(creating || editing) && (
+        <TripSheetEditor
+          initial={
+            editing
+              ? {
+                  title: editing.title,
+                  sheet_date: editing.sheet_date,
+                  phone: editing.phone ?? "",
+                  rows: editing.rows ?? [],
+                }
+              : emptyTripSheet()
+          }
+          existingId={editing?.id ?? null}
+          userId={user?.id ?? ""}
+          onClose={() => { setEditing(null); setCreating(false); }}
+          onSaved={() => { setEditing(null); setCreating(false); void load(); }}
+        />
+      )}
+    </AppLayout>
+  );
+}
+
+function TripSheetEditor({
+  initial, existingId, userId, onClose, onSaved,
+}: {
+  initial: TripSheetData;
+  existingId: string | null;
+  userId: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [data, setData] = useState<TripSheetData>(initial);
+  const [saving, setSaving] = useState(false);
+
+  const update = <K extends keyof TripSheetData>(k: K, v: TripSheetData[K]) =>
+    setData((d) => ({ ...d, [k]: v }));
+
+  const updateRow = (idx: number, patch: Partial<TripRow>) =>
+    setData((d) => ({ ...d, rows: d.rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)) }));
+
+  const addRow = (direction: TripDirection) =>
+    setData((d) => ({ ...d, rows: [...d.rows, emptyRow(direction)] }));
+
+  const removeRow = (idx: number) =>
+    setData((d) => ({ ...d, rows: d.rows.filter((_, i) => i !== idx) }));
+
+  const save = async () => {
+    if (!userId) return;
+    setSaving(true);
+    const payload = {
+      title: data.title || "Planilha de Viagem",
+      sheet_date: data.sheet_date,
+      phone: data.phone || null,
+      rows: data.rows as unknown as Record<string, unknown>[],
+    };
+    const q = existingId
+      ? (supabase as any).from("trip_sheets").update(payload).eq("id", existingId)
+      : (supabase as any).from("trip_sheets").insert({ ...payload, created_by: userId });
+    const { error } = await q;
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(existingId ? "Planilha atualizada." : "Planilha criada.");
+    onSaved();
+  };
+
+  const renderSection = (label: "IDA" | "VOLTA", direction: TripDirection) => {
+    const rows = data.rows
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => r.direction === direction);
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-primary">{label}</h3>
+          <Button type="button" size="sm" variant="outline" onClick={() => addRow(direction)}>
+            <Plus className="h-4 w-4 mr-1" /> Adicionar linha
+          </Button>
+        </div>
+        <div className="overflow-x-auto border border-border rounded-md">
+          <table className="w-full text-xs min-w-[900px]">
+            <thead className="bg-muted/40 text-[10px] uppercase text-muted-foreground">
+              <tr>
+                <th className="text-left p-2">Veículo</th>
+                <th className="text-left p-2">Placa</th>
+                <th className="text-left p-2">Empresa</th>
+                <th className="text-left p-2">Origem</th>
+                <th className="text-left p-2">Destino</th>
+                <th className="text-left p-2">Pátio</th>
+                <th className="text-left p-2">Pagamento</th>
+                <th className="p-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={8} className="p-3 text-center text-muted-foreground">Nenhuma linha</td></tr>
+              )}
+              {rows.map(({ r, i }) => (
+                <tr key={i} className="border-t border-border">
+                  {(["veiculo","placa","empresa","origem","destino","patio","pagamento"] as const).map((k) => (
+                    <td key={k} className="p-1">
+                      <Input
+                        className="h-8 text-xs"
+                        value={r[k]}
+                        onChange={(e) => updateRow(i, { [k]: e.target.value })}
+                      />
+                    </td>
+                  ))}
+                  <td className="p-1 text-right">
+                    <Button size="sm" variant="ghost" onClick={() => removeRow(i)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{existingId ? "Editar planilha" : "Nova planilha"}</DialogTitle>
+          <DialogDescription>Preencha as linhas de IDA e VOLTA da viagem.</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div>
+            <Label>Título</Label>
+            <Input value={data.title} onChange={(e) => update("title", e.target.value)} />
+          </div>
+          <div>
+            <Label>Data</Label>
+            <Input type="date" value={data.sheet_date} onChange={(e) => update("sheet_date", e.target.value)} />
+          </div>
+          <div>
+            <Label>Telefone</Label>
+            <Input value={data.phone} onChange={(e) => update("phone", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="space-y-6 mt-4">
+          {renderSection("IDA", "ida")}
+          {renderSection("VOLTA", "volta")}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

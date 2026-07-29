@@ -11,6 +11,7 @@ import {
   LogOut,
   Handshake,
   ClipboardCheck,
+  FileSpreadsheet,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import {
@@ -33,6 +34,7 @@ const allItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Transportes", url: "/transports", icon: Truck, permission: "transports.view" },
   { title: "Checklists", url: "/checklists", icon: ClipboardCheck, permission: "transports.view" },
+  { title: "Planilhas", url: "/planilhas", icon: FileSpreadsheet, permission: "transports.view" },
   { title: "Parceiros", url: "/partners", icon: Handshake, permission: "partners.view" },
   { title: "Financeiro", url: "/financial", icon: Wallet, permission: "financial.view" },
   { title: "Cobranças", url: "/collections", icon: AlertTriangle, permission: "collections.view" },
