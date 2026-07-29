@@ -455,7 +455,7 @@ function DocumentsPage() {
     try {
       const res = await generateFn({ data: { contract_id: d.id } });
       if (!res.ok) {
-        toast.error(res.error);
+        toast.error(res.error ?? "Falha ao gerar.");
         return;
       }
       toast.success(
@@ -463,10 +463,10 @@ function DocumentsPage() {
           ? "Transporte e cobrança já existiam."
           : `Gerados ${res.transport_ids.length} transporte(s) e 1 cobrança.`,
       );
-      void load();
-    } catch {
-      toast.error("Falha ao gerar. Tente novamente.");
+    } catch (e) {
+      toast.error((e as Error)?.message ?? "Falha ao gerar. Tente novamente.");
     } finally {
+      await load();
       setGeneratingId(null);
     }
   };
