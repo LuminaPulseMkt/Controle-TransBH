@@ -18,6 +18,17 @@ import {
   emptyRow, emptyTripSheet, type TripDirection, type TripRow, type TripSheetData,
 } from "@/lib/trip-sheet-types";
 import { exportTripSheetPDF } from "@/lib/trip-sheet-pdf";
+import { exportCSV } from "@/lib/exporters";
+
+function exportTripSheetCSV(s: { title: string; sheet_date: string; phone: string | null; rows: TripRow[] }) {
+  const columns = ["Direção", "Veículo", "Placa", "Empresa", "Origem", "Destino", "Pátio", "Pagamento"];
+  const rows = (s.rows ?? []).map((r) => [
+    r.direction === "ida" ? "IDA" : "VOLTA",
+    r.veiculo, r.placa, r.empresa, r.origem, r.destino, r.patio, r.pagamento,
+  ]);
+  const safeDate = s.sheet_date || "planilha";
+  exportCSV(`planilha-${safeDate}.csv`, columns, rows);
+}
 
 export const Route = createFileRoute("/planilhas")({
   head: () => ({
