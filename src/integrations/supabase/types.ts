@@ -708,6 +708,39 @@ export type Database = {
           },
         ]
       }
+      trip_sheets: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          phone: string | null
+          rows: Json
+          sheet_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          phone?: string | null
+          rows?: Json
+          sheet_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          phone?: string | null
+          rows?: Json
+          sheet_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
