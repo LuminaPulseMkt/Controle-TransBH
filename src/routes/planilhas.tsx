@@ -18,6 +18,17 @@ import {
   emptyRow, emptyTripSheet, type TripDirection, type TripRow, type TripSheetData,
 } from "@/lib/trip-sheet-types";
 import { exportTripSheetPDF } from "@/lib/trip-sheet-pdf";
+import { exportCSV } from "@/lib/exporters";
+
+function exportTripSheetCSV(s: { title: string; sheet_date: string; phone: string | null; rows: TripRow[] }) {
+  const columns = ["Direção", "Veículo", "Placa", "Empresa", "Origem", "Destino", "Pátio", "Pagamento"];
+  const rows = (s.rows ?? []).map((r) => [
+    r.direction === "ida" ? "IDA" : "VOLTA",
+    r.veiculo, r.placa, r.empresa, r.origem, r.destino, r.patio, r.pagamento,
+  ]);
+  const safeDate = s.sheet_date || "planilha";
+  exportCSV(`planilha-${safeDate}.csv`, columns, rows);
+}
 
 export const Route = createFileRoute("/planilhas")({
   head: () => ({
@@ -159,6 +170,9 @@ function TripSheetsPage() {
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => downloadPdf(s)}>
                         <Download className="h-4 w-4 mr-1" /> PDF
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => exportTripSheetCSV({ title: s.title, sheet_date: s.sheet_date, phone: s.phone, rows: s.rows ?? [] })}>
+                        <FileSpreadsheet className="h-4 w-4 mr-1" /> CSV
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => shareWhatsApp(s)}>
                         <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
