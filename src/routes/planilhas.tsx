@@ -171,6 +171,9 @@ function TripSheetsPage() {
                       <Button size="sm" variant="outline" onClick={() => downloadPdf(s)}>
                         <Download className="h-4 w-4 mr-1" /> PDF
                       </Button>
+                      <Button size="sm" variant="outline" onClick={() => exportTripSheetCSV({ title: s.title, sheet_date: s.sheet_date, phone: s.phone, rows: s.rows ?? [] })}>
+                        <FileSpreadsheet className="h-4 w-4 mr-1" /> CSV
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => shareWhatsApp(s)}>
                         <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
                       </Button>
