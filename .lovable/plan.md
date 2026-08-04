@@ -1,31 +1,37 @@
-## Diagnóstico
+# Plan: Trip Sheet Enhancements
 
-O upload do logo grava em `storage.objects` (bucket `company-assets`). As policies atuais exigem `can_manage_settings(auth.uid())`, que retorna `true` para administradores ou usuários com a permissão `settings.manage`.
+Implement visual and functional updates to the "Planilha" (Trip Sheet) feature as requested.
 
-Ambos os usuários do projeto têm role `administrator` no banco, então a policy deveria passar — mas o erro "new row violates row-level security policy" indica que, no momento do upload, o JWT enviado ao Storage não está sendo reconhecido como admin (sessão sem token de autenticação no client de Storage, ou usuário ainda sem role efetiva carregada).
+## Database Changes
+- Migration to add `return_date` (DATE) and `expenses` (JSONB) columns to `trip_sheets` table.
 
-Para destravar de forma segura, a tela de Configurações já é protegida pelo `AuthGate` com a permissão `settings.manage`, ou seja, somente quem pode gerenciar configurações chega lá. Podemos simplificar a policy de Storage para alinhar com isso sem perder segurança.
+## Data Structure Changes (`src/lib/trip-sheet-types.ts`)
+- Rename `pagamento` to `valor` in `TripRow`.
+- Add `pago` (boolean) and `recebido_por` (string) to `TripRow`.
+- Add `ExpenseRow` interface.
+- Add `return_date` and `expenses` to `TripSheetData`.
 
-## Mudanças
+## UI Changes (`src/routes/planilhas.tsx`)
+- **Editor**:
+    - Add "Data da volta" input.
+    - Update IDA/VOLTA tables:
+        - Rename column "Pagamento" to "Valor".
+        - Add "Pago" checkbox column.
+        - Add "Recebido por" input column.
+    - Add "Despesas" section with add/remove rows.
+    - Add a "Totais" section at the bottom calculating:
+        - Total Recebido (sum of `valor` where `pago` is true or all? Assuming all received/confirmed amounts).
+        - Total Gasto (sum of expenses).
+        - Valor Total Livre (Net).
+- **Listing**:
+    - Update CSV export logic.
+    - Ensure new fields are fetched and saved.
 
-### Migração SQL (Supabase)
+## PDF Export Changes (`src/lib/trip-sheet-pdf.ts`)
+- Reflect renamed and new columns in the PDF tables.
+- Include "Data da Volta".
+- Add the "Despesas" section and the totals summary at the end of the document.
 
-Substituir as 3 policies do bucket `company-assets` em `storage.objects` por versões que aceitem qualquer usuário autenticado:
-
-- DROP `Settings managers upload company assets` (INSERT)
-- DROP `Settings managers update company assets` (UPDATE)
-- DROP `Settings managers delete company assets` (DELETE)
-- CREATE policies equivalentes com a condição:
-  `bucket_id = 'company-assets' AND auth.uid() IS NOT NULL`
-
-A proteção de acesso à tela continua sendo feita pelo `AuthGate` + RLS de `company_settings` (que mantém `can_manage_settings`). Apenas o ato físico de subir o arquivo no bucket fica liberado para autenticados — coerente com o bucket ser público para leitura.
-
-### Sem mudanças de código
-
-Nenhum arquivo do frontend precisa ser alterado. O fluxo de upload em `src/routes/settings.tsx` continua igual.
-
-## Verificação
-
-1. Logar como `transbh2018@hotmail.com`.
-2. Ir em Configurações → trocar logo → confirmar upload sem erro.
-3. Conferir que o logo aparece no preview e é salvo em `company_settings.logo_url`.
+## User Questions
+- Should "Total Recebido" sum ALL row values or only those marked as "Pago"?
+- Is there a specific format for the "Despesas" section in the PDF?

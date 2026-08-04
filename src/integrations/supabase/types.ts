@@ -712,8 +712,10 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          expenses: Json | null
           id: string
           phone: string | null
+          return_date: string | null
           rows: Json
           sheet_date: string
           title: string
@@ -722,8 +724,10 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          expenses?: Json | null
           id?: string
           phone?: string | null
+          return_date?: string | null
           rows?: Json
           sheet_date?: string
           title?: string
@@ -732,8 +736,10 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          expenses?: Json | null
           id?: string
           phone?: string | null
+          return_date?: string | null
           rows?: Json
           sheet_date?: string
           title?: string
