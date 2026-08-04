@@ -1,16 +1,18 @@
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
 import fallbackLogo from "@/assets/logo-transbh.png";
-import type { TripSheetData, TripRow } from "@/lib/trip-sheet-types";
+import type { TripSheetData, TripRow, ExpenseRow } from "@/lib/trip-sheet-types";
 import { dateBR } from "@/lib/format";
 
 const COLUMNS: { key: keyof TripRow; label: string; width: number }[] = [
   { key: "veiculo", label: "VEÍCULO", width: 28 },
   { key: "placa", label: "PLACA", width: 24 },
   { key: "empresa", label: "EMPRESA", width: 38 },
-  { key: "origem", label: "ORIGEM", width: 30 },
-  { key: "destino", label: "DESTINO", width: 30 },
-  { key: "patio", label: "PÁTIO", width: 26 },
-  { key: "pagamento", label: "PAGAMENTO", width: 22 },
+  { key: "origem", label: "ORIGEM", width: 25 },
+  { key: "destino", label: "DESTINO", width: 25 },
+  { key: "patio", label: "PÁTIO", width: 20 },
+  { key: "valor", label: "VALOR", width: 20 },
+  { key: "pago", label: "PAGO", width: 14 },
+  { key: "recebido_por", label: "REC. POR", width: 24 },
 ];
 
 export async function generateTripSheetPdfBlob(
@@ -40,19 +42,26 @@ export async function generateTripSheetPdfBlob(
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`TELEFONE: ${data.phone || "—"}`, pageW - 10, y + 6, { align: "right" });
-    doc.text(`DATA: ${dateBR(data.sheet_date)}`, pageW - 10, y + 12, { align: "right" });
+    doc.text(`DATA IDA: ${dateBR(data.sheet_date)}`, pageW - 10, y + 12, { align: "right" });
+    if (data.return_date) {
+      doc.text(`DATA VOLTA: ${dateBR(data.return_date)}`, pageW - 10, y + 18, { align: "right" });
+      y += 6;
+    }
     y += 18;
 
     const rows = data.rows.filter((r) => r.direction === (title === "IDA" ? "ida" : "volta"));
     const body = rows.length
-      ? rows.map((r) => COLUMNS.map((c) => (r[c.key] || "").toString()))
+      ? rows.map((r) => COLUMNS.map((c) => {
+          if (c.key === "pago") return r.pago ? "SIM" : "NÃO";
+          return (r[c.key] || "").toString();
+        }))
       : [COLUMNS.map(() => "")];
 
     autoTable(doc, {
       startY: y,
       head: [COLUMNS.map((c) => c.label)],
       body,
-      styles: { fontSize: 9, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.2 },
+      styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.2 },
       headStyles: { fillColor: [230, 88, 26], textColor: 255, halign: "center" },
       columnStyles: Object.fromEntries(
         COLUMNS.map((c, i) => [i, { cellWidth: c.width }]),
@@ -62,11 +71,44 @@ export async function generateTripSheetPdfBlob(
     return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   };
 
-  let y = 12;
-  y = await drawSection("IDA", y);
-  y += 8;
-  if (y > 130) { doc.addPage(); y = 12; }
-  y = await drawSection("VOLTA", y);
+  let currentY = 12;
+  currentY = await drawSection("IDA", currentY);
+  currentY += 8;
+  if (currentY > 120) { doc.addPage(); currentY = 12; }
+  currentY = await drawSection("VOLTA", currentY);
+
+  // Totals & Expenses
+  currentY += 10;
+  if (currentY > 160) { doc.addPage(); currentY = 12; }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("DESPESAS", 10, currentY);
+  currentY += 5;
+
+  const expenseBody = (data.expenses || []).map(e => [e.description, e.value]);
+  autoTable(doc, {
+    startY: currentY,
+    head: [["DESCRIÇÃO", "VALOR"]],
+    body: expenseBody.length ? expenseBody : [["-", "-"]],
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [100, 100, 100] },
+    margin: { left: 10, right: 150 },
+  });
+
+  currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+  const totalReceived = data.rows.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+  const totalExpenses = (data.expenses || []).reduce((acc, e) => acc + (parseFloat(e.value) || 0), 0);
+  const totalNet = totalReceived - totalExpenses;
+
+  doc.setFontSize(11);
+  doc.text(`TOTAL RECEBIDO: R$ ${totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, currentY, { align: "right" });
+  doc.text(`TOTAL DESPESAS: R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, currentY + 6, { align: "right" });
+  
+  doc.setFontSize(14);
+  doc.setTextColor(230, 88, 26);
+  doc.text(`VALOR TOTAL LIVRE: R$ ${totalNet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, currentY + 14, { align: "right" });
 
   const blob = doc.output("blob") as Blob;
   const safeDate = data.sheet_date || "planilha";
