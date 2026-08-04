@@ -1,37 +1,24 @@
-# Plan: Trip Sheet Enhancements
+# Plano de Integração Financeira das Planilhas
 
-Implement visual and functional updates to the "Planilha" (Trip Sheet) feature as requested.
+O objetivo é integrar os dados financeiros das planilhas de viagem (receitas e despesas) na aba **Financeiro**, permitindo que o lucro e os gastos registrados nas planilhas sejam contabilizados no fluxo de caixa geral.
 
-## Database Changes
-- Migration to add `return_date` (DATE) and `expenses` (JSONB) columns to `trip_sheets` table.
+## 1. Banco de Dados
+- Nenhuma alteração de esquema é estritamente necessária, pois já temos a tabela `trip_sheets` com os campos `rows` (que contém o `valor`) e `expenses`.
 
-## Data Structure Changes (`src/lib/trip-sheet-types.ts`)
-- Rename `pagamento` to `valor` in `TripRow`.
-- Add `pago` (boolean) and `recebido_por` (string) to `TripRow`.
-- Add `ExpenseRow` interface.
-- Add `return_date` and `expenses` to `TripSheetData`.
+## 2. Lógica de Negócio e Agregação
+- Atualizar a aba **Financeiro** (`src/routes/financial.tsx`) para incluir as planilhas na aba de **Relatórios**.
+- Modificar o componente `ReportsTab` para buscar também os dados da tabela `trip_sheets` no intervalo de tempo selecionado (mês atual por padrão).
 
-## UI Changes (`src/routes/planilhas.tsx`)
-- **Editor**:
-    - Add "Data da volta" input.
-    - Update IDA/VOLTA tables:
-        - Rename column "Pagamento" to "Valor".
-        - Add "Pago" checkbox column.
-        - Add "Recebido por" input column.
-    - Add "Despesas" section with add/remove rows.
-    - Add a "Totais" section at the bottom calculating:
-        - Total Recebido (sum of `valor` where `pago` is true or all? Assuming all received/confirmed amounts).
-        - Total Gasto (sum of expenses).
-        - Valor Total Livre (Net).
-- **Listing**:
-    - Update CSV export logic.
-    - Ensure new fields are fetched and saved.
+## 3. Interface do Usuário (UI)
+- **Aba Financeiro > Relatórios**:
+    - Somar o `Total Recebido` das planilhas ao `Receita do mês`.
+    - Somar o `Total Despesas` das planilhas ao `Despesa do mês`.
+    - O `Resultado` será atualizado automaticamente com esses novos totais.
+- **Detalhamento**:
+    - Adicionar uma seção ou menção nos relatórios indicando o quanto da receita/despesa provém das planilhas de viagem.
 
-## PDF Export Changes (`src/lib/trip-sheet-pdf.ts`)
-- Reflect renamed and new columns in the PDF tables.
-- Include "Data da Volta".
-- Add the "Despesas" section and the totals summary at the end of the document.
+## 4. Exportação
+- Atualizar a função `exportPDF` no `ReportsTab` para incluir os dados agregados das planilhas no PDF gerado.
 
-## User Questions
-- Should "Total Recebido" sum ALL row values or only those marked as "Pago"?
-- Is there a specific format for the "Despesas" section in the PDF?
+## Arquivos a serem modificados
+- `src/routes/financial.tsx`: Principal alteração na agregação de dados do `ReportsTab`.
