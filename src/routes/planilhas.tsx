@@ -9,22 +9,23 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, Download, MessageCircle, Pencil, Loader2, Save, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { dateBR } from "@/lib/format";
 import {
-  emptyRow, emptyTripSheet, type TripDirection, type TripRow, type TripSheetData,
+  emptyRow, emptyTripSheet, emptyExpense, type TripDirection, type TripRow, type TripSheetData, type ExpenseRow
 } from "@/lib/trip-sheet-types";
 import { exportTripSheetPDF } from "@/lib/trip-sheet-pdf";
 import { exportCSV } from "@/lib/exporters";
 
-function exportTripSheetCSV(s: { title: string; sheet_date: string; phone: string | null; rows: TripRow[] }) {
-  const columns = ["Direção", "Veículo", "Placa", "Empresa", "Origem", "Destino", "Pátio", "Pagamento"];
+function exportTripSheetCSV(s: TripSheetData) {
+  const columns = ["Direção", "Veículo", "Placa", "Empresa", "Origem", "Destino", "Pátio", "Valor", "Pago", "Recebido Por"];
   const rows = (s.rows ?? []).map((r) => [
     r.direction === "ida" ? "IDA" : "VOLTA",
-    r.veiculo, r.placa, r.empresa, r.origem, r.destino, r.patio, r.pagamento,
+    r.veiculo, r.placa, r.empresa, r.origem, r.destino, r.patio, r.valor, r.pago ? "SIM" : "NÃO", r.recebido_por,
   ]);
   const safeDate = s.sheet_date || "planilha";
   exportCSV(`planilha-${safeDate}.csv`, columns, rows);
@@ -48,12 +49,8 @@ export const Route = createFileRoute("/planilhas")({
   ),
 });
 
-interface SheetRow {
+interface SheetRow extends TripSheetData {
   id: string;
-  title: string;
-  sheet_date: string;
-  phone: string | null;
-  rows: TripRow[];
   created_at: string;
   updated_at: string;
 }
@@ -70,7 +67,7 @@ function TripSheetsPage() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("trip_sheets")
-      .select("id, title, sheet_date, phone, rows, created_at, updated_at")
+      .select("*")
       .order("sheet_date", { ascending: false })
       .order("created_at", { ascending: false });
     setLoading(false);
@@ -104,10 +101,7 @@ function TripSheetsPage() {
 
   const shareWhatsApp = async (s: SheetRow) => {
     try {
-      await exportTripSheetPDF(
-        { title: s.title, sheet_date: s.sheet_date, phone: s.phone ?? "", rows: s.rows ?? [] },
-        company,
-      );
+      await exportTripSheetPDF(s, company);
       const text = `Planilha de Viagem — ${dateBR(s.sheet_date)}\n(PDF baixado no seu dispositivo — anexe na conversa)`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
     } catch (e) {
@@ -117,10 +111,7 @@ function TripSheetsPage() {
 
   const downloadPdf = async (s: SheetRow) => {
     try {
-      await exportTripSheetPDF(
-        { title: s.title, sheet_date: s.sheet_date, phone: s.phone ?? "", rows: s.rows ?? [] },
-        company,
-      );
+      await exportTripSheetPDF(s, company);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -171,7 +162,7 @@ function TripSheetsPage() {
                       <Button size="sm" variant="outline" onClick={() => downloadPdf(s)}>
                         <Download className="h-4 w-4 mr-1" /> PDF
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => exportTripSheetCSV({ title: s.title, sheet_date: s.sheet_date, phone: s.phone, rows: s.rows ?? [] })}>
+                      <Button size="sm" variant="outline" onClick={() => exportTripSheetCSV(s)}>
                         <FileSpreadsheet className="h-4 w-4 mr-1" /> CSV
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => shareWhatsApp(s)}>
@@ -193,16 +184,7 @@ function TripSheetsPage() {
 
       {(creating || editing) && (
         <TripSheetEditor
-          initial={
-            editing
-              ? {
-                  title: editing.title,
-                  sheet_date: editing.sheet_date,
-                  phone: editing.phone ?? "",
-                  rows: editing.rows ?? [],
-                }
-              : emptyTripSheet()
-          }
+          initial={editing || emptyTripSheet()}
           existingId={editing?.id ?? null}
           userId={user?.id ?? ""}
           onClose={() => { setEditing(null); setCreating(false); }}
@@ -237,14 +219,31 @@ function TripSheetEditor({
   const removeRow = (idx: number) =>
     setData((d) => ({ ...d, rows: d.rows.filter((_, i) => i !== idx) }));
 
+  const addExpense = () =>
+    setData((d) => ({ ...d, expenses: [...(d.expenses || []), emptyExpense()] }));
+
+  const removeExpense = (id: string) =>
+    setData((d) => ({ ...d, expenses: (d.expenses || []).filter(e => e.id !== id) }));
+
+  const updateExpense = (id: string, patch: Partial<ExpenseRow>) =>
+    setData((d) => ({ ...d, expenses: (d.expenses || []).map(e => e.id === id ? { ...e, ...patch } : e) }));
+
+  const totals = useMemo(() => {
+    const received = data.rows.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+    const spent = (data.expenses || []).reduce((acc, e) => acc + (parseFloat(e.value) || 0), 0);
+    return { received, spent, net: received - spent };
+  }, [data.rows, data.expenses]);
+
   const save = async () => {
     if (!userId) return;
     setSaving(true);
     const payload = {
       title: data.title || "Planilha de Viagem",
       sheet_date: data.sheet_date,
+      return_date: data.return_date || null,
       phone: data.phone || null,
       rows: data.rows as unknown as Record<string, unknown>[],
+      expenses: (data.expenses || []) as unknown as Record<string, unknown>[],
     };
     const q = existingId
       ? (supabase as any).from("trip_sheets").update(payload).eq("id", existingId)
@@ -269,7 +268,7 @@ function TripSheetEditor({
           </Button>
         </div>
         <div className="overflow-x-auto border border-border rounded-md">
-          <table className="w-full text-xs min-w-[900px]">
+          <table className="w-full text-xs min-w-[1000px]">
             <thead className="bg-muted/40 text-[10px] uppercase text-muted-foreground">
               <tr>
                 <th className="text-left p-2">Veículo</th>
@@ -278,25 +277,29 @@ function TripSheetEditor({
                 <th className="text-left p-2">Origem</th>
                 <th className="text-left p-2">Destino</th>
                 <th className="text-left p-2">Pátio</th>
-                <th className="text-left p-2">Pagamento</th>
-                <th className="p-2"></th>
+                <th className="text-left p-2">Valor</th>
+                <th className="text-center p-2 w-16">Pago</th>
+                <th className="text-left p-2">Recebido por</th>
+                <th className="p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={8} className="p-3 text-center text-muted-foreground">Nenhuma linha</td></tr>
+                <tr><td colSpan={10} className="p-3 text-center text-muted-foreground">Nenhuma linha</td></tr>
               )}
               {rows.map(({ r, i }) => (
                 <tr key={i} className="border-t border-border">
-                  {(["veiculo","placa","empresa","origem","destino","patio","pagamento"] as const).map((k) => (
-                    <td key={k} className="p-1">
-                      <Input
-                        className="h-8 text-xs"
-                        value={r[k]}
-                        onChange={(e) => updateRow(i, { [k]: e.target.value })}
-                      />
-                    </td>
-                  ))}
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.veiculo} onChange={(e) => updateRow(i, { veiculo: e.target.value })} /></td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.placa} onChange={(e) => updateRow(i, { placa: e.target.value })} /></td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.empresa} onChange={(e) => updateRow(i, { empresa: e.target.value })} /></td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.origem} onChange={(e) => updateRow(i, { origem: e.target.value })} /></td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.destino} onChange={(e) => updateRow(i, { destino: e.target.value })} /></td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.patio} onChange={(e) => updateRow(i, { patio: e.target.value })} /></td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.valor} onChange={(e) => updateRow(i, { valor: e.target.value })} /></td>
+                  <td className="p-1 text-center">
+                    <Checkbox checked={r.pago} onCheckedChange={(v) => updateRow(i, { pago: !!v })} />
+                  </td>
+                  <td className="p-1"><Input className="h-8 text-xs" value={r.recebido_por} onChange={(e) => updateRow(i, { recebido_por: e.target.value })} /></td>
                   <td className="p-1 text-right">
                     <Button size="sm" variant="ghost" onClick={() => removeRow(i)}>
                       <Trash2 className="h-4 w-4" />
@@ -316,17 +319,21 @@ function TripSheetEditor({
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{existingId ? "Editar planilha" : "Nova planilha"}</DialogTitle>
-          <DialogDescription>Preencha as linhas de IDA e VOLTA da viagem.</DialogDescription>
+          <DialogDescription>Preencha as linhas de IDA e VOLTA da viagem e as despesas.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-4">
           <div>
             <Label>Título</Label>
             <Input value={data.title} onChange={(e) => update("title", e.target.value)} />
           </div>
           <div>
-            <Label>Data</Label>
+            <Label>Data Ida</Label>
             <Input type="date" value={data.sheet_date} onChange={(e) => update("sheet_date", e.target.value)} />
+          </div>
+          <div>
+            <Label>Data Volta</Label>
+            <Input type="date" value={data.return_date} onChange={(e) => update("return_date", e.target.value)} />
           </div>
           <div>
             <Label>Telefone</Label>
@@ -337,6 +344,40 @@ function TripSheetEditor({
         <div className="space-y-6 mt-4">
           {renderSection("IDA", "ida")}
           {renderSection("VOLTA", "volta")}
+
+          {/* Expenses Section */}
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-primary uppercase text-sm">Despesas</h3>
+              <Button type="button" size="sm" variant="outline" onClick={addExpense}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar despesa
+              </Button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {(data.expenses || []).map((e) => (
+                <div key={e.id} className="flex gap-2 items-end border p-2 rounded-md">
+                  <div className="flex-1">
+                    <Label className="text-[10px] uppercase">Descrição</Label>
+                    <Input className="h-8 text-xs" value={e.description} onChange={(ev) => updateExpense(e.id, { description: ev.target.value })} />
+                  </div>
+                  <div className="w-24">
+                    <Label className="text-[10px] uppercase">Valor</Label>
+                    <Input className="h-8 text-xs" value={e.value} onChange={(ev) => updateExpense(e.id, { value: ev.target.value })} />
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeExpense(e.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Totals Summary */}
+          <div className="bg-muted/50 p-4 rounded-lg flex flex-col items-end space-y-1">
+            <div className="text-sm">Total Recebido: <span className="font-semibold">R$ {totals.received.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+            <div className="text-sm">Total Despesas: <span className="font-semibold">R$ {totals.spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+            <div className="text-lg font-bold text-primary mt-2">VALOR TOTAL LIVRE: R$ {totals.net.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          </div>
         </div>
 
         <DialogFooter>
