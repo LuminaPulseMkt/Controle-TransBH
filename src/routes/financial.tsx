@@ -728,7 +728,13 @@ function PayablesTab() {
 }
 
 function ReportsTab() {
-  const [data, setData] = useState<{ revenue: number; expenses: number; receivables: Receivable[] } | null>(null);
+  const [data, setData] = useState<{ 
+    revenue: number; 
+    expenses: number; 
+    tripRevenue: number;
+    tripExpenses: number;
+    receivables: Receivable[] 
+  } | null>(null);
   const [company, setCompany] = useState<{ name: string | null; logo_url: string | null } | null>(null);
 
   useEffect(() => {
@@ -736,15 +742,41 @@ function ReportsTab() {
       const monthStart = new Date();
       monthStart.setDate(1);
       const iso = monthStart.toISOString().slice(0, 10);
-      const [{ data: monthPayments }, { data: pay }, { data: rec }, { data: comp }] = await Promise.all([
+      const [{ data: monthPayments }, { data: pay }, { data: rec }, { data: comp }, { data: trips }] = await Promise.all([
         supabase.from("receivable_payments").select("amount, paid_at").gte("paid_at", iso),
         supabase.from("payables").select("amount, expense_date").gte("expense_date", iso),
         supabase.from("receivables").select("*").eq("status", "overdue").order("due_date"),
         supabase.from("company_settings").select("name,logo_url").maybeSingle(),
+        supabase.from("trip_sheets").select("rows, expenses, sheet_date").gte("sheet_date", iso),
       ]);
+
       const revenue = monthPayments?.reduce((s, r) => s + Number(r.amount), 0) ?? 0;
       const expenses = pay?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
-      setData({ revenue, expenses, receivables: rec ?? [] });
+
+      // Calcular dados financeiros das planilhas
+      let tripRevenue = 0;
+      let tripExpenses = 0;
+
+      trips?.forEach((sheet: any) => {
+        const rows = (sheet.rows || []) as any[];
+        const sheetExpenses = (sheet.expenses || []) as any[];
+        
+        rows.forEach(r => {
+          tripRevenue += parseFloat(r.valor) || 0;
+        });
+        
+        sheetExpenses.forEach(e => {
+          tripExpenses += parseFloat(e.value) || 0;
+        });
+      });
+
+      setData({ 
+        revenue, 
+        expenses, 
+        tripRevenue,
+        tripExpenses,
+        receivables: rec ?? [] 
+      });
       setCompany(comp ?? null);
     })();
   }, []);
@@ -774,14 +806,16 @@ function ReportsTab() {
     doc.text("Relatório Financeiro", 14, headerH + 12);
     doc.setFontSize(11);
     doc.text(`Mês: ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`, 14, headerH + 22);
-    doc.text(`Receita: ${brl(data.revenue)}`, 14, headerH + 32);
-    doc.text(`Despesas: ${brl(data.expenses)}`, 14, headerH + 39);
-    doc.text(`Resultado: ${brl(data.revenue - data.expenses)}`, 14, headerH + 46);
+    doc.text(`Receita Total: ${brl(data.revenue + data.tripRevenue)}`, 14, headerH + 32);
+    doc.text(`   (Financeiro: ${brl(data.revenue)} | Planilhas: ${brl(data.tripRevenue)})`, 14, headerH + 37);
+    doc.text(`Despesas Totais: ${brl(data.expenses + data.tripExpenses)}`, 14, headerH + 47);
+    doc.text(`   (Financeiro: ${brl(data.expenses)} | Planilhas: ${brl(data.tripExpenses)})`, 14, headerH + 52);
+    doc.text(`Resultado Líquido: ${brl((data.revenue + data.tripRevenue) - (data.expenses + data.tripExpenses))}`, 14, headerH + 62);
 
     if (data.receivables.length) {
-      doc.text("Contas vencidas:", 14, headerH + 58);
+      doc.text("Contas vencidas:", 14, headerH + 74);
       autoTable(doc, {
-        startY: headerH + 62,
+        startY: headerH + 78,
         head: [["Cliente", "Valor", "Vencimento", "Dias"]],
         body: data.receivables.map((r) => [
           r.client_name,
@@ -796,21 +830,35 @@ function ReportsTab() {
 
   if (!data) return <Skeleton className="h-48 w-full" />;
 
-  const result = data.revenue - data.expenses;
+  const totalRevenue = data.revenue + data.tripRevenue;
+  const totalExpenses = data.expenses + data.tripExpenses;
+  const result = totalRevenue - totalExpenses;
+
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-3 gap-4">
         <Card className="p-5">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Receita do mês</div>
-          <div className="text-display text-3xl text-success mt-1">{brl(data.revenue)}</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Receita Total</div>
+          <div className="text-display text-3xl text-success mt-1">{brl(totalRevenue)}</div>
+          <div className="text-[10px] text-muted-foreground mt-2 flex flex-col">
+            <span>Financeiro: {brl(data.revenue)}</span>
+            <span>Planilhas: {brl(data.tripRevenue)}</span>
+          </div>
         </Card>
         <Card className="p-5">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Despesa do mês</div>
-          <div className="text-display text-3xl text-destructive mt-1">{brl(data.expenses)}</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Despesa Total</div>
+          <div className="text-display text-3xl text-destructive mt-1">{brl(totalExpenses)}</div>
+          <div className="text-[10px] text-muted-foreground mt-2 flex flex-col">
+            <span>Financeiro: {brl(data.expenses)}</span>
+            <span>Planilhas: {brl(data.tripExpenses)}</span>
+          </div>
         </Card>
         <Card className="p-5">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Resultado</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Resultado Líquido</div>
           <div className={`text-display text-3xl mt-1 ${result >= 0 ? "text-success" : "text-destructive"}`}>{brl(result)}</div>
+          <div className="text-[10px] text-muted-foreground mt-2">
+            Mês atual (agregado)
+          </div>
         </Card>
       </div>
 
