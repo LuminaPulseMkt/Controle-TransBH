@@ -1,20 +1,37 @@
----
-layout: dashboard
-label: Trip Sheet Redesign
----
+# Plan: Trip Sheet Enhancements
 
-# Planilha de Viagem
+Implement visual and functional updates to the "Planilha" (Trip Sheet) feature as requested.
 
-**Data Ida:** [ 2026-08-04 ]  **Data Volta:** [ 2026-08-11 ]
+## Database Changes
+- Migration to add `return_date` (DATE) and `expenses` (JSONB) columns to `trip_sheets` table.
 
-| Veículo | Placa | Empresa | Origem | Destino | Pátio | Valor | Pago | Recebido por |
-|---------|-------|---------|--------|---------|-------|-------|------|--------------|
-| Volvo   | ABC-1234| TransBH | SP     | RJ      | A1    | 500   | [x]  | João         |
+## Data Structure Changes (`src/lib/trip-sheet-types.ts`)
+- Rename `pagamento` to `valor` in `TripRow`.
+- Add `pago` (boolean) and `recebido_por` (string) to `TripRow`.
+- Add `ExpenseRow` interface.
+- Add `return_date` and `expenses` to `TripSheetData`.
 
-### Despesas
-- Combustível: 200
-- Pedágio: 50
+## UI Changes (`src/routes/planilhas.tsx`)
+- **Editor**:
+    - Add "Data da volta" input.
+    - Update IDA/VOLTA tables:
+        - Rename column "Pagamento" to "Valor".
+        - Add "Pago" checkbox column.
+        - Add "Recebido por" input column.
+    - Add "Despesas" section with add/remove rows.
+    - Add a "Totais" section at the bottom calculating:
+        - Total Recebido (sum of `valor` where `pago` is true or all? Assuming all received/confirmed amounts).
+        - Total Gasto (sum of expenses).
+        - Valor Total Livre (Net).
+- **Listing**:
+    - Update CSV export logic.
+    - Ensure new fields are fetched and saved.
 
-**Total Recebido:** 500
-**Total Despesas:** 250
-**Valor Total Livre:** 250
+## PDF Export Changes (`src/lib/trip-sheet-pdf.ts`)
+- Reflect renamed and new columns in the PDF tables.
+- Include "Data da Volta".
+- Add the "Despesas" section and the totals summary at the end of the document.
+
+## User Questions
+- Should "Total Recebido" sum ALL row values or only those marked as "Pago"?
+- Is there a specific format for the "Despesas" section in the PDF?
