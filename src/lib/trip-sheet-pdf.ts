@@ -86,14 +86,14 @@ export async function generateTripSheetPdfBlob(
   doc.text("DESPESAS", 10, currentY);
   currentY += 5;
 
-  const expenseBody = (data.expenses || []).map(e => [e.description, e.value]);
+  const expenseBody = (data.expenses || []).map(e => [e.description, e.paid_by ?? "", e.value]);
   autoTable(doc, {
     startY: currentY,
-    head: [["DESCRIÇÃO", "VALOR"]],
-    body: expenseBody.length ? expenseBody : [["-", "-"]],
+    head: [["DESCRIÇÃO", "PAGO POR", "VALOR"]],
+    body: expenseBody.length ? expenseBody : [["-", "-", "-"]],
     styles: { fontSize: 9, cellPadding: 2 },
     headStyles: { fillColor: [100, 100, 100] },
-    margin: { left: 10, right: 150 },
+    margin: { left: 10, right: 120 },
   });
 
   currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;

@@ -23,10 +23,15 @@ import { exportCSV } from "@/lib/exporters";
 
 function exportTripSheetCSV(s: TripSheetData) {
   const columns = ["Direção", "Veículo", "Placa", "Empresa", "Origem", "Destino", "Pátio", "Valor", "Pago", "Recebido Por"];
-  const rows = (s.rows ?? []).map((r) => [
+  const rows: (string | number)[][] = (s.rows ?? []).map((r) => [
     r.direction === "ida" ? "IDA" : "VOLTA",
     r.veiculo, r.placa, r.empresa, r.origem, r.destino, r.patio, r.valor, r.pago ? "SIM" : "NÃO", r.recebido_por,
   ]);
+  if ((s.expenses ?? []).length) {
+    rows.push([]);
+    rows.push(["DESPESAS", "Descrição", "Pago por", "Valor"]);
+    (s.expenses ?? []).forEach((e) => rows.push(["", e.description, e.paid_by ?? "", e.value]));
+  }
   const safeDate = s.sheet_date || "planilha";
   exportCSV(`planilha-${safeDate}.csv`, columns, rows);
 }
@@ -359,6 +364,10 @@ function TripSheetEditor({
                   <div className="flex-1">
                     <Label className="text-[10px] uppercase">Descrição</Label>
                     <Input className="h-8 text-xs" value={e.description} onChange={(ev) => updateExpense(e.id, { description: ev.target.value })} />
+                  </div>
+                  <div className="w-28">
+                    <Label className="text-[10px] uppercase">Pago por</Label>
+                    <Input className="h-8 text-xs" value={e.paid_by ?? ""} onChange={(ev) => updateExpense(e.id, { paid_by: ev.target.value })} />
                   </div>
                   <div className="w-24">
                     <Label className="text-[10px] uppercase">Valor</Label>
