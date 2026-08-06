@@ -17,6 +17,7 @@ export interface ExpenseRow {
   id: string;
   description: string;
   value: string;
+  paid_by: string; // nome de quem pagou a despesa
 }
 
 export interface TripSheetData {
@@ -45,6 +46,7 @@ export const emptyExpense = (): ExpenseRow => ({
   id: crypto.randomUUID(),
   description: "",
   value: "",
+  paid_by: "",
 });
 
 export const emptyTripSheet = (): TripSheetData => ({
