@@ -365,6 +365,10 @@ function TripSheetEditor({
                     <Label className="text-[10px] uppercase">Descrição</Label>
                     <Input className="h-8 text-xs" value={e.description} onChange={(ev) => updateExpense(e.id, { description: ev.target.value })} />
                   </div>
+                  <div className="w-28">
+                    <Label className="text-[10px] uppercase">Pago por</Label>
+                    <Input className="h-8 text-xs" value={e.paid_by ?? ""} onChange={(ev) => updateExpense(e.id, { paid_by: ev.target.value })} />
+                  </div>
                   <div className="w-24">
                     <Label className="text-[10px] uppercase">Valor</Label>
                     <Input className="h-8 text-xs" value={e.value} onChange={(ev) => updateExpense(e.id, { value: ev.target.value })} />
