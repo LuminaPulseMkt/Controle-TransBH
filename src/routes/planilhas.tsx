@@ -236,7 +236,16 @@ function TripSheetEditor({
   const totals = useMemo(() => {
     const received = data.rows.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
     const spent = (data.expenses || []).reduce((acc, e) => acc + (parseFloat(e.value) || 0), 0);
-    return { received, spent, net: received - spent };
+    
+    // Total per payer
+    const spentByPayer: Record<string, number> = {};
+    (data.expenses || []).forEach(e => {
+      const payer = (e.paid_by || "Não informado").trim();
+      const val = parseFloat(e.value) || 0;
+      spentByPayer[payer] = (spentByPayer[payer] || 0) + val;
+    });
+
+    return { received, spent, net: received - spent, spentByPayer };
   }, [data.rows, data.expenses]);
 
   const save = async () => {
@@ -385,6 +394,16 @@ function TripSheetEditor({
           <div className="bg-muted/50 p-4 rounded-lg flex flex-col items-end space-y-1">
             <div className="text-sm">Total Recebido: <span className="font-semibold">R$ {totals.received.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
             <div className="text-sm">Total Despesas: <span className="font-semibold">R$ {totals.spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+            
+            {Object.keys(totals.spentByPayer).length > 0 && (
+              <div className="mt-2 text-[10px] text-right text-muted-foreground uppercase border-t pt-1 w-full max-w-[200px]">
+                <div className="font-semibold mb-1">Despesas por pagador:</div>
+                {Object.entries(totals.spentByPayer).map(([payer, val]) => (
+                  <div key={payer}>{payer}: R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                ))}
+              </div>
+            )}
+
             <div className="text-lg font-bold text-primary mt-2">VALOR TOTAL LIVRE: R$ {totals.net.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
           </div>
         </div>
