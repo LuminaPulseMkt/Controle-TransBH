@@ -102,13 +102,36 @@ export async function generateTripSheetPdfBlob(
   const totalExpenses = (data.expenses || []).reduce((acc, e) => acc + (parseFloat(e.value) || 0), 0);
   const totalNet = totalReceived - totalExpenses;
 
+  // Expenses per payer
+  const spentByPayer: Record<string, number> = {};
+  (data.expenses || []).forEach(e => {
+    const payer = (e.paid_by || "Não informado").trim();
+    const val = parseFloat(e.value) || 0;
+    spentByPayer[payer] = (spentByPayer[payer] || 0) + val;
+  });
+
   doc.setFontSize(11);
   doc.text(`TOTAL RECEBIDO: R$ ${totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, currentY, { align: "right" });
   doc.text(`TOTAL DESPESAS: R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, currentY + 6, { align: "right" });
   
+  let nextY = currentY + 12;
+  if (Object.keys(spentByPayer).length > 0) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("DESPESAS POR PAGADOR:", pageW - 10, nextY, { align: "right" });
+    nextY += 4;
+    Object.entries(spentByPayer).forEach(([payer, val]) => {
+      doc.text(`${payer.toUpperCase()}: R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, nextY, { align: "right" });
+      nextY += 4;
+    });
+    nextY += 2;
+  }
+
   doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(230, 88, 26);
-  doc.text(`VALOR TOTAL LIVRE: R$ ${totalNet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, currentY + 14, { align: "right" });
+  doc.text(`VALOR TOTAL LIVRE: R$ ${totalNet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, pageW - 10, nextY, { align: "right" });
 
   const blob = doc.output("blob") as Blob;
   const safeDate = data.sheet_date || "planilha";
