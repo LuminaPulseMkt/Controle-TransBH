@@ -51,7 +51,7 @@ export async function exportChecklistPDF(
   // Veículo
   doc.setFontSize(9);
   doc.text(`Cliente: ${data.client_name || "—"}`, 10, y); y += 5;
-  doc.text(`Placa: ${data.plate || "—"}   Modelo: ${data.model || "—"}   DUT: ${data.dut || "—"}   Cor: ${data.color || "—"}`, 10, y); y += 5;
+  doc.text(`Placa: ${data.plate || "—"}   Modelo: ${data.model || "—"}   Chassi: ${data.chassis || "—"}   DUT: ${data.dut || "—"}   Cor: ${data.color || "—"}`, 10, y); y += 5;
   doc.text(`KM: ${data.km || "—"}   Local: ${data.location || "—"}   Data: ${data.checklist_date || "—"}   Hora: ${data.checklist_time || "—"}`, 10, y); y += 4;
 
   // Items
