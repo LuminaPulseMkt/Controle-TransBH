@@ -48,6 +48,7 @@ function NewChecklistPage() {
         plate: data.plate || null,
         model: data.model || null,
         dut: data.dut || null,
+        chassis: data.chassis || null,
         color: data.color || null,
         km: data.km || null,
         location: data.location || null,
