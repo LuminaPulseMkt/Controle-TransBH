@@ -48,18 +48,20 @@ type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
 interface VehicleForm {
   description: string;
   plate: string;
+  chassis: string;
   color: string;
   type: VehicleType;
   value: string;
   market_value: string;
 }
-const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", color: "", type: "sedan", value: "", market_value: "" });
+const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", chassis: "", color: "", type: "sedan", value: "", market_value: "" });
 
 function bodyToVehicles(body: any): VehicleForm[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
     return body.vehicles.map((v: any) => ({
       description: v.description ?? "",
       plate: v.plate ?? "",
+      chassis: v.chassis ?? "",
       color: v.color ?? "",
       type: (v.type ?? "sedan") as VehicleType,
       value: v.value != null ? String(v.value) : "",
@@ -70,6 +72,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
     return [{
       description: body.vehicle ?? "",
       plate: body.vehicle_plate ?? "",
+      chassis: body.vehicle_chassis ?? "",
       color: body.vehicle_color ?? "",
       type: "sedan",
       value: body.service_value != null ? String(body.service_value) : "",
@@ -327,6 +330,7 @@ function DocumentsPage() {
     const vehiclesPayload = vehicles.map((v) => ({
       description: v.description,
       plate: v.plate.toUpperCase(),
+      chassis: v.chassis.toUpperCase(),
       color: v.color,
       type: v.type,
       value: Number(v.value) || 0,
@@ -343,6 +347,7 @@ function DocumentsPage() {
       // legacy mirror (compat com PDFs / dialogs antigos)
       vehicle: single?.description ?? "",
       vehicle_plate: single?.plate ?? "",
+      vehicle_chassis: single?.chassis ?? "",
       vehicle_color: single?.color ?? "",
       service_value: vehiclesTotal,
       extra: Number(form.extra) || 0,
