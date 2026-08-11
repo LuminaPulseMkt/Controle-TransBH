@@ -794,6 +794,7 @@ export type Database = {
       }
       vehicle_checklists: {
         Row: {
+          chassis: string | null
           checklist_date: string | null
           checklist_time: string | null
           client_name: string | null
@@ -816,6 +817,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          chassis?: string | null
           checklist_date?: string | null
           checklist_time?: string | null
           client_name?: string | null
@@ -838,6 +840,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          chassis?: string | null
           checklist_date?: string | null
           checklist_time?: string | null
           client_name?: string | null
