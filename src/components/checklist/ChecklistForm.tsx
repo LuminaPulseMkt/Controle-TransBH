@@ -71,6 +71,7 @@ export function ChecklistForm({ data, onChange, checklistId, company }: Props) {
           <Field label="Placa"><Input className={docInput} value={data.plate} onChange={(e) => update({ plate: e.target.value.toUpperCase() })} /></Field>
           <Field label="Modelo"><Input className={docInput} value={data.model} onChange={(e) => update({ model: e.target.value })} /></Field>
           <Field label="DUT"><Input className={docInput} value={data.dut} onChange={(e) => update({ dut: e.target.value })} /></Field>
+          <Field label="Chassi"><Input className={docInput} value={data.chassis} onChange={(e) => update({ chassis: e.target.value.toUpperCase() })} /></Field>
           <Field label="Cor"><Input className={docInput} value={data.color} onChange={(e) => update({ color: e.target.value })} /></Field>
           <Field label="KM"><Input className={docInput} value={data.km} onChange={(e) => update({ km: e.target.value })} /></Field>
           <Field label="Local"><Input className={docInput} value={data.location} onChange={(e) => update({ location: e.target.value })} /></Field>
