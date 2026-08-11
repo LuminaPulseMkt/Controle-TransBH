@@ -779,6 +779,13 @@ function DocumentsPage() {
                             />
                           </div>
                           <div>
+                            <Label className="text-xs">Chassi</Label>
+                            <Input
+                              value={v.chassis}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, chassis: e.target.value.toUpperCase() } : p))}
+                              placeholder="Número do Chassi"
+                            />
+                          <div>
                             <Label className="text-xs">Placa</Label>
                             <Input
                               value={v.plate}

@@ -34,13 +34,13 @@ function vehicleLines(body: any): string[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
     return body.vehicles.map((v: any) => {
       const type = v.type ? vehicleTypeLabel[v.type] ?? v.type : "";
-      return [v.description || v.model || v.brand, v.plate, type, v.color]
+      return [v.description || v.model || v.brand, v.plate, v.chassis, type, v.color]
         .filter(Boolean)
         .join(" · ");
     });
   }
   if (body?.vehicle || body?.vehicle_plate) {
-    return [[body.vehicle, body.vehicle_plate, body.vehicle_color].filter(Boolean).join(" · ")];
+    return [[body.vehicle, body.vehicle_plate, body.vehicle_chassis, body.vehicle_color].filter(Boolean).join(" · ")];
   }
   return [];
 }
