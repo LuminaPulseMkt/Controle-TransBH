@@ -636,6 +636,9 @@ function TransportsPage() {
                     onChange={(e) => setForm({ ...form, vehicle_year: e.target.value })}
                   />
                 </Field>
+                <Field label="Chassi">
+                  <Input value={form.vehicle_chassis} onChange={(e) => setForm({ ...form, vehicle_chassis: e.target.value.toUpperCase() })} />
+                </Field>
                 <Field label="Cor">
                   <Input value={form.vehicle_color} onChange={(e) => setForm({ ...form, vehicle_color: e.target.value })} />
                 </Field>

@@ -54,6 +54,7 @@ export interface ChecklistData {
   plate: string;
   model: string;
   dut: string;
+  chassis: string;
   color: string;
   km: string;
   location: string;
@@ -89,6 +90,7 @@ export function emptyChecklist(): ChecklistData {
     plate: "",
     model: "",
     dut: "",
+    chassis: "",
     color: "",
     km: "",
     location: "",

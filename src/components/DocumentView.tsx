@@ -57,12 +57,12 @@ function buildVehicleLines(doc: DocumentViewData): string[] {
   if (Array.isArray(body.vehicles) && body.vehicles.length > 0) {
     return body.vehicles.map((v: any) => {
       const type = v.type ? vehicleTypeLabel[v.type] ?? v.type : "";
-      const parts = [v.description || v.model || v.brand, v.plate, type, v.color].filter(Boolean);
+      const parts = [v.description || v.model || v.brand, v.plate, v.chassis, type, v.color].filter(Boolean);
       return parts.join(" · ") || "—";
     });
   }
   if (body.vehicle || body.vehicle_plate) {
-    const parts = [body.vehicle, body.vehicle_plate, body.vehicle_color].filter(Boolean);
+    const parts = [body.vehicle, body.vehicle_plate, body.vehicle_chassis, body.vehicle_color].filter(Boolean);
     return [parts.join(" · ") || "—"];
   }
   return [];
