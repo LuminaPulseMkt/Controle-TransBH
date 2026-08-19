@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as SocialRouteImport } from './routes/social'
+import { Route as SiteImagesRouteImport } from './routes/site-images'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PlanilhasRouteImport } from './routes/planilhas'
@@ -38,6 +39,11 @@ const UsersRoute = UsersRouteImport.update({
 const SocialRoute = SocialRouteImport.update({
   id: '/social',
   path: '/social',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SiteImagesRoute = SiteImagesRouteImport.update({
+  id: '/site-images',
+  path: '/site-images',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/checklists/$id': typeof ChecklistsIdRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/checklists/$id': typeof ChecklistsIdRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
+  '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/checklists/$id': typeof ChecklistsIdRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/planilhas'
     | '/reset-password'
     | '/settings'
+    | '/site-images'
     | '/social'
     | '/users'
     | '/checklists/$id'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/planilhas'
     | '/reset-password'
     | '/settings'
+    | '/site-images'
     | '/social'
     | '/users'
     | '/checklists/$id'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/planilhas'
     | '/reset-password'
     | '/settings'
+    | '/site-images'
     | '/social'
     | '/users'
     | '/checklists/$id'
@@ -280,6 +292,7 @@ export interface RootRouteChildren {
   PlanilhasRoute: typeof PlanilhasRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
+  SiteImagesRoute: typeof SiteImagesRoute
   SocialRoute: typeof SocialRoute
   UsersRoute: typeof UsersRoute
   DTokenRoute: typeof DTokenRoute
@@ -301,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/social'
       fullPath: '/social'
       preLoaderRoute: typeof SocialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/site-images': {
+      id: '/site-images'
+      path: '/site-images'
+      fullPath: '/site-images'
+      preLoaderRoute: typeof SiteImagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -471,6 +491,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanilhasRoute: PlanilhasRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
+  SiteImagesRoute: SiteImagesRoute,
   SocialRoute: SocialRoute,
   UsersRoute: UsersRoute,
   DTokenRoute: DTokenRoute,
