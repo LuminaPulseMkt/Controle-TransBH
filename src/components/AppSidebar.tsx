@@ -12,6 +12,7 @@ import {
   Handshake,
   ClipboardCheck,
   FileSpreadsheet,
+  Image as ImageIcon,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import {
@@ -40,6 +41,7 @@ const allItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: "Cobranças", url: "/collections", icon: AlertTriangle, permission: "collections.view" },
   { title: "Contratos & Orçamentos", url: "/documents", icon: FileText, permission: "documents.view" },
   { title: "Social & Marketing", url: "/social", icon: Share2, permission: "social.view" },
+  { title: "Imagens do Site", url: "/site-images", icon: ImageIcon, permission: "settings.manage" },
   { title: "Usuários", url: "/users", icon: Users, permission: "users.manage" },
   { title: "Configurações", url: "/settings", icon: Settings, permission: "settings.manage" },
 ];
