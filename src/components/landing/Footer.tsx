@@ -42,8 +42,8 @@ export function Footer() {
               <h4 className="font-bold text-brand-text mb-4 uppercase text-xs tracking-widest">Contato</h4>
               <ul className="space-y-3 text-sm text-brand-graphite">
                 <li>Belo Horizonte - MG</li>
-                <li>(31) 99999-9999</li>
-                <li>contato@transbh.com.br</li>
+                <li>(31) 97152-3294</li>
+                <li>transbhtransportes@gmail.com</li>
               </ul>
             </div>
           </div>
