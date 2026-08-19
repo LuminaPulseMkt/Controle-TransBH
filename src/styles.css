@@ -99,10 +99,15 @@
   --grid-pattern: linear-gradient(oklch(0.9 0.005 255 / 0.6) 1px, transparent 1px),
                   linear-gradient(90deg, oklch(0.9 0.005 255 / 0.6) 1px, transparent 1px);
 
-  /* TransBH brand colors (used in official orçamento/contrato layout) */
-  --brand-orange: #E85A1E;
-  --brand-orange-soft: #F58A3A;
-  --brand-blue: #1DA1F2;
+  /* TransBH brand colors (used in official orçamento/contrato layout and landing page) */
+  --brand-orange: #F5730C;
+  --brand-orange-dark: #D9560A;
+  --brand-blue: #1FA8E0;
+  --brand-blue-dark: #0B5C8A;
+  --brand-graphite: #4A4A4A;
+  --brand-graphite-light: #8C8C8C;
+  --brand-neutral: #F7F7F8;
+  --brand-text: #1A1A1A;
 }
 
 .dark {
