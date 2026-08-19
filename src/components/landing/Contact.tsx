@@ -30,7 +30,7 @@ export function Contact() {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100"
+          className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 relative z-10"
         >
           <div className="flex flex-col lg:flex-row">
             <div className="lg:w-[55%] p-10 md:p-16">
