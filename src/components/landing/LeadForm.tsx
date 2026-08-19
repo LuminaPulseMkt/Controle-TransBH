@@ -22,7 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Send } from "lucide-react";
+import { motion } from "framer-motion";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 const formSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -40,6 +42,8 @@ type FormValues = z.infer<typeof formSchema>;
 export function LeadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { getSetting } = useSiteSettings();
+  const formBg = getSetting("lead_form_bg");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -84,56 +88,93 @@ export function LeadForm() {
 
   if (isSuccess) {
     return (
-      <section className="py-20 bg-brand-graphite text-white">
-        <div className="container mx-auto px-4 max-w-3xl text-center">
-          <div className="bg-white/10 rounded-3xl p-12 backdrop-blur-sm border border-white/10 animate-in zoom-in-95 duration-500">
+      <section className="py-24 bg-brand-text text-white">
+        <div className="container mx-auto px-6 max-w-3xl text-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white/5 rounded-[2rem] p-12 backdrop-blur-md border border-white/10"
+          >
             <div className="w-20 h-20 bg-brand-orange rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-brand-orange/20">
-              <CheckCircle2 size={48} />
+              <CheckCircle2 size={40} className="text-white" />
             </div>
-            <h2 className="text-display text-4xl mb-4">Solicitação Recebida!</h2>
-            <p className="text-xl text-gray-300 mb-8">
-              Obrigado pelo seu interesse, <strong>{form.getValues("name")}</strong>. Nossa equipe comercial analisará seus dados e entrará em contato em breve via WhatsApp.
+            <h2 className="text-display text-4xl mb-6">Solicitação Recebida!</h2>
+            <p className="text-lg text-gray-400 mb-10 leading-relaxed">
+              Obrigado pelo contato, <strong>{form.getValues("name")}</strong>. Nossa equipe comercial analisará seus dados e retornará via WhatsApp o mais breve possível.
             </p>
             <Button 
               onClick={() => setIsSuccess(false)}
-              className="bg-white text-brand-graphite hover:bg-gray-200 font-bold px-8 py-4 h-auto rounded-xl"
+              className="bg-white text-brand-text hover:bg-gray-100 font-bold px-10 py-4 h-auto rounded-full transition-all"
             >
-              Fazer outra solicitação
+              Realizar Nova Consulta
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="py-20 bg-brand-graphite text-white relative overflow-hidden">
-      {/* Background gradients */}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,oklch(0.6_0.2_70/0.1),transparent_50%)]" />
-      <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_80%,oklch(0.6_0.2_230/0.1),transparent_50%)]" />
+    <section id="orcamento" className="py-24 bg-brand-text text-white relative overflow-hidden">
+      {/* Background patterns */}
+      <div className="absolute inset-0 z-0 opacity-20 bg-grid pointer-events-none" />
+      {formBg && (
+        <div 
+          className="absolute inset-0 z-0 pointer-events-none opacity-5"
+          style={{ 
+            backgroundImage: `url(${formBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+      )}
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,oklch(0.6_0.2_70/0.05),transparent_50%)]" />
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-display text-4xl mb-4">Solicite seu Orçamento</h2>
-            <div className="w-20 h-1.5 bg-gradient-to-r from-brand-orange to-brand-blue mx-auto rounded-full mb-6" />
-            <p className="text-gray-400">
-              Preencha os campos abaixo para receber uma cotação personalizada para o seu transporte.
-            </p>
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-display text-4xl mb-6"
+            >
+              Peça sua <span className="text-brand-orange">cotação</span> grátis
+            </motion.h2>
+            <motion.div 
+              initial={{ width: 0 }}
+              whileInView={{ width: 80 }}
+              viewport={{ once: true }}
+              className="h-1 bg-gradient-to-r from-brand-orange to-brand-blue mx-auto rounded-full mb-8" 
+            />
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-gray-400 max-w-xl mx-auto"
+            >
+              Resposta rápida e personalizada. Preencha os detalhes e nossa equipe cuidará do resto.
+            </motion.p>
           </div>
 
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl text-brand-text">
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-white rounded-[2.5rem] p-8 md:p-14 shadow-2xl text-brand-text border border-white/20"
+          >
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nome Completo *</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome Completo</FormLabel>
                         <FormControl>
-                          <Input placeholder="Seu nome" {...field} className="bg-brand-neutral border-none h-12" />
+                          <Input placeholder="Como podemos te chamar?" {...field} className="bg-gray-50 border-gray-100 h-14 rounded-xl focus-visible:ring-brand-blue" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -144,9 +185,9 @@ export function LeadForm() {
                     name="whatsapp"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>WhatsApp / Telefone *</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">WhatsApp</FormLabel>
                         <FormControl>
-                          <Input placeholder="(00) 00000-0000" {...field} className="bg-brand-neutral border-none h-12" />
+                          <Input placeholder="(00) 00000-0000" {...field} className="bg-gray-50 border-gray-100 h-14 rounded-xl focus-visible:ring-brand-blue" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -157,9 +198,9 @@ export function LeadForm() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>E-mail (opcional)</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">E-mail (opcional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="exemplo@email.com" {...field} className="bg-brand-neutral border-none h-12" />
+                          <Input placeholder="contato@exemplo.com" {...field} className="bg-gray-50 border-gray-100 h-14 rounded-xl focus-visible:ring-brand-blue" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -170,9 +211,9 @@ export function LeadForm() {
                     name="origin"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Origem (Cidade/UF) *</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Origem</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Belo Horizonte/MG" {...field} className="bg-brand-neutral border-none h-12" />
+                          <Input placeholder="Cidade / Estado" {...field} className="bg-gray-50 border-gray-100 h-14 rounded-xl focus-visible:ring-brand-blue" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -183,9 +224,9 @@ export function LeadForm() {
                     name="destination"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Destino (Cidade/UF) *</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Destino</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: São Paulo/SP" {...field} className="bg-brand-neutral border-none h-12" />
+                          <Input placeholder="Cidade / Estado" {...field} className="bg-gray-50 border-gray-100 h-14 rounded-xl focus-visible:ring-brand-blue" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -197,18 +238,18 @@ export function LeadForm() {
                       name="vehicle_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Tipo de Veículo *</FormLabel>
+                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tipo</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger className="bg-brand-neutral border-none h-12">
-                                <SelectValue placeholder="Selecione" />
+                              <SelectTrigger className="bg-gray-50 border-gray-100 h-14 rounded-xl focus:ring-brand-blue">
+                                <SelectValue placeholder="Tipo" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="carro">Carro de passeio</SelectItem>
+                              <SelectItem value="carro">Carro</SelectItem>
                               <SelectItem value="moto">Moto</SelectItem>
-                              <SelectItem value="utilitario">Utilitário / Caminhonete</SelectItem>
-                              <SelectItem value="frota">Frota / Múltiplos</SelectItem>
+                              <SelectItem value="utilitario">Utilitário</SelectItem>
+                              <SelectItem value="frota">Frota</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -220,9 +261,9 @@ export function LeadForm() {
                       name="vehicle_quantity"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Quantidade *</FormLabel>
+                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Qtd</FormLabel>
                           <FormControl>
-                            <Input type="number" min="1" {...field} className="bg-brand-neutral border-none h-12" />
+                            <Input type="number" min="1" {...field} className="bg-gray-50 border-gray-100 h-14 rounded-xl focus-visible:ring-brand-blue" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -236,11 +277,11 @@ export function LeadForm() {
                   name="message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mensagem / Observações (opcional)</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mensagem (opcional)</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Fale mais sobre sua necessidade..." 
-                          className="bg-brand-neutral border-none min-h-[120px]" 
+                          placeholder="Alguma observação especial?" 
+                          className="bg-gray-50 border-gray-100 min-h-[120px] rounded-xl focus-visible:ring-brand-blue" 
                           {...field} 
                         />
                       </FormControl>
@@ -252,20 +293,23 @@ export function LeadForm() {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white font-bold py-6 h-auto text-xl rounded-2xl shadow-xl shadow-brand-orange/20 transition-all hover:-translate-y-1"
+                  className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white font-bold py-6 h-auto text-lg rounded-2xl shadow-2xl shadow-brand-orange/20 transition-all hover:-translate-y-1 group"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Enviando...
+                      Processando...
                     </>
                   ) : (
-                    "Enviar Solicitação de Orçamento"
+                    <span className="flex items-center gap-2">
+                      Enviar agora
+                      <Send className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                    </span>
                   )}
                 </Button>
               </form>
             </Form>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
