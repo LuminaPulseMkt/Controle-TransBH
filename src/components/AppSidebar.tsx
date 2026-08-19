@@ -53,7 +53,7 @@ export function AppSidebar() {
   const items = allItems.filter((i) => !i.permission || can(i.permission));
 
   const isActive = (url: string) =>
-    url === "/" ? location.pathname === "/" : location.pathname.startsWith(url);
+    url === "/dashboard" ? location.pathname === "/dashboard" : location.pathname.startsWith(url);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
