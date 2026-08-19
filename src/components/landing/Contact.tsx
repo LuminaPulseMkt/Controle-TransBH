@@ -5,14 +5,14 @@ export function Contact() {
     {
       icon: Phone,
       label: "Telefone / WhatsApp",
-      value: "(31) 99999-9999",
-      href: "https://wa.me/5531999999999"
+      value: "(31) 97152-3294",
+      href: "https://wa.me/5531971523294"
     },
     {
       icon: Mail,
       label: "E-mail",
-      value: "contato@transbh.com.br",
-      href: "mailto:contato@transbh.com.br"
+      value: "transbhtransportes@gmail.com",
+      href: "mailto:transbhtransportes@gmail.com"
     },
     {
       icon: MapPin,
@@ -69,7 +69,8 @@ export function Contact() {
                     Precisa de uma cotação urgente? Clique no botão abaixo e fale agora mesmo com um de nossos consultores logísticos pelo WhatsApp.
                   </p>
                   <a 
-                    href="https://wa.me/5531999999999" 
+                    href="https://wa.me/5531971523294" 
+
                     className="inline-flex items-center justify-center gap-3 bg-brand-orange hover:bg-brand-orange-dark text-white font-bold py-5 px-8 rounded-2xl text-xl shadow-xl shadow-brand-orange/20 transition-all hover:-translate-y-1 w-full sm:w-auto text-center"
                   >
                     <Phone size={24} />
