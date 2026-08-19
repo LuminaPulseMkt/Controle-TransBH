@@ -51,6 +51,14 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-display: "Bebas Neue", "Impact", sans-serif;
   --font-sans: "DM Sans", system-ui, sans-serif;
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-dark: var(--brand-orange-dark);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-dark: var(--brand-blue-dark);
+  --color-brand-graphite: var(--brand-graphite);
+  --color-brand-graphite-light: var(--brand-graphite-light);
+  --color-brand-neutral: var(--brand-neutral);
+  --color-brand-text: var(--brand-text);
 }
 
 :root {
