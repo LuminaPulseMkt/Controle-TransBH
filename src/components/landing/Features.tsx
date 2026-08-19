@@ -1,5 +1,6 @@
 import { ShieldCheck, MapPin, Truck, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { motion } from "framer-motion";
 
 export function Features() {
   const features = [
@@ -9,6 +10,7 @@ export function Features() {
       icon: MapPin,
       color: "text-brand-blue",
       bg: "bg-brand-blue/10",
+      delay: 0.1,
     },
     {
       title: "Seguro Total da Carga",
@@ -16,45 +18,77 @@ export function Features() {
       icon: ShieldCheck,
       color: "text-brand-orange",
       bg: "bg-brand-orange/10",
+      delay: 0.2,
     },
     {
-      title: "Frota Própria e Especializada",
+      title: "Frota Própria",
       description: "Cegonheiras modernas e motoristas treinados para manuseio seguro de veículos de todos os portes.",
       icon: Truck,
       color: "text-brand-graphite",
       bg: "bg-brand-graphite/10",
+      delay: 0.3,
     },
     {
-      title: "Atendimento via WhatsApp",
-      description: "Comunicação direta e ágil. Tire suas dúvidas e receba atualizações rapidamente pelo seu celular.",
+      title: "Suporte Personalizado",
+      description: "Comunicação direta e ágil. Tire suas dúvidas e receba atualizações rapidamente via WhatsApp.",
       icon: MessageSquare,
       color: "text-brand-blue",
       bg: "bg-brand-blue/10",
+      delay: 0.4,
     },
   ];
 
   return (
-    <section className="py-20 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-display text-4xl text-brand-text mb-4">Por que escolher a TransBH?</h2>
-          <div className="w-20 h-1.5 bg-gradient-to-r from-brand-orange to-brand-blue mx-auto rounded-full" />
-          <p className="text-brand-graphite mt-6 max-w-2xl mx-auto">
+    <section className="py-24 bg-white overflow-hidden">
+      <div className="container mx-auto px-6">
+        <div className="text-center mb-20">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-display text-4xl text-brand-text mb-6"
+          >
+            Diferenciais que nos <span className="text-brand-orange">destacam</span>
+          </motion.h2>
+          <motion.div 
+            initial={{ width: 0 }}
+            whileInView={{ width: 80 }}
+            viewport={{ once: true }}
+            className="h-1 bg-gradient-to-r from-brand-orange to-brand-blue mx-auto rounded-full" 
+          />
+          <motion.p 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-brand-graphite mt-8 max-w-2xl mx-auto leading-relaxed"
+          >
             Combinamos tecnologia e experiência para oferecer a melhor solução em transporte veicular no mercado nacional.
-          </p>
+          </motion.p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, idx) => (
-            <Card key={idx} className="p-8 border-none shadow-xl hover:shadow-2xl transition-all hover:-translate-y-2 group">
-              <div className={`${feature.bg} ${feature.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                <feature.icon size={32} />
-              </div>
-              <h3 className="text-xl font-bold text-brand-text mb-4">{feature.title}</h3>
-              <p className="text-brand-graphite-light text-sm leading-relaxed">
-                {feature.description}
-              </p>
-            </Card>
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: feature.delay }}
+            >
+              <Card className="p-8 border-none shadow-lg hover:shadow-xl transition-all hover:-translate-y-2 group bg-gray-50/50 hover:bg-white relative overflow-hidden h-full">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                <div className={`${feature.bg} ${feature.color} w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10`}>
+                  <feature.icon size={28} />
+                </div>
+                
+                <h3 className="text-lg font-bold text-brand-text mb-4 relative z-10">{feature.title}</h3>
+                <p className="text-brand-graphite-light text-sm leading-relaxed relative z-10">
+                  {feature.description}
+                </p>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>
