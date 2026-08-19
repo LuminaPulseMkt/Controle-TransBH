@@ -44,7 +44,7 @@ function LoginPage() {
   };
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/" });
+    if (!loading && user) navigate({ to: "/dashboard" });
   }, [user, loading, navigate]);
 
   const onSignIn = async (e: React.FormEvent) => {
@@ -53,7 +53,7 @@ function LoginPage() {
     const { error } = await signIn(email, password);
     setBusy(false);
     if (error) toast.error(error);
-    else navigate({ to: "/" });
+    else navigate({ to: "/dashboard" });
   };
 
   const onSignUp = async (e: React.FormEvent) => {
@@ -65,7 +65,7 @@ function LoginPage() {
     if (error) toast.error(error);
     else {
       toast.success("Conta criada! Redirecionando…");
-      navigate({ to: "/" });
+      navigate({ to: "/dashboard" });
     }
   };
 
