@@ -21,7 +21,7 @@ import {
   CartesianGrid, Legend, LineChart, Line, PieChart, Pie, Cell as RCell,
 } from "recharts";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/dashboard")({
   component: () => (
     <AuthGate>
       <DashboardPage />

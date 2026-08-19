@@ -19,9 +19,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as FinancialRouteImport } from './routes/financial'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as DocumentsRouteImport } from './routes/documents'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as ChecklistsRouteImport } from './routes/checklists'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 import { Route as DTokenRouteImport } from './routes/d.$token'
@@ -79,6 +79,11 @@ const DocumentsRoute = DocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollectionsRoute = CollectionsRouteImport.update({
   id: '/collections',
   path: '/collections',
@@ -87,11 +92,6 @@ const CollectionsRoute = CollectionsRouteImport.update({
 const ChecklistsRoute = ChecklistsRouteImport.update({
   id: '/checklists',
   path: '/checklists',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransportsIndexRoute = TransportsIndexRouteImport.update({
@@ -126,9 +126,9 @@ const FinancialClientsNameRoute = FinancialClientsNameRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
@@ -147,9 +147,9 @@ export interface FileRoutesByFullPath {
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
@@ -169,9 +169,9 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
@@ -192,9 +192,9 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/checklists'
     | '/collections'
+    | '/dashboard'
     | '/documents'
     | '/feedback'
     | '/financial'
@@ -213,9 +213,9 @@ export interface FileRouteTypes {
     | '/financial/clients/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/checklists'
     | '/collections'
+    | '/dashboard'
     | '/documents'
     | '/feedback'
     | '/financial'
@@ -234,9 +234,9 @@ export interface FileRouteTypes {
     | '/financial/clients/$name'
   id:
     | '__root__'
-    | '/'
     | '/checklists'
     | '/collections'
+    | '/dashboard'
     | '/documents'
     | '/feedback'
     | '/financial'
@@ -256,9 +256,9 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   ChecklistsRoute: typeof ChecklistsRouteWithChildren
   CollectionsRoute: typeof CollectionsRoute
+  DashboardRoute: typeof DashboardRoute
   DocumentsRoute: typeof DocumentsRoute
   FeedbackRoute: typeof FeedbackRoute
   FinancialRoute: typeof FinancialRouteWithChildren
@@ -346,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/collections': {
       id: '/collections'
       path: '/collections'
@@ -358,13 +365,6 @@ declare module '@tanstack/react-router' {
       path: '/checklists'
       fullPath: '/checklists'
       preLoaderRoute: typeof ChecklistsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transports/': {
@@ -439,9 +439,9 @@ const FinancialRouteWithChildren = FinancialRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   ChecklistsRoute: ChecklistsRouteWithChildren,
   CollectionsRoute: CollectionsRoute,
+  DashboardRoute: DashboardRoute,
   DocumentsRoute: DocumentsRoute,
   FeedbackRoute: FeedbackRoute,
   FinancialRoute: FinancialRouteWithChildren,
