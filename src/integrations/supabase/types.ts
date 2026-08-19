@@ -264,6 +264,45 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          created_at: string | null
+          destination: string
+          email: string | null
+          id: string
+          message: string | null
+          name: string
+          origin: string
+          vehicle_quantity: number
+          vehicle_type: string
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string | null
+          destination: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          name: string
+          origin: string
+          vehicle_quantity?: number
+          vehicle_type: string
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string | null
+          destination?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          name?: string
+          origin?: string
+          vehicle_quantity?: number
+          vehicle_type?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           body: string

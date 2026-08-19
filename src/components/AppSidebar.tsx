@@ -31,7 +31,7 @@ import type { PermKey } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 
 const allItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: PermKey }[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Transportes", url: "/transports", icon: Truck, permission: "transports.view" },
   { title: "Checklists", url: "/checklists", icon: ClipboardCheck, permission: "transports.view" },
   { title: "Planilhas", url: "/planilhas", icon: FileSpreadsheet, permission: "transports.view" },
@@ -53,7 +53,7 @@ export function AppSidebar() {
   const items = allItems.filter((i) => !i.permission || can(i.permission));
 
   const isActive = (url: string) =>
-    url === "/" ? location.pathname === "/" : location.pathname.startsWith(url);
+    url === "/dashboard" ? location.pathname === "/dashboard" : location.pathname.startsWith(url);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
