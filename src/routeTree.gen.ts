@@ -22,6 +22,7 @@ import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as ChecklistsRouteImport } from './routes/checklists'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 import { Route as DTokenRouteImport } from './routes/d.$token'
@@ -94,6 +95,11 @@ const ChecklistsRoute = ChecklistsRouteImport.update({
   path: '/checklists',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransportsIndexRoute = TransportsIndexRouteImport.update({
   id: '/transports/',
   path: '/transports/',
@@ -126,6 +132,7 @@ const FinancialClientsNameRoute = FinancialClientsNameRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/dashboard': typeof DashboardRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/dashboard': typeof DashboardRoute
@@ -169,6 +177,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/dashboard': typeof DashboardRoute
@@ -192,6 +201,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/checklists'
     | '/collections'
     | '/dashboard'
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/financial/clients/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/checklists'
     | '/collections'
     | '/dashboard'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/financial/clients/$name'
   id:
     | '__root__'
+    | '/'
     | '/checklists'
     | '/collections'
     | '/dashboard'
@@ -256,6 +268,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   ChecklistsRoute: typeof ChecklistsRouteWithChildren
   CollectionsRoute: typeof CollectionsRoute
   DashboardRoute: typeof DashboardRoute
@@ -367,6 +380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChecklistsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/transports/': {
       id: '/transports/'
       path: '/transports'
@@ -439,6 +459,7 @@ const FinancialRouteWithChildren = FinancialRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   ChecklistsRoute: ChecklistsRouteWithChildren,
   CollectionsRoute: CollectionsRoute,
   DashboardRoute: DashboardRoute,
