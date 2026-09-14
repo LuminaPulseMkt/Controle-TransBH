@@ -150,7 +150,9 @@ function DocumentsPage() {
     pickup_value: "",
     delivery_value: "",
     extra: "",
+    delivery_deadline: "",
     notes: "",
+
   });
   const [vehicles, setVehicles] = useState<VehicleForm[]>([emptyVehicle()]);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
