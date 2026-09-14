@@ -54,8 +54,8 @@ export const DOCUMENT_TEMPLATES: DocTemplate[] = [
       extra: "0",
       notes:
         "Validade da proposta: 7 dias.\n" +
-        "Forma de pagamento: 50% na coleta e 50% na entrega.\n" +
-        "Prazo estimado: até 5 dias úteis após a coleta.",
+        "Forma de pagamento: 50% na coleta e 50% na entrega.",
+
     },
   },
   {

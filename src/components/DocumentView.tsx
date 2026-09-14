@@ -143,6 +143,10 @@ export function DocumentView({ doc, company }: Props) {
           )}
           <UnderlineField label="Origem" value={body.origin ?? ""} italic />
           <UnderlineField label="Destino" value={body.destination ?? ""} italic />
+          {body.delivery_deadline && (
+            <UnderlineField label="Prazo estimado" value={String(body.delivery_deadline)} italic />
+          )}
+
           {doc.client_phone && <UnderlineField label="Telefone" value={doc.client_phone} italic />}
           {doc.client_email && <UnderlineField label="E-mail" value={doc.client_email} italic />}
           {doc.client_document && <UnderlineField label="CPF/CNPJ" value={doc.client_document} />}
