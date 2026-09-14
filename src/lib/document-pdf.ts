@@ -164,6 +164,8 @@ export async function exportDocumentPdf(
   }
   drawField("Origem", body.origin ?? "", true);
   drawField("Destino", body.destination ?? "", true);
+  if (body.delivery_deadline) drawField("Prazo estimado", String(body.delivery_deadline), true);
+
   if (d.client_phone) drawField("Telefone", d.client_phone, true);
   if (d.client_email) drawField("E-mail", d.client_email, true);
   if (d.client_document) drawField("CPF/CNPJ", d.client_document);
