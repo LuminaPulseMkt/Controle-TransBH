@@ -10,7 +10,11 @@ import { useSiteSettings, SiteImageKey } from "@/lib/use-site-settings";
 import { Upload, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/site-images")({
-  component: SiteImagesPage,
+  component: () => (
+    <AuthGate requirePermission="settings.manage">
+      <SiteImagesPage />
+    </AuthGate>
+  ),
 });
 
 function SiteImagesPage() {
