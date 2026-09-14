@@ -408,12 +408,17 @@ function TransportsPage() {
     setOpen(false);
     setExtraPhotoUrls([]);
 
-    if (!editing && form.client_name) {
-      // Após criar, vai direto para as cobranças do cliente
-      navigate({
-        to: "/financial/clients/$name",
-        params: { name: encodeURIComponent(form.client_name) },
-      });
+    if (!editing && transportId) {
+      // Só manda para as cobranças do cliente se o usuário tiver financial.view,
+      // senão vai para o detalhe do transporte.
+      if (form.client_name && can("financial.view")) {
+        navigate({
+          to: "/financial/clients/$name",
+          params: { name: encodeURIComponent(form.client_name) },
+        });
+      } else {
+        navigate({ to: "/transports/$id", params: { id: transportId } });
+      }
       return;
     }
     void load();
