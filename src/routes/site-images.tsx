@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { AuthGate } from "@/components/AuthGate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,11 @@ import { useSiteSettings, SiteImageKey } from "@/lib/use-site-settings";
 import { Upload, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/site-images")({
-  component: SiteImagesPage,
+  component: () => (
+    <AuthGate requirePermission="settings.manage">
+      <SiteImagesPage />
+    </AuthGate>
+  ),
 });
 
 function SiteImagesPage() {
@@ -56,15 +61,18 @@ function SiteImagesPage() {
 
       if (uploadError) throw uploadError;
 
-      // 2. Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // 2. Gerar URL assinada de longa duração (bucket privado)
+      const TEN_YEARS_IN_SECONDS = 60 * 60 * 24 * 365 * 10;
+      const { data: signed, error: signedError } = await supabase.storage
         .from("site-images")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, TEN_YEARS_IN_SECONDS);
+
+      if (signedError || !signed?.signedUrl) throw signedError ?? new Error("URL não gerada");
 
       // 3. Save to site_settings table
       const { error: dbError } = await supabase
         .from("site_settings")
-        .upsert({ key, value: publicUrl }, { onConflict: "key" });
+        .upsert({ key, value: signed.signedUrl }, { onConflict: "key" });
 
       if (dbError) throw dbError;
 
