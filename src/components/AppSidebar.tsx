@@ -100,6 +100,17 @@ export function AppSidebar() {
           <div className="px-2 py-1 text-xs text-muted-foreground truncate">{user.email}</div>
         )}
         <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="justify-start gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <Link to="/">
+            <Home className="h-4 w-4" />
+            {!collapsed && <span>Ver Site</span>}
+          </Link>
+        </Button>
+        <Button
           variant="ghost"
           size="sm"
           onClick={signOut}
