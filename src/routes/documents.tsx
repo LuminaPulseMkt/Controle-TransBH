@@ -875,9 +875,14 @@ function DocumentsPage() {
                   <Input type="number" step="0.01" value={form.extra} onChange={(e) => setForm({ ...form, extra: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Adicionais</Label>
-                  <Input type="number" step="0.01" value={form.extra} onChange={(e) => setForm({ ...form, extra: e.target.value })} />
+                  <Label>Prazo Estimado</Label>
+                  <Input
+                    value={form.delivery_deadline}
+                    onChange={(e) => setForm({ ...form, delivery_deadline: e.target.value })}
+                    placeholder="Ex.: até 5 dias úteis após a coleta"
+                  />
                 </div>
+
                 <div>
                   <Label>Total</Label>
                   <Input value={brl(total)} readOnly className="font-semibold text-primary" />
@@ -932,7 +937,9 @@ function DocumentsPage() {
                         vehicle_color: single?.color ?? "",
                         service_value: vehiclesTotal,
                         extra: Number(form.extra) || 0,
+                        delivery_deadline: form.delivery_deadline || null,
                         notes: form.notes,
+
                       },
                     });
                   }}
