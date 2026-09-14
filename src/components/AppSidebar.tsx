@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   FileSpreadsheet,
   Image as ImageIcon,
+  Home,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import {
