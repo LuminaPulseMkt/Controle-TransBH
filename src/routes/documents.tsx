@@ -290,7 +290,9 @@ function DocumentsPage() {
       pickup_value: d.body?.pickup_value != null ? String(d.body.pickup_value) : "",
       delivery_value: d.body?.delivery_value != null ? String(d.body.delivery_value) : "",
       extra: d.body?.extra != null ? String(d.body.extra) : "",
+      delivery_deadline: d.body?.delivery_deadline ?? "",
       notes: d.body?.notes ?? "",
+
     });
     setVehicles(bodyToVehicles(d.body));
     setStep("form");
@@ -353,7 +355,9 @@ function DocumentsPage() {
       vehicle_color: single?.color ?? "",
       service_value: vehiclesTotal,
       extra: Number(form.extra) || 0,
+      delivery_deadline: form.delivery_deadline || null,
       notes: form.notes,
+
     };
     const payload = {
       template: docType === "contract" ? (form.template as any) : null,
