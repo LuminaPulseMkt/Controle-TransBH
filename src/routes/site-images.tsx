@@ -56,15 +56,18 @@ function SiteImagesPage() {
 
       if (uploadError) throw uploadError;
 
-      // 2. Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // 2. Gerar URL assinada de longa duração (bucket privado)
+      const TEN_YEARS_IN_SECONDS = 60 * 60 * 24 * 365 * 10;
+      const { data: signed, error: signedError } = await supabase.storage
         .from("site-images")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, TEN_YEARS_IN_SECONDS);
+
+      if (signedError || !signed?.signedUrl) throw signedError ?? new Error("URL não gerada");
 
       // 3. Save to site_settings table
       const { error: dbError } = await supabase
         .from("site_settings")
-        .upsert({ key, value: publicUrl }, { onConflict: "key" });
+        .upsert({ key, value: signed.signedUrl }, { onConflict: "key" });
 
       if (dbError) throw dbError;
 
