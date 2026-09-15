@@ -21,17 +21,20 @@ export function Hero() {
   };
 
   return (
-    <section id="home" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-brand-neutral">
+    <section id="home" className={`relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden ${heroBg ? "bg-white" : "bg-brand-neutral"}`}>
       {/* Background Image with Overlay */}
       {heroBg && (
-        <div 
-          className="absolute inset-0 z-0 pointer-events-none opacity-10"
-          style={{ 
-            backgroundImage: `url(${heroBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
+        <>
+          <div
+            className="absolute inset-0 z-0 pointer-events-none opacity-40"
+            style={{
+              backgroundImage: `url(${heroBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          />
+          <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-white/60 via-transparent to-white/60" />
+        </>
       )}
       
       {/* Decorative background elements */}

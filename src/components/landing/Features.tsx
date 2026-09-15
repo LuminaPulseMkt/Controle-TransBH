@@ -95,7 +95,7 @@ export function Features() {
               viewport={{ once: true }}
               transition={{ delay: feature.delay }}
             >
-              <Card className="p-8 border-none shadow-lg hover:shadow-xl transition-all hover:-translate-y-2 group bg-gray-50/50 hover:bg-white relative overflow-hidden h-full">
+              <Card className={`p-8 border-none shadow-lg hover:shadow-xl transition-all hover:-translate-y-2 group relative overflow-hidden h-full ${featuresImg ? "bg-white/85 backdrop-blur-sm hover:bg-white/95" : "bg-gray-50/50 hover:bg-white"}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 
                 <div className={`${feature.bg} ${feature.color} w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10`}>
