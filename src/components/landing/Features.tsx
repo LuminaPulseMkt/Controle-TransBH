@@ -1,8 +1,11 @@
 import { ShieldCheck, MapPin, Truck, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 export function Features() {
+  const { getSetting } = useSiteSettings();
+  const featuresImg = getSetting("features_img");
   const features = [
     {
       title: "Rastreamento em Tempo Real",
@@ -39,9 +42,24 @@ export function Features() {
   ];
 
   return (
-    <section className="py-24 bg-white overflow-hidden">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-20">
+    <section className={`relative py-24 overflow-hidden ${featuresImg ? "" : "bg-white"}`}>
+      {featuresImg && (
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${featuresImg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      )}
+
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="relative text-center mb-20">
+          {featuresImg && (
+            <div className="absolute -inset-x-10 -inset-y-8 z-0 rounded-3xl bg-gradient-to-b from-black/55 to-transparent pointer-events-none" />
+          )}
+          <div className="relative z-10">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
