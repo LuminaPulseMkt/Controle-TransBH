@@ -64,7 +64,7 @@ export function Features() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-display text-4xl text-brand-text mb-6"
+            className={`text-display text-4xl mb-6 ${featuresImg ? "text-white drop-shadow-lg" : "text-brand-text"}`}
           >
             Diferenciais que nos <span className="text-brand-orange">destacam</span>
           </motion.h2>
@@ -79,10 +79,11 @@ export function Features() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-brand-graphite mt-8 max-w-2xl mx-auto leading-relaxed"
+            className={`mt-8 max-w-2xl mx-auto leading-relaxed ${featuresImg ? "text-white/90 drop-shadow" : "text-brand-graphite"}`}
           >
             Combinamos tecnologia e experiência para oferecer a melhor solução em transporte veicular no mercado nacional.
           </motion.p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
