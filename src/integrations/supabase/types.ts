@@ -166,6 +166,7 @@ export type Database = {
           client_email: string | null
           client_name: string
           client_phone: string | null
+          client_signature_url: string | null
           created_at: string
           created_by: string | null
           doc_type: Database["public"]["Enums"]["document_type"]
@@ -175,6 +176,7 @@ export type Database = {
           id: string
           pdf_url: string | null
           public_token: string
+          signed_at: string | null
           template: Database["public"]["Enums"]["contract_template"] | null
           title: string
           total_amount: number | null
@@ -192,6 +194,7 @@ export type Database = {
           client_email?: string | null
           client_name: string
           client_phone?: string | null
+          client_signature_url?: string | null
           created_at?: string
           created_by?: string | null
           doc_type: Database["public"]["Enums"]["document_type"]
@@ -201,6 +204,7 @@ export type Database = {
           id?: string
           pdf_url?: string | null
           public_token?: string
+          signed_at?: string | null
           template?: Database["public"]["Enums"]["contract_template"] | null
           title: string
           total_amount?: number | null
@@ -218,6 +222,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string
           client_phone?: string | null
+          client_signature_url?: string | null
           created_at?: string
           created_by?: string | null
           doc_type?: Database["public"]["Enums"]["document_type"]
@@ -227,6 +232,7 @@ export type Database = {
           id?: string
           pdf_url?: string | null
           public_token?: string
+          signed_at?: string | null
           template?: Database["public"]["Enums"]["contract_template"] | null
           title?: string
           total_amount?: number | null
@@ -938,7 +944,11 @@ export type Database = {
     }
     Functions: {
       accept_budget_by_token: {
-        Args: { _estimated_delivery?: string; _token: string }
+        Args: {
+          _client_signature_url?: string
+          _estimated_delivery?: string
+          _token: string
+        }
         Returns: Json
       }
       can_manage_settings: { Args: { _uid: string }; Returns: boolean }
@@ -956,10 +966,12 @@ export type Database = {
           client_email: string
           client_name: string
           client_phone: string
+          client_signature_url: string
           created_at: string
           doc_type: Database["public"]["Enums"]["document_type"]
           id: string
           public_token: string
+          signed_at: string
           title: string
           total_amount: number
         }[]
