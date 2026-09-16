@@ -115,20 +115,19 @@ export function LeadForm() {
   }
 
   return (
-    <section id="orcamento" className="py-24 bg-brand-text text-white relative overflow-hidden">
-      {/* Background patterns */}
-      <div className="absolute inset-0 z-0 opacity-20 bg-grid pointer-events-none" />
-      {formBg && (
-        <div 
-          className="absolute inset-0 z-0 pointer-events-none opacity-5"
-          style={{ 
+    <section id="orcamento" className="py-24 text-white relative overflow-hidden">
+      {formBg ? (
+        <div
+          className="absolute inset-0 z-0 pointer-events-none opacity-95"
+          style={{
             backgroundImage: `url(${formBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
+      ) : (
+        <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-brand-blue via-brand-text to-brand-orange opacity-90" />
       )}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,oklch(0.6_0.2_70/0.05),transparent_50%)]" />
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
