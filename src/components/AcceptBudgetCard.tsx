@@ -39,6 +39,7 @@ interface Props {
 export function AcceptBudgetCard({ token, acceptedAt, acceptedContractToken, onAccepted }: Props) {
   const acceptFn = useServerFn(acceptBudget);
   const [agree, setAgree] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [delivery, setDelivery] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AcceptResult | null>(
@@ -55,10 +56,16 @@ export function AcceptBudgetCard({ token, acceptedAt, acceptedContractToken, onA
 
   const handleAccept = async () => {
     if (!agree) return toast.error("Você precisa concordar com as condições.");
+    if (!signatureUrl) return toast.error("Assine no quadro antes de aceitar.");
     setSubmitting(true);
     try {
       const res = await acceptFn({
-        data: { token, accepted: true, estimated_delivery: delivery || undefined },
+        data: {
+          token,
+          accepted: true,
+          estimated_delivery: delivery || undefined,
+          client_signature_url: signatureUrl,
+        },
       });
       if (!res.ok) {
         toast.error(res.error);
