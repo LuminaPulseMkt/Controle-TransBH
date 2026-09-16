@@ -12,6 +12,8 @@ export interface DocumentViewData {
   total_amount: number | null;
   body: any;
   created_at: string;
+  client_signature_url?: string | null;
+  signed_at?: string | null;
 }
 
 interface CompanyInfo {
