@@ -60,13 +60,16 @@ function LoginPage() {
     e.preventDefault();
     if (password.length < 6) return toast.error("A senha deve ter ao menos 6 caracteres.");
     setBusy(true);
-    const { error } = await signUp(email, password, displayName);
+    const { error, needsEmailConfirmation } = await signUp(email, password, displayName);
     setBusy(false);
-    if (error) toast.error(error);
-    else {
-      toast.success("Conta criada! Redirecionando…");
-      navigate({ to: "/dashboard" });
+    if (error) return toast.error(error);
+    if (needsEmailConfirmation) {
+      toast.success("Conta criada! Confirme seu e-mail pelo link que enviamos e depois faça login.");
+      setPassword("");
+      return;
     }
+    toast.success("Conta criada! Redirecionando…");
+    navigate({ to: "/dashboard" });
   };
 
   return (
