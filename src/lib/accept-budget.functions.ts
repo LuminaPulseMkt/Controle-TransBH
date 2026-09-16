@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 const InputSchema = z.object({
   token: z.string().min(10).max(64),
   estimated_delivery: z.string().optional(),
+  client_signature_url: z.string().url().optional(),
   accepted: z.literal(true),
 });
 
