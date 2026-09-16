@@ -12,6 +12,8 @@ export interface DocumentViewData {
   total_amount: number | null;
   body: any;
   created_at: string;
+  client_signature_url?: string | null;
+  signed_at?: string | null;
 }
 
 interface CompanyInfo {
@@ -210,9 +212,21 @@ export function DocumentView({ doc, company }: Props) {
         {isContract && (
           <div className="mt-12 grid grid-cols-2 gap-10">
             <div className="text-center">
+              {doc.client_signature_url && (
+                <img
+                  src={doc.client_signature_url}
+                  alt={`Assinatura de ${doc.client_name}`}
+                  className="h-16 mx-auto object-contain"
+                />
+              )}
               <div className="border-t border-black/60 pt-2 text-sm font-medium text-black">
                 {doc.client_name}
                 <div className="text-xs uppercase tracking-wider mt-0.5 text-black/60">Contratante</div>
+                {doc.signed_at && (
+                  <div className="text-[11px] mt-1 text-black/60">
+                    Assinado eletronicamente em {dateBR(doc.signed_at)}
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-center">

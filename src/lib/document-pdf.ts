@@ -14,6 +14,25 @@ export interface DocumentPdfData {
   total_amount: number | null;
   body: any;
   created_at: string;
+  client_signature_url?: string | null;
+  signed_at?: string | null;
+}
+
+/** Baixa uma imagem remota e converte para data URL (necessário para o jsPDF). */
+async function fetchImageDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
 
 export interface DocumentPdfCompany {
@@ -281,14 +300,30 @@ export async function exportDocumentPdf(
         y += 5;
       }
     }
-    ensureSpace(20);
+    ensureSpace(40);
     y += 12;
+
+    // Assinatura eletrônica do contratante (se coletada no link público)
+    const signatureImg = d.client_signature_url ? await fetchImageDataUrl(d.client_signature_url) : null;
+    if (signatureImg) {
+      try {
+        pdf.addImage(signatureImg, "PNG", 30, y - 18, 50, 16);
+      } catch {
+        /* imagem inválida: segue sem a assinatura desenhada */
+      }
+    }
+
     pdf.setDrawColor(0, 0, 0);
     pdf.line(20, y, 90, y);
     pdf.line(pageW - 90, y, pageW - 20, y);
     pdf.setFontSize(9);
     pdf.text(d.client_name, 55, y + 4, { align: "center" });
     pdf.text("Contratante", 55, y + 8, { align: "center" });
+    if (d.signed_at) {
+      pdf.setFontSize(7.5);
+      pdf.text(`Assinado eletronicamente em ${dateBR(d.signed_at)}`, 55, y + 12, { align: "center" });
+      pdf.setFontSize(9);
+    }
     pdf.text(company?.name || "TransBH", pageW - 55, y + 4, { align: "center" });
     pdf.text("Contratada", pageW - 55, y + 8, { align: "center" });
   }

@@ -115,29 +115,28 @@ export function LeadForm() {
   }
 
   return (
-    <section id="orcamento" className="py-24 bg-brand-text text-white relative overflow-hidden">
-      {/* Background patterns */}
-      <div className="absolute inset-0 z-0 opacity-20 bg-grid pointer-events-none" />
-      {formBg && (
-        <div 
-          className="absolute inset-0 z-0 pointer-events-none opacity-5"
-          style={{ 
+    <section id="orcamento" className="py-24 text-white relative overflow-hidden">
+      {formBg ? (
+        <div
+          className="absolute inset-0 z-0 pointer-events-none opacity-95"
+          style={{
             backgroundImage: `url(${formBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
+      ) : (
+        <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-brand-blue via-brand-text to-brand-orange opacity-90" />
       )}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,oklch(0.6_0.2_70/0.05),transparent_50%)]" />
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-16 mx-auto max-w-2xl rounded-[2rem] bg-black/45 backdrop-blur-sm px-6 py-10">
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-display text-4xl mb-6"
+              className="text-display text-4xl mb-6 text-white drop-shadow-lg"
             >
               Peça sua <span className="text-brand-orange">cotação</span> grátis
             </motion.h2>
@@ -152,7 +151,7 @@ export function LeadForm() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-gray-400 max-w-xl mx-auto"
+              className="text-white/90 max-w-xl mx-auto drop-shadow"
             >
               Resposta rápida e personalizada. Preencha os detalhes e nossa equipe cuidará do resto.
             </motion.p>

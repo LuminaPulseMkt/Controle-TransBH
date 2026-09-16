@@ -18,7 +18,11 @@ interface AuthState {
   permissions: Record<PermKey, boolean>;
   can: (key: PermKey) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+  ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -78,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, displayName: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -86,7 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { display_name: displayName },
       },
     });
-    return { error: error?.message ?? null };
+    return {
+      error: error?.message ?? null,
+      // Com confirmação de e-mail ativa, o signUp não cria sessão.
+      needsEmailConfirmation: !error && !data.session,
+    };
   };
 
   const signOut = async () => {
