@@ -136,7 +136,7 @@ export function LeadForm() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-display text-4xl mb-6"
+              className="text-display text-4xl mb-6 text-white drop-shadow-lg"
             >
               Peça sua <span className="text-brand-orange">cotação</span> grátis
             </motion.h2>
@@ -151,7 +151,7 @@ export function LeadForm() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-gray-400 max-w-xl mx-auto"
+              className="text-white/90 max-w-xl mx-auto drop-shadow"
             >
               Resposta rápida e personalizada. Preencha os detalhes e nossa equipe cuidará do resto.
             </motion.p>
