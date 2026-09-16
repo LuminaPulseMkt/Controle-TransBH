@@ -14,6 +14,25 @@ export interface DocumentPdfData {
   total_amount: number | null;
   body: any;
   created_at: string;
+  client_signature_url?: string | null;
+  signed_at?: string | null;
+}
+
+/** Baixa uma imagem remota e converte para data URL (necessário para o jsPDF). */
+async function fetchImageDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
 
 export interface DocumentPdfCompany {
