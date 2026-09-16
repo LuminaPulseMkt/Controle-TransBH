@@ -131,7 +131,7 @@ export function LeadForm() {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-16 mx-auto max-w-2xl rounded-[2rem] bg-black/45 backdrop-blur-sm px-6 py-10">
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
