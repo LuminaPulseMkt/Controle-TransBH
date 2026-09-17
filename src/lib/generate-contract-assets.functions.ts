@@ -57,7 +57,7 @@ export const generateContractAssets = createServerFn({ method: "POST" })
       if (!contractId) return { ok: false as const, error: "contract_id ausente." };
       const estimatedDelivery = typeof data?.estimated_delivery === "string" ? data.estimated_delivery : "";
 
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      
       const { data: contract, error: fetchErr } = await supabaseAdmin
         .from("documents")
         .select("*")
