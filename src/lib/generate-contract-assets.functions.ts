@@ -7,8 +7,10 @@ interface InputData {
 }
 
 export const generateContractAssets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): InputData => (input ?? {}) as InputData)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = context.supabase;
     type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
     interface VehicleItem {
       description?: string;
