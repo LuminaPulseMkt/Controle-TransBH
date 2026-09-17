@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 interface InputData {
   contract_id?: unknown;
@@ -6,8 +7,10 @@ interface InputData {
 }
 
 export const generateContractAssets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): InputData => (input ?? {}) as InputData)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = context.supabase;
     type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
     interface VehicleItem {
       description?: string;
@@ -54,7 +57,7 @@ export const generateContractAssets = createServerFn({ method: "POST" })
       if (!contractId) return { ok: false as const, error: "contract_id ausente." };
       const estimatedDelivery = typeof data?.estimated_delivery === "string" ? data.estimated_delivery : "";
 
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      
       const { data: contract, error: fetchErr } = await supabaseAdmin
         .from("documents")
         .select("*")
