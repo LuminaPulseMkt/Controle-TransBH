@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 interface InputData {
@@ -7,7 +8,9 @@ interface InputData {
 }
 
 export const generateContractAssets = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  // Keep the auth attacher local as well as global so this critical action
+  // always forwards the current browser session before server authorization.
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown): InputData => (input ?? {}) as InputData)
   .handler(async ({ data, context }) => {
     const supabaseAdmin = context.supabase;
