@@ -170,7 +170,7 @@ function DocumentsPage() {
     setCustomTemplates(((data ?? []) as unknown as DBTemplateRow[]).map(dbRowToTemplate));
   };
   const loadCompany = async () => {
-    const { data } = await supabase.from("company_settings").select("name,logo_url,cnpj,address,phone,whatsapp,email,website").maybeSingle();
+    const { data } = await supabase.rpc("get_public_company_info").maybeSingle();
     setCompany((data as any) ?? null);
   };
   useEffect(() => { void load(); void loadTemplates(); void loadCompany(); }, []);

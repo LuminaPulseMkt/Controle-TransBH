@@ -31,8 +31,7 @@ function NewChecklistPage() {
 
   useEffect(() => {
     supabase
-      .from("company_settings")
-      .select("name, logo_url")
+      .rpc("get_public_company_info")
       .maybeSingle()
       .then(({ data }) => setCompany(data ?? null));
   }, []);

@@ -976,6 +976,24 @@ export type Database = {
           total_amount: number
         }[]
       }
+      get_public_company_info: {
+        Args: never
+        Returns: {
+          address: string
+          cnpj: string
+          email: string
+          facebook_url: string
+          google_business_url: string
+          google_review_url: string
+          instagram_url: string
+          logo_url: string
+          name: string
+          phone: string
+          website: string
+          whatsapp: string
+          whatsapp_url: string
+        }[]
+      }
       has_permission: {
         Args: { _perm: string; _uid: string }
         Returns: boolean

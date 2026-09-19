@@ -31,7 +31,7 @@ function ChecklistEditorPage() {
     (async () => {
       const [{ data: row, error }, { data: comp }] = await Promise.all([
         supabase.from("vehicle_checklists").select("*").eq("id", id).maybeSingle(),
-        supabase.from("company_settings").select("name, logo_url").maybeSingle(),
+        supabase.rpc("get_public_company_info").maybeSingle(),
       ]);
       setLoading(false);
       if (error) return toast.error(error.message);

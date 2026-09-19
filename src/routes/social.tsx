@@ -50,10 +50,7 @@ function SocialPage() {
           .eq("status", "delivered")
           .order("created_at", { ascending: false })
           .limit(20),
-        supabase
-          .from("company_settings")
-          .select("logo_url, instagram_url, facebook_url, whatsapp_url, google_business_url")
-          .maybeSingle(),
+        supabase.rpc("get_public_company_info").maybeSingle(),
       ]);
       setTransports(tr ?? []);
       setLogoUrl(c?.logo_url ?? null);

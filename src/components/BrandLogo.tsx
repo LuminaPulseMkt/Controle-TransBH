@@ -18,10 +18,7 @@ async function loadLogo() {
   if (cachedLogo !== undefined) return;
   cachedLogo = null;
   try {
-    const { data } = await supabase
-      .from("company_settings")
-      .select("logo_url")
-      .maybeSingle();
+    const { data } = await supabase.rpc("get_public_company_info").maybeSingle();
     cachedLogo = data?.logo_url ?? null;
   } catch {
     cachedLogo = null;

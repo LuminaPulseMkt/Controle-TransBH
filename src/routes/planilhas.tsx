@@ -82,7 +82,7 @@ function TripSheetsPage() {
 
   useEffect(() => {
     void load();
-    supabase.from("company_settings").select("name, logo_url").maybeSingle()
+    supabase.rpc("get_public_company_info").maybeSingle()
       .then(({ data }) => setCompany(data ?? null));
   }, []);
 

@@ -746,7 +746,7 @@ function ReportsTab() {
         supabase.from("receivable_payments").select("amount, paid_at").gte("paid_at", iso),
         supabase.from("payables").select("amount, expense_date").gte("expense_date", iso),
         supabase.from("receivables").select("*").eq("status", "overdue").order("due_date"),
-        supabase.from("company_settings").select("name,logo_url").maybeSingle(),
+        supabase.rpc("get_public_company_info").maybeSingle(),
         supabase.from("trip_sheets").select("rows, expenses, sheet_date").gte("sheet_date", iso),
       ]);
 

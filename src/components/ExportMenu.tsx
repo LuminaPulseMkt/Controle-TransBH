@@ -31,10 +31,7 @@ const CACHE_TTL_MS = 60_000;
 
 async function getCompany(): Promise<CompanyInfo> {
   if (cachedCompany && Date.now() - cachedAt < CACHE_TTL_MS) return cachedCompany;
-  const { data } = await supabase
-    .from("company_settings")
-    .select("name,logo_url")
-    .maybeSingle();
+  const { data } = await supabase.rpc("get_public_company_info").maybeSingle();
   cachedCompany = data ?? { name: null, logo_url: null };
   cachedAt = Date.now();
   return cachedCompany;

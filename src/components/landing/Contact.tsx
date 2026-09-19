@@ -1,7 +1,24 @@
+import { useEffect, useState } from "react";
 import { Phone, Mail, MapPin, Instagram, Facebook, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 export function Contact() {
+  const [socials, setSocials] = useState<{ instagram_url: string | null; facebook_url: string | null }>({
+    instagram_url: null,
+    facebook_url: null,
+  });
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc("get_public_company_info").maybeSingle();
+      setSocials({
+        instagram_url: data?.instagram_url ?? null,
+        facebook_url: data?.facebook_url ?? null,
+      });
+    })();
+  }, []);
+
   const contactInfo = [
     {
       icon: Phone,
@@ -19,9 +36,14 @@ export function Contact() {
       icon: MapPin,
       label: "Base Operacional",
       value: "Belo Horizonte/MG - Atendimento Nacional",
-      href: "#"
+      href: "https://www.google.com/maps/search/?api=1&query=Belo+Horizonte%2FMG"
     }
   ];
+
+  const socialLinks = [
+    { Icon: Instagram, href: socials.instagram_url },
+    { Icon: Facebook, href: socials.facebook_url },
+  ].filter((s): s is { Icon: typeof Instagram; href: string } => Boolean(s.href));
 
   return (
     <section id="contato" className="py-24 bg-brand-neutral">
@@ -62,16 +84,24 @@ export function Contact() {
                 ))}
               </div>
               
-              <div className="mt-16 pt-10 border-t border-gray-100 flex items-center gap-6">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Siga-nos</span>
-                <div className="flex gap-3">
-                  {[Instagram, Facebook].map((Social, i) => (
-                    <a key={i} href="#" className="w-10 h-10 rounded-full bg-brand-neutral flex items-center justify-center text-brand-graphite hover:bg-brand-blue hover:text-white transition-all">
-                      <Social size={18} />
-                    </a>
-                  ))}
+              {socialLinks.length > 0 && (
+                <div className="mt-16 pt-10 border-t border-gray-100 flex items-center gap-6">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Siga-nos</span>
+                  <div className="flex gap-3">
+                    {socialLinks.map(({ Icon, href }, i) => (
+                      <a
+                        key={i}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-brand-neutral flex items-center justify-center text-brand-graphite hover:bg-brand-blue hover:text-white transition-all"
+                      >
+                        <Icon size={18} />
+                      </a>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             
             <div className="lg:w-[45%] bg-brand-text p-10 md:p-16 text-white relative overflow-hidden flex flex-col justify-center">

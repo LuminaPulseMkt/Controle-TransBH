@@ -51,10 +51,6 @@ export function Footer() {
         
         <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-brand-graphite-light">
           <p>© {currentYear} TransBH – Transportes de Veículos. Todos os direitos reservados.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-brand-orange">Política de Privacidade</a>
-            <a href="#" className="hover:text-brand-orange">Termos de Uso</a>
-          </div>
         </div>
       </div>
     </footer>

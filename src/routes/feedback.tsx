@@ -37,10 +37,7 @@ function FeedbackPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("company_settings")
-        .select("google_review_url, logo_url")
-        .maybeSingle();
+      const { data } = await supabase.rpc("get_public_company_info").maybeSingle();
       setReviewUrl(data?.google_review_url ?? null);
       setLogoUrl(data?.logo_url ?? null);
     })();

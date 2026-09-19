@@ -38,7 +38,7 @@ function PublicDocumentPage() {
       setLoading(true);
       const [{ data: docRows, error }, { data: companyData }] = await Promise.all([
         supabase.rpc("get_document_by_token", { _token: token }),
-        supabase.from("company_settings").select("name,phone,whatsapp,email,address,cnpj,logo_url,website").maybeSingle(),
+        supabase.rpc("get_public_company_info").maybeSingle(),
       ]);
       const docData = Array.isArray(docRows) ? docRows[0] ?? null : (docRows as any) ?? null;
 
