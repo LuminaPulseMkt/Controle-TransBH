@@ -69,8 +69,8 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-base md:text-lg text-brand-graphite mb-10 max-w-2xl mx-auto leading-relaxed"
           >
-            Especialistas no transporte de carros, motos e frotas. 
-            Segurança total e rastreamento em tempo real em todo o território nacional.
+            Especialistas no transporte de carros, motos e frotas.
+            Segurança total em todo o território nacional.
           </motion.p>
 
           <motion.div 

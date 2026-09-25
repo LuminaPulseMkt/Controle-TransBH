@@ -5,6 +5,10 @@ export type TemplateKey =
   | "wa_budget_created"
   | "wa_budget_accepted"
   | "wa_charge_reminder"
+  | "wa_status_aguardando_coleta"
+  | "wa_status_coletado_aguardando_embarque"
+  | "wa_status_veiculo_patio_aguardando_retirada"
+  | "wa_status_finalizado"
   | "email_budget_created"
   | "email_budget_accepted"
   | "email_charge_reminder";
@@ -18,6 +22,8 @@ export interface TemplateVars {
   company_name?: string | null;
   transport_code?: string | null;
   days_overdue?: number | string | null;
+  vehicle_plate?: string | null;
+  review_link?: string | null;
 }
 
 export function renderTemplate(body: string, vars: TemplateVars): string {
@@ -30,6 +36,8 @@ export function renderTemplate(body: string, vars: TemplateVars): string {
     company_name: String(vars.company_name ?? "TransBH"),
     transport_code: String(vars.transport_code ?? ""),
     days_overdue: String(vars.days_overdue ?? ""),
+    vehicle_plate: String(vars.vehicle_plate ?? ""),
+    review_link: String(vars.review_link ?? ""),
   };
   return body.replace(/\{(\w+)\}/g, (_, k: string) =>
     Object.prototype.hasOwnProperty.call(map, k) ? map[k] : `{${k}}`,

@@ -672,10 +672,16 @@ export type Database = {
       }
       transports: {
         Row: {
+          client_address: string | null
           client_document: string | null
+          client_email: string | null
           client_name: string
           client_phone: string | null
           code: string
+          cost_boarding: number | null
+          cost_notes: string | null
+          cost_other: number | null
+          cost_pickup: number | null
           created_at: string
           created_by: string | null
           current_location: string | null
@@ -703,10 +709,16 @@ export type Database = {
           vehicle_year: number | null
         }
         Insert: {
+          client_address?: string | null
           client_document?: string | null
+          client_email?: string | null
           client_name: string
           client_phone?: string | null
           code?: string
+          cost_boarding?: number | null
+          cost_notes?: string | null
+          cost_other?: number | null
+          cost_pickup?: number | null
           created_at?: string
           created_by?: string | null
           current_location?: string | null
@@ -734,10 +746,16 @@ export type Database = {
           vehicle_year?: number | null
         }
         Update: {
+          client_address?: string | null
           client_document?: string | null
+          client_email?: string | null
           client_name?: string
           client_phone?: string | null
           code?: string
+          cost_boarding?: number | null
+          cost_notes?: string | null
+          cost_other?: number | null
+          cost_pickup?: number | null
           created_at?: string
           created_by?: string | null
           current_location?: string | null
@@ -876,6 +894,7 @@ export type Database = {
           location: string | null
           model: string | null
           observations: string | null
+          photos: Json
           pickup: Json
           plate: string | null
           tires: Json
@@ -899,6 +918,7 @@ export type Database = {
           location?: string | null
           model?: string | null
           observations?: string | null
+          photos?: Json
           pickup?: Json
           plate?: string | null
           tires?: Json
@@ -922,6 +942,7 @@ export type Database = {
           location?: string | null
           model?: string | null
           observations?: string | null
+          photos?: Json
           pickup?: Json
           plate?: string | null
           tires?: Json
@@ -1013,7 +1034,12 @@ export type Database = {
       contract_template: "standard" | "fragile" | "express"
       document_type: "budget" | "contract"
       payment_status: "paid" | "pending" | "overdue" | "negotiated" | "partial"
-      transport_status: "pending" | "in_transit" | "delivered" | "cancelled"
+      transport_status:
+        | "aguardando_coleta"
+        | "coletado_aguardando_embarque"
+        | "veiculo_patio_aguardando_retirada"
+        | "finalizado"
+        | "cancelled"
       vehicle_type: "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv"
     }
     CompositeTypes: {
@@ -1146,7 +1172,13 @@ export const Constants = {
       contract_template: ["standard", "fragile", "express"],
       document_type: ["budget", "contract"],
       payment_status: ["paid", "pending", "overdue", "negotiated", "partial"],
-      transport_status: ["pending", "in_transit", "delivered", "cancelled"],
+      transport_status: [
+        "aguardando_coleta",
+        "coletado_aguardando_embarque",
+        "veiculo_patio_aguardando_retirada",
+        "finalizado",
+        "cancelled",
+      ],
       vehicle_type: ["motorcycle", "sedan", "hatch", "caminhonete", "suv"],
     },
   },

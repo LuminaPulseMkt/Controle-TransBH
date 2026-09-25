@@ -64,6 +64,7 @@ function ChecklistEditorPage() {
         observations: row.observations ?? "",
         pickup: { ...emptyParty(), ...(row.pickup as Partial<ChecklistData["pickup"]> | null ?? {}) },
         delivery: { ...emptyParty(), ...(row.delivery as Partial<ChecklistData["delivery"]> | null ?? {}) },
+        photos: Array.isArray(row.photos) ? (row.photos as string[]) : [],
       });
     })();
   }, [id]);
@@ -90,6 +91,7 @@ function ChecklistEditorPage() {
         observations: data.observations || null,
         pickup: data.pickup as unknown as Record<string, string>,
         delivery: data.delivery as unknown as Record<string, string>,
+        photos: data.photos,
       })
       .eq("id", id);
     setSaving(false);

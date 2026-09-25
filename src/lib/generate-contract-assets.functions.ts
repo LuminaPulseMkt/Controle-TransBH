@@ -18,6 +18,7 @@ export const generateContractAssets = createServerFn({ method: "POST" })
     interface VehicleItem {
       description?: string;
       plate?: string;
+      chassis?: string;
       color?: string;
       type?: VehicleType;
       brand?: string;
@@ -48,6 +49,7 @@ export const generateContractAssets = createServerFn({ method: "POST" })
         return [{
           description: body.vehicle ?? undefined,
           plate: body.vehicle_plate ?? undefined,
+          chassis: body.vehicle_chassis ?? undefined,
           color: body.vehicle_color ?? undefined,
           type: "sedan",
         }];
@@ -92,6 +94,8 @@ export const generateContractAssets = createServerFn({ method: "POST" })
       const vehicles = normalizeVehicles(body);
       const origin = parseLocation(body.origin);
       const destination = parseLocation(body.destination);
+      const clientAddress: string | null = body.client_address || null;
+      const contractNotes: string | null = body.notes || null;
 
       const totalAmount = Number(contract.total_amount ?? 0);
 
@@ -105,6 +109,8 @@ export const generateContractAssets = createServerFn({ method: "POST" })
             client_name: contract.client_name,
             client_document: contract.client_document,
             client_phone: contract.client_phone,
+            client_email: contract.client_email,
+            client_address: clientAddress,
             origin_city: origin.city,
             origin_state: origin.state,
             destination_city: destination.city,
@@ -115,9 +121,10 @@ export const generateContractAssets = createServerFn({ method: "POST" })
             vehicle_model: v.model ?? v.description ?? null,
             vehicle_year: v.year ?? null,
             vehicle_color: v.color ?? null,
-            notes: v.description ? `Veículo: ${v.description}` : null,
+            vehicle_chassis: v.chassis ? v.chassis.toString().toUpperCase() : null,
+            notes: [v.description ? `Veículo: ${v.description}` : null, contractNotes].filter(Boolean).join("\n\n") || null,
             estimated_delivery: estimatedDelivery || null,
-            status: "pending",
+            status: "aguardando_coleta",
             created_by: contract.created_by,
           })
           .select("id")

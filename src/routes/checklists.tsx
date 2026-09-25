@@ -11,7 +11,12 @@ import { ChecklistForm } from "@/components/checklist/ChecklistForm";
 import { emptyChecklist, type ChecklistData } from "@/lib/checklist-types";
 import { exportChecklistPDF } from "@/lib/checklist-pdf";
 
+type ChecklistsSearch = { transport_id?: string };
+
 export const Route = createFileRoute("/checklists")({
+  validateSearch: (s: Record<string, unknown>): ChecklistsSearch => ({
+    transport_id: typeof s.transport_id === "string" ? s.transport_id : undefined,
+  }),
   component: () => (
     <AuthGate requirePermission="transports.view">
       <NewChecklistPage />
@@ -22,9 +27,11 @@ export const Route = createFileRoute("/checklists")({
 function NewChecklistPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { transport_id } = Route.useSearch();
   const [data, setData] = useState<ChecklistData>(() => emptyChecklist());
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<{ name?: string | null; logo_url?: string | null } | null>(null);
+  const [linkedTransport, setLinkedTransport] = useState<{ code: string } | null>(null);
 
   // Temporary id used to namespace signature uploads before the row is saved.
   const draftId = useMemo(() => crypto.randomUUID(), []);
@@ -36,6 +43,27 @@ function NewChecklistPage() {
       .then(({ data }) => setCompany(data ?? null));
   }, []);
 
+  useEffect(() => {
+    if (!transport_id) return;
+    supabase
+      .from("transports")
+      .select("code, client_name, vehicle_plate, vehicle_brand, vehicle_model, vehicle_chassis, vehicle_color")
+      .eq("id", transport_id)
+      .maybeSingle()
+      .then(({ data: t }) => {
+        if (!t) return;
+        setLinkedTransport({ code: t.code });
+        setData((prev) => ({
+          ...prev,
+          client_name: t.client_name ?? prev.client_name,
+          plate: t.vehicle_plate ?? prev.plate,
+          model: [t.vehicle_brand, t.vehicle_model].filter(Boolean).join(" ") || prev.model,
+          chassis: t.vehicle_chassis ?? prev.chassis,
+          color: t.vehicle_color ?? prev.color,
+        }));
+      });
+  }, [transport_id]);
+
   const save = async () => {
     if (!user) return;
     setSaving(true);
@@ -43,6 +71,7 @@ function NewChecklistPage() {
       .from("vehicle_checklists")
       .insert({
         created_by: user.id,
+        transport_id: transport_id || null,
         client_name: data.client_name || null,
         plate: data.plate || null,
         model: data.model || null,
@@ -59,6 +88,7 @@ function NewChecklistPage() {
         observations: data.observations || null,
         pickup: data.pickup as unknown as Record<string, string>,
         delivery: data.delivery as unknown as Record<string, string>,
+        photos: data.photos,
       })
       .select("id")
       .single();
@@ -94,6 +124,11 @@ function NewChecklistPage() {
         </>
       }
     >
+      {linkedTransport && (
+        <div className="max-w-5xl mx-auto mb-3 text-xs text-muted-foreground">
+          Vinculado ao transporte <span className="font-medium text-foreground">{linkedTransport.code}</span>
+        </div>
+      )}
       <ChecklistForm data={data} onChange={setData} checklistId={draftId} company={company} />
     </AppLayout>
   );

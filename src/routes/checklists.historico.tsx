@@ -80,15 +80,16 @@ function HistoryPage() {
                 <th className="text-left p-3">Cliente</th>
                 <th className="text-left p-3">Placa</th>
                 <th className="text-left p-3">Modelo</th>
+                <th className="text-left p-3">Transporte</th>
                 <th className="p-3"></th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>
               )}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">
                   <ClipboardCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   Nenhum checklist salvo.
                 </td></tr>
@@ -99,6 +100,15 @@ function HistoryPage() {
                   <td className="p-3">{r.client_name || "—"}</td>
                   <td className="p-3 font-mono">{r.plate || "—"}</td>
                   <td className="p-3">{r.model || "—"}</td>
+                  <td className="p-3">
+                    {r.transport_id ? (
+                      <Link to="/transports/$id" params={{ id: r.transport_id }} className="text-primary hover:underline">
+                        Ver transporte
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="p-3 text-right">
                     <div className="flex gap-2 justify-end">
                       <Button asChild size="sm" variant="outline">

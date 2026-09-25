@@ -47,7 +47,7 @@ function SocialPage() {
         supabase
           .from("transports")
           .select("id, code, client_name, vehicle_plate, origin_city, destination_city")
-          .eq("status", "delivered")
+          .eq("status", "finalizado")
           .order("created_at", { ascending: false })
           .limit(20),
         supabase.rpc("get_public_company_info").maybeSingle(),

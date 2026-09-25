@@ -47,6 +47,9 @@ import { ExportMenu } from "@/components/ExportMenu";
 type VehicleType = "motorcycle" | "sedan" | "hatch" | "caminhonete" | "suv";
 interface VehicleForm {
   description: string;
+  brand: string;
+  model: string;
+  year: string;
   plate: string;
   chassis: string;
   color: string;
@@ -54,12 +57,15 @@ interface VehicleForm {
   value: string;
   market_value: string;
 }
-const emptyVehicle = (): VehicleForm => ({ description: "", plate: "", chassis: "", color: "", type: "sedan", value: "", market_value: "" });
+const emptyVehicle = (): VehicleForm => ({ description: "", brand: "", model: "", year: "", plate: "", chassis: "", color: "", type: "sedan", value: "", market_value: "" });
 
 function bodyToVehicles(body: any): VehicleForm[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
     return body.vehicles.map((v: any) => ({
       description: v.description ?? "",
+      brand: v.brand ?? "",
+      model: v.model ?? "",
+      year: v.year != null ? String(v.year) : "",
       plate: v.plate ?? "",
       chassis: v.chassis ?? "",
       color: v.color ?? "",
@@ -71,6 +77,9 @@ function bodyToVehicles(body: any): VehicleForm[] {
   if (body?.vehicle || body?.vehicle_plate) {
     return [{
       description: body.vehicle ?? "",
+      brand: "",
+      model: "",
+      year: "",
       plate: body.vehicle_plate ?? "",
       chassis: body.vehicle_chassis ?? "",
       color: body.vehicle_color ?? "",
@@ -333,6 +342,9 @@ function DocumentsPage() {
     setBusy(true);
     const vehiclesPayload = vehicles.map((v) => ({
       description: v.description,
+      brand: v.brand || null,
+      model: v.model || null,
+      year: v.year !== "" ? Number(v.year) || null : null,
       plate: v.plate.toUpperCase(),
       chassis: v.chassis.toUpperCase(),
       color: v.color,
@@ -785,6 +797,31 @@ function DocumentsPage() {
                             />
                           </div>
                           <div>
+                            <Label className="text-xs">Marca</Label>
+                            <Input
+                              value={v.brand}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, brand: e.target.value } : p))}
+                              placeholder="Honda"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Modelo</Label>
+                            <Input
+                              value={v.model}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, model: e.target.value } : p))}
+                              placeholder="Civic"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Ano</Label>
+                            <Input
+                              type="number"
+                              value={v.year}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, year: e.target.value } : p))}
+                              placeholder="2020"
+                            />
+                          </div>
+                          <div>
                             <Label className="text-xs">Chassi</Label>
                             <Input
                               value={v.chassis}
@@ -901,7 +938,11 @@ function DocumentsPage() {
                   onClick={() => {
                     const vehiclesPayload = vehicles.map((v) => ({
                       description: v.description,
+                      brand: v.brand || null,
+                      model: v.model || null,
+                      year: v.year !== "" ? Number(v.year) || null : null,
                       plate: v.plate.toUpperCase(),
+                      chassis: v.chassis.toUpperCase(),
                       color: v.color,
                       type: v.type,
                       value: Number(v.value) || 0,

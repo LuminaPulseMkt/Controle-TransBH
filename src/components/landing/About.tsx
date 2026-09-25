@@ -75,8 +75,7 @@ export function About() {
                 {[
                   { title: "Seguro Total", desc: "Cobertura completa inclusa." },
                   { title: "Frota Própria", desc: "Veículos modernos e revisados." },
-                  { title: "Entrega Porta-a-Porta", desc: "Conforto total para você." },
-                  { title: "Rastreio 24h", desc: "Monitore pelo seu celular." }
+                  { title: "Entrega Porta-a-Porta", desc: "Conforto total para você." }
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-brand-orange/10 flex items-center justify-center shrink-0 mt-0.5">

@@ -11,10 +11,10 @@ import { TransportStatusBadge } from "@/components/StatusBadge";
 import { ExportMenu } from "@/components/ExportMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { brl, dateBR } from "@/lib/format";
+import { brl, dateBR, transportStatusLabel } from "@/lib/format";
 import {
   Truck, Wallet, AlertTriangle, FileText, Plus, TrendingUp,
-  TrendingDown, Percent, Target, Handshake,
+  TrendingDown, Percent, Target, Handshake, Wrench,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -68,6 +68,7 @@ interface Transport {
   id: string; code: string; client_name: string; vehicle_plate: string;
   origin_city: string; destination_city: string; status: string;
   partner_id: string | null; partner_quoted_amount: number | null;
+  cost_pickup: number | null; cost_boarding: number | null; cost_other: number | null;
   created_at: string;
 }
 interface Receivable { id: string; client_name: string; amount: number; status: string; due_date: string; paid_at: string | null; transport_id: string | null; }
@@ -103,12 +104,12 @@ function DashboardPage() {
 
     const [trRes, partRes, ipRes] = await Promise.all([
       supabase.from("transports")
-        .select("id, code, client_name, vehicle_plate, origin_city, destination_city, status, partner_id, partner_quoted_amount, created_at")
+        .select("id, code, client_name, vehicle_plate, origin_city, destination_city, status, partner_id, partner_quoted_amount, cost_pickup, cost_boarding, cost_other, created_at")
         .gte("created_at", range.from.toISOString())
         .lte("created_at", range.to.toISOString())
         .order("created_at", { ascending: false }),
       supabase.from("partners").select("id, name"),
-      supabase.from("transports").select("id", { count: "exact", head: true }).in("status", ["pending", "in_transit"]),
+      supabase.from("transports").select("id", { count: "exact", head: true }).in("status", ["aguardando_coleta", "coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada"]),
     ]);
     setTransports((trRes.data ?? []) as Transport[]);
     setPartners((partRes.data ?? []) as Partner[]);
@@ -143,7 +144,10 @@ function DashboardPage() {
   const overdueCount = useMemo(() => receivables.filter(r => r.status === "overdue").length, [receivables]);
   const expensesTotal = useMemo(() => payables.reduce((s, p) => s + Number(p.amount), 0), [payables]);
   const partnerCost = useMemo(() => transports.reduce((s, t) => s + Number(t.partner_quoted_amount ?? 0), 0), [transports]);
-  const grossMargin = revenueInRange - expensesTotal - partnerCost;
+  const operationalCost = useMemo(() => transports.reduce(
+    (s, t) => s + Number(t.cost_pickup ?? 0) + Number(t.cost_boarding ?? 0) + Number(t.cost_other ?? 0), 0,
+  ), [transports]);
+  const grossMargin = revenueInRange - expensesTotal - partnerCost - operationalCost;
   const ticketAvg = transports.length ? revenueInRange / transports.length : 0;
 
   // Funil orçamentos
@@ -157,13 +161,17 @@ function DashboardPage() {
   const marginRows = useMemo(() => {
     return transports.map((t) => {
       const rev = receivables.filter(r => r.transport_id === t.id).reduce((s, r) => s + Number(r.amount), 0);
-      const cost = Number(t.partner_quoted_amount ?? 0);
+      const costPickup = Number(t.cost_pickup ?? 0);
+      const costBoarding = Number(t.cost_boarding ?? 0);
+      const costOther = Number(t.cost_other ?? 0);
+      const partnerCost = Number(t.partner_quoted_amount ?? 0);
+      const cost = costPickup + costBoarding + costOther + partnerCost;
       const margin = rev - cost;
       const pct = rev > 0 ? (margin / rev) * 100 : 0;
       return {
         id: t.id, code: t.code, client: t.client_name,
         partner: t.partner_id ? partnerById[t.partner_id] ?? "—" : "—",
-        revenue: rev, cost, margin, pct,
+        revenue: rev, costPickup, costBoarding, costOther, partnerCost, cost, margin, pct,
       };
     });
   }, [transports, receivables, partnerById]);
@@ -203,21 +211,33 @@ function DashboardPage() {
   const statusPie = useMemo(() => {
     const counts: Record<string, number> = {};
     transports.forEach(t => (counts[t.status] = (counts[t.status] ?? 0) + 1));
-    const labels: Record<string, string> = { pending: "Pendente", in_transit: "Em trânsito", delivered: "Entregue", cancelled: "Cancelado" };
-    const colors: Record<string, string> = { pending: "#eab308", in_transit: "#3b82f6", delivered: "#10b981", cancelled: "#6b7280" };
+    const labels: Record<string, string> = transportStatusLabel;
+    const colors: Record<string, string> = {
+      aguardando_coleta: "#eab308",
+      coletado_aguardando_embarque: "#3b82f6",
+      veiculo_patio_aguardando_retirada: "#f97316",
+      finalizado: "#10b981",
+      cancelled: "#6b7280",
+    };
     return Object.entries(counts).map(([k, v]) => ({ name: labels[k] ?? k, value: v, fill: colors[k] ?? "#888" }));
   }, [transports]);
 
   // Export rows
   const marginExport = useMemo(() => ({
-    columns: ["Código", "Cliente", "Parceiro", "Cobrado (R$)", "Custo (R$)", "Margem (R$)", "Margem %"],
-    rows: marginRows.map(r => [r.code, r.client, r.partner, r.revenue.toFixed(2), r.cost.toFixed(2), r.margin.toFixed(2), `${r.pct.toFixed(1)}%`]),
+    columns: ["Código", "Cliente", "Cobrado (R$)", "Custo coleta (R$)", "Custo embarque (R$)", "Outros custos (R$)", "Parceiro", "Custo parceiro (R$)", "Custo total (R$)", "Lucro real (R$)", "Margem %"],
+    rows: marginRows.map(r => [
+      r.code, r.client, r.revenue.toFixed(2),
+      r.costPickup.toFixed(2), r.costBoarding.toFixed(2), r.costOther.toFixed(2),
+      r.partner, r.partnerCost.toFixed(2),
+      r.cost.toFixed(2), r.margin.toFixed(2), `${r.pct.toFixed(1)}%`,
+    ]),
   }), [marginRows]);
 
   const summary = showValues ? [
     { label: "Receita", value: brl(revenueInRange) },
     { label: "Despesas", value: brl(expensesTotal) },
     { label: "Custo parceiros", value: brl(partnerCost) },
+    { label: "Custo operacional", value: brl(operationalCost) },
     { label: "Margem", value: brl(grossMargin) },
     { label: "Transportes", value: String(transports.length) },
     { label: "Conversão orçamentos", value: `${conversion.toFixed(0)}%` },
@@ -292,6 +312,7 @@ function DashboardPage() {
             <Kpi label="Receita no período" value={brl(revenueInRange)} icon={TrendingUp} tone="success" loading={loading} />
             <Kpi label="Despesas" value={brl(expensesTotal)} icon={TrendingDown} tone="danger" loading={loading} />
             <Kpi label="Custo parceiros" value={brl(partnerCost)} icon={Handshake} tone="default" loading={loading} to="/partners" />
+            <Kpi label="Custo operacional" value={brl(operationalCost)} icon={Wrench} tone="default" loading={loading} />
             <Kpi label="Margem bruta" value={brl(grossMargin)} icon={Target} tone={grossMargin >= 0 ? "success" : "danger"} loading={loading} />
             <Kpi label="A receber" value={brl(pendingTotal)} icon={Wallet} tone="default" loading={loading} to="/financial" search={{ tab: "receivables" }} />
             <Kpi label="Vencidos" value={String(overdueCount)} icon={AlertTriangle} tone={overdueCount > 0 ? "danger" : "default"} loading={loading} to="/collections" />

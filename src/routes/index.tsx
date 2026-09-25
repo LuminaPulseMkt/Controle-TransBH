@@ -12,7 +12,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "TransBH — Transporte de Veículos com Segurança e Agilidade" },
-      { name: "description", content: "Líder em transporte de veículos (cegonheira) em todo o Brasil. Segurança total, rastreamento e o melhor custo-benefício. Solicite seu orçamento agora!" },
+      { name: "description", content: "Líder em transporte de veículos (cegonheira) em todo o Brasil. Segurança total e o melhor custo-benefício. Solicite seu orçamento agora!" },
       { property: "og:title", content: "TransBH — Transporte de Veículos Nacional" },
       { property: "og:description", content: "Transporte seu veículo com quem é especialista. Atendimento ágil e frota própria." },
     ],

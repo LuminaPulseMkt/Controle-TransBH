@@ -66,6 +66,7 @@ export interface ChecklistData {
   observations: string;
   pickup: PartySection;
   delivery: PartySection;
+  photos: string[];
 }
 
 export function emptyParty(): PartySection {
@@ -107,5 +108,6 @@ export function emptyChecklist(): ChecklistData {
     observations: "",
     pickup: emptyParty(),
     delivery: emptyParty(),
+    photos: [],
   };
 }

@@ -1,6 +1,8 @@
 import { BrandLogo } from "@/components/BrandLogo";
+import { useCompanyInfo } from "@/lib/use-company-info";
 
 export function Footer() {
+  const company = useCompanyInfo();
   const currentYear = new Date().getFullYear();
 
   const scrollToSection = (id: string) => {
@@ -41,9 +43,9 @@ export function Footer() {
             <div className="col-span-2 sm:col-span-2">
               <h4 className="font-bold text-brand-text mb-4 uppercase text-xs tracking-widest">Contato</h4>
               <ul className="space-y-3 text-sm text-brand-graphite">
-                <li>Belo Horizonte - MG</li>
-                <li>(31) 97152-3294</li>
-                <li>transbhtransportes@gmail.com</li>
+                {company?.address && <li>{company.address}</li>}
+                {(company?.whatsapp || company?.phone) && <li>{company.whatsapp || company.phone}</li>}
+                {company?.email && <li>{company.email}</li>}
               </ul>
             </div>
           </div>

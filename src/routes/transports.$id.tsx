@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { notifyTransportStatus } from "@/lib/transport-status-notify.functions";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -7,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { TransportStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
 import {
   ArrowLeft, Upload, Loader2, Trash2, CheckCircle2,
-  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send,
+  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send, ClipboardCheck, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +64,8 @@ interface Transport {
   client_name: string;
   client_document: string | null;
   client_phone: string | null;
+  client_email: string | null;
+  client_address: string | null;
   driver_name: string | null;
   estimated_delivery: string | null;
   status: string;
@@ -71,6 +76,10 @@ interface Transport {
   partner_id: string | null;
   partner_quoted_amount: number | null;
   partner_notified_at: string | null;
+  cost_pickup: number | null;
+  cost_boarding: number | null;
+  cost_other: number | null;
+  cost_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -100,6 +109,7 @@ function TransportDetailPage() {
   const { id } = Route.useParams();
   const { user, isAdmin, can } = useAuth();
   const showValues = can("values.view");
+  const notifyStatus = useServerFn(notifyTransportStatus);
   const [transport, setTransport] = useState<Transport | null | "missing">(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -108,6 +118,11 @@ function TransportDetailPage() {
   const [partnerId, setPartnerId] = useState<string>("");
   const [partnerAmount, setPartnerAmount] = useState<string>("");
   const [savingPartner, setSavingPartner] = useState(false);
+  const [costPickup, setCostPickup] = useState<string>("");
+  const [costBoarding, setCostBoarding] = useState<string>("");
+  const [costOther, setCostOther] = useState<string>("");
+  const [costNotes, setCostNotes] = useState<string>("");
+  const [savingCosts, setSavingCosts] = useState(false);
   const [newLocation, setNewLocation] = useState("");
   const [newLocationNote, setNewLocationNote] = useState("");
   const [savingLocation, setSavingLocation] = useState(false);
@@ -118,6 +133,7 @@ function TransportDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
   const previewUrlsRef = useRef<Map<File, string>>(new Map());
+  const [checklists, setChecklists] = useState<{ id: string; checklist_date: string | null; created_at: string }[]>([]);
 
   // Manage preview URLs lifecycle to avoid leaks
   useEffect(() => {
@@ -144,13 +160,15 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r, loc, pa] = await Promise.all([
+    const [t, p, r, loc, pa, cl] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
       supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
       supabase.from("partners").select("id, name, whatsapp, phone, default_amount").eq("is_active", true).order("name"),
+      supabase.from("vehicle_checklists").select("id, checklist_date, created_at").eq("transport_id", id).order("created_at", { ascending: false }),
     ]);
+    setChecklists(cl.data ?? []);
     if (!t.data) { setTransport("missing"); return; }
     const tr = t.data as Transport;
     setTransport(tr);
@@ -160,9 +178,15 @@ function TransportDetailPage() {
     setPartners((pa.data ?? []) as PartnerLite[]);
     setPartnerId(tr.partner_id ?? "");
     setPartnerAmount(tr.partner_quoted_amount != null ? String(tr.partner_quoted_amount) : "");
+    setCostPickup(tr.cost_pickup != null ? String(tr.cost_pickup) : "");
+    setCostBoarding(tr.cost_boarding != null ? String(tr.cost_boarding) : "");
+    setCostOther(tr.cost_other != null ? String(tr.cost_other) : "");
+    setCostNotes(tr.cost_notes ?? "");
   };
 
   useEffect(() => { void load(); }, [id]);
+
+  const NOTIFIABLE_STATUSES = ["aguardando_coleta", "coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada", "finalizado"];
 
   const updateStatus = async (status: string) => {
     if (!transport || transport === "missing") return;
@@ -171,6 +195,15 @@ function TransportDetailPage() {
     if (error) return toast.error(error.message);
     toast.success(`Status: ${transportStatusLabel[status] ?? status}`);
     void load();
+
+    if (NOTIFIABLE_STATUSES.includes(status)) {
+      notifyStatus({ data: { transport_id: transport.id, status: status as any } })
+        .then((result) => {
+          if (!result.ok) toast.warning(`Cliente não notificado: ${result.error}`);
+          else toast.success("Cliente notificado por WhatsApp.");
+        })
+        .catch(() => toast.warning("Falha ao notificar cliente por WhatsApp."));
+    }
   };
 
   const buildWhatsAppMessage = (location: string) => {
@@ -204,6 +237,24 @@ function TransportDetailPage() {
     setSavingPartner(false);
     if (error) return toast.error(error.message);
     toast.success("Parceiro atualizado.");
+    void load();
+  };
+
+  const saveCosts = async () => {
+    if (!transport || transport === "missing") return;
+    setSavingCosts(true);
+    const { error } = await supabase
+      .from("transports")
+      .update({
+        cost_pickup: costPickup.trim() === "" ? null : Number(costPickup),
+        cost_boarding: costBoarding.trim() === "" ? null : Number(costBoarding),
+        cost_other: costOther.trim() === "" ? null : Number(costOther),
+        cost_notes: costNotes.trim() || null,
+      })
+      .eq("id", transport.id);
+    setSavingCosts(false);
+    if (error) return toast.error(error.message);
+    toast.success("Custos atualizados.");
     void load();
   };
 
@@ -387,6 +438,8 @@ function TransportDetailPage() {
               <Info label="Cliente" value={t.client_name} />
               <Info label="CPF/CNPJ" value={t.client_document} />
               <Info label="Telefone" value={t.client_phone} />
+              <Info label="E-mail" value={t.client_email} />
+              <Info label="Endereço" value={t.client_address} />
               <Info label="Motorista" value={t.driver_name} />
               <Info label="Entrega prevista" value={dateBR(t.estimated_delivery)} />
               <Info label="Criado em" value={dateBR(t.created_at)} />
@@ -399,22 +452,57 @@ function TransportDetailPage() {
               </div>
             )}
 
-            {t.status !== "cancelled" && t.status !== "delivered" && (
+            {t.status !== "cancelled" && t.status !== "finalizado" && (
               <div className="mt-4 pt-4 border-t border-border/50 flex flex-wrap gap-2">
-                {t.status === "pending" && (
-                  <Button size="sm" onClick={() => updateStatus("in_transit")}>
-                    <Truck className="h-4 w-4 mr-1" /> Iniciar trânsito
+                {t.status === "aguardando_coleta" && (
+                  <Button size="sm" onClick={() => updateStatus("coletado_aguardando_embarque")}>
+                    <Truck className="h-4 w-4 mr-1" /> Marcar coletado
                   </Button>
                 )}
-                {t.status === "in_transit" && (
-                  <Button size="sm" onClick={() => updateStatus("delivered")}>
-                    <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar entregue
+                {t.status === "coletado_aguardando_embarque" && (
+                  <Button size="sm" onClick={() => updateStatus("veiculo_patio_aguardando_retirada")}>
+                    <Truck className="h-4 w-4 mr-1" /> Chegou ao pátio
+                  </Button>
+                )}
+                {t.status === "veiculo_patio_aguardando_retirada" && (
+                  <Button size="sm" onClick={() => updateStatus("finalizado")}>
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar
                   </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")}>
                   <XCircle className="h-4 w-4 mr-1" /> Cancelar
                 </Button>
               </div>
+            )}
+          </Card>
+
+          {/* Checklists */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-display text-xl">Checklists</h3>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/checklists" search={{ transport_id: t.id }}>
+                  <ClipboardCheck className="h-4 w-4 mr-1" /> Novo checklist
+                </Link>
+              </Button>
+            </div>
+            {checklists.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum checklist vinculado a este transporte.</p>
+            ) : (
+              <ul className="space-y-1">
+                {checklists.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      to="/checklists/$id"
+                      params={{ id: c.id }}
+                      className="text-sm text-primary hover:underline flex items-center gap-2"
+                    >
+                      <ClipboardCheck className="h-3.5 w-3.5" />
+                      Checklist de {dateBR(c.checklist_date ?? c.created_at)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
 
@@ -574,6 +662,58 @@ function TransportDetailPage() {
               </div>
             )}
           </Card>
+
+          {/* Operational costs (admin/financial only) */}
+          {showValues && (
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Wallet className="h-5 w-5 text-primary" />
+                <h3 className="text-display text-xl">Custos do transporte</h3>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Custo de coleta</Label>
+                  <Input type="number" min={0} step="0.01" value={costPickup} onChange={(e) => setCostPickup(e.target.value)} placeholder="0,00" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Custo de embarque</Label>
+                  <Input type="number" min={0} step="0.01" value={costBoarding} onChange={(e) => setCostBoarding(e.target.value)} placeholder="0,00" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Outros custos</Label>
+                  <Input type="number" min={0} step="0.01" value={costOther} onChange={(e) => setCostOther(e.target.value)} placeholder="0,00" />
+                </div>
+              </div>
+              <div className="mt-3 space-y-1">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Observações de custos</Label>
+                <Textarea rows={2} value={costNotes} onChange={(e) => setCostNotes(e.target.value)} />
+              </div>
+              {(() => {
+                const total = (Number(costPickup) || 0) + (Number(costBoarding) || 0) + (Number(costOther) || 0);
+                const revenue = receivables.reduce((s, r) => s + Number(r.amount), 0);
+                const partnerCost = Number(partnerAmount) || 0;
+                const profit = revenue - total - partnerCost;
+                return (
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo total</div>
+                      <div className="text-sm">{brl(total)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Lucro real</div>
+                      <div className={profit < 0 ? "text-sm text-destructive" : "text-sm text-success"}>{brl(profit)}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div className="mt-3">
+                <Button size="sm" onClick={saveCosts} disabled={savingCosts}>
+                  {savingCosts ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                  Salvar custos
+                </Button>
+              </div>
+            </Card>
+          )}
 
           {/* Photo gallery */}
           <Card className="p-5">
@@ -751,22 +891,29 @@ function Timeline({ transport }: { transport: Transport }) {
       reached: true,
     },
     {
-      key: "in_transit",
-      label: "Em trânsito",
-      date: transport.status === "in_transit" || transport.status === "delivered" ? transport.updated_at : null,
+      key: "coletado_aguardando_embarque",
+      label: "Coletado - aguardando embarque",
+      date: ["coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status) ? transport.updated_at : null,
       icon: Truck,
-      reached: transport.status === "in_transit" || transport.status === "delivered",
+      reached: ["coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status),
     },
     {
-      key: "delivered",
-      label: "Entregue",
-      date: transport.status === "delivered" ? transport.updated_at : null,
+      key: "veiculo_patio_aguardando_retirada",
+      label: "Veículo em pátio - aguardando retirada",
+      date: ["veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status) ? transport.updated_at : null,
+      icon: MapPin,
+      reached: ["veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status),
+    },
+    {
+      key: "finalizado",
+      label: "Finalizado",
+      date: transport.status === "finalizado" ? transport.updated_at : null,
       icon: CheckCircle2,
-      reached: transport.status === "delivered",
+      reached: transport.status === "finalizado",
     },
   ];
 
-  if (transport.estimated_delivery && transport.status !== "delivered" && transport.status !== "cancelled") {
+  if (transport.estimated_delivery && transport.status !== "finalizado" && transport.status !== "cancelled") {
     steps.push({
       key: "estimated",
       label: "Entrega prevista",

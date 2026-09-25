@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SignaturePad } from "./SignaturePad";
+import { ChecklistPhotos } from "./ChecklistPhotos";
 import fallbackLogo from "@/assets/logo-transbh.png";
 import {
   CHECKLIST_ITEMS,
@@ -170,6 +171,12 @@ export function ChecklistForm({ data, onChange, checklistId, company }: Props) {
           value={data.observations}
           onChange={(e) => update({ observations: e.target.value })}
         />
+      </section>
+
+      {/* Fotos */}
+      <section className="border-b border-neutral-400 p-4">
+        <SectionTitle>Fotos</SectionTitle>
+        <ChecklistPhotos photos={data.photos} onChange={(photos) => update({ photos })} checklistId={checklistId} />
       </section>
 
       {/* Coleta + Entrega */}

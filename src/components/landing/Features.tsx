@@ -1,4 +1,4 @@
-import { ShieldCheck, MapPin, Truck, MessageSquare } from "lucide-react";
+import { ShieldCheck, Truck, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { useSiteSettings } from "@/lib/use-site-settings";
@@ -8,20 +8,12 @@ export function Features() {
   const featuresImg = getSetting("features_img");
   const features = [
     {
-      title: "Rastreamento em Tempo Real",
-      description: "Saiba exatamente onde seu veículo está durante todo o trajeto com nosso sistema de geolocalização.",
-      icon: MapPin,
-      color: "text-brand-blue",
-      bg: "bg-brand-blue/10",
-      delay: 0.1,
-    },
-    {
       title: "Seguro Total da Carga",
       description: "Tranquilidade garantida com cobertura securitária completa contra qualquer eventualidade.",
       icon: ShieldCheck,
       color: "text-brand-orange",
       bg: "bg-brand-orange/10",
-      delay: 0.2,
+      delay: 0.1,
     },
     {
       title: "Frota Própria",
@@ -29,7 +21,7 @@ export function Features() {
       icon: Truck,
       color: "text-brand-graphite",
       bg: "bg-brand-graphite/10",
-      delay: 0.3,
+      delay: 0.2,
     },
     {
       title: "Suporte Personalizado",
@@ -37,7 +29,7 @@ export function Features() {
       icon: MessageSquare,
       color: "text-brand-blue",
       bg: "bg-brand-blue/10",
-      delay: 0.4,
+      delay: 0.3,
     },
   ];
 
@@ -86,7 +78,7 @@ export function Features() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, idx) => (
             <motion.div
               key={idx}

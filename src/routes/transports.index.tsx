@@ -71,6 +71,8 @@ interface Transport {
   client_name: string;
   client_document: string | null;
   client_phone: string | null;
+  client_email: string | null;
+  client_address: string | null;
   driver_name: string | null;
   estimated_delivery: string | null;
   status: string;
@@ -101,9 +103,11 @@ const emptyForm = {
   client_name: "",
   client_document: "",
   client_phone: "",
+  client_email: "",
+  client_address: "",
   driver_name: "",
   estimated_delivery: "",
-  status: "pending",
+  status: "aguardando_coleta",
   notes: "",
   photo_url: "",
   current_location: "",
@@ -188,6 +192,8 @@ function TransportsPage() {
       client_name: t.client_name,
       client_document: t.client_document ?? "",
       client_phone: t.client_phone ?? "",
+      client_email: t.client_email ?? "",
+      client_address: t.client_address ?? "",
       driver_name: t.driver_name ?? "",
       estimated_delivery: t.estimated_delivery ?? "",
       status: t.status,
@@ -508,10 +514,9 @@ function TransportsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-            <SelectItem value="in_transit">Em Trânsito</SelectItem>
-            <SelectItem value="delivered">Entregue</SelectItem>
-            <SelectItem value="cancelled">Cancelado</SelectItem>
+            {Object.entries(transportStatusLabel).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </Card>
@@ -660,6 +665,12 @@ function TransportsPage() {
               </Field>
               <Field label="Telefone">
                 <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+              </Field>
+              <Field label="E-mail">
+                <Input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
+              </Field>
+              <Field label="Endereço">
+                <Input value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
               </Field>
               <Field label="Motorista">
                 <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />

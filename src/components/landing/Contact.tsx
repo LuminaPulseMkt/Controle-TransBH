@@ -1,49 +1,40 @@
-import { useEffect, useState } from "react";
 import { Phone, Mail, MapPin, Instagram, Facebook, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { useCompanyInfo } from "@/lib/use-company-info";
+import { waLink } from "@/lib/format";
 
 export function Contact() {
-  const [socials, setSocials] = useState<{ instagram_url: string | null; facebook_url: string | null }>({
-    instagram_url: null,
-    facebook_url: null,
-  });
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.rpc("get_public_company_info").maybeSingle();
-      setSocials({
-        instagram_url: data?.instagram_url ?? null,
-        facebook_url: data?.facebook_url ?? null,
-      });
-    })();
-  }, []);
+  const company = useCompanyInfo();
 
   const contactInfo = [
     {
       icon: Phone,
       label: "WhatsApp Comercial",
-      value: "(31) 97152-3294",
-      href: "https://wa.me/5531971523294"
+      value: company?.whatsapp || company?.phone || "—",
+      href: waLink(company?.whatsapp || company?.phone) || "#"
     },
     {
       icon: Mail,
       label: "E-mail de Contato",
-      value: "transbhtransportes@gmail.com",
-      href: "mailto:transbhtransportes@gmail.com"
+      value: company?.email || "—",
+      href: company?.email ? `mailto:${company.email}` : "#"
     },
     {
       icon: MapPin,
       label: "Base Operacional",
-      value: "Belo Horizonte/MG - Atendimento Nacional",
-      href: "https://www.google.com/maps/search/?api=1&query=Belo+Horizonte%2FMG"
+      value: company?.address || "—",
+      href: company?.address
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`
+        : "#"
     }
   ];
 
   const socialLinks = [
-    { Icon: Instagram, href: socials.instagram_url },
-    { Icon: Facebook, href: socials.facebook_url },
+    { Icon: Instagram, href: company?.instagram_url },
+    { Icon: Facebook, href: company?.facebook_url },
   ].filter((s): s is { Icon: typeof Instagram; href: string } => Boolean(s.href));
+
+  const waHref = waLink(company?.whatsapp || company?.phone);
 
   return (
     <section id="contato" className="py-24 bg-brand-neutral">
@@ -110,8 +101,8 @@ export function Contact() {
                   <p className="text-gray-400 mb-10 text-sm leading-relaxed max-w-sm">
                     Para cotações urgentes ou dúvidas rápidas, nosso canal no WhatsApp é o caminho mais curto.
                   </p>
-                  <a 
-                    href="https://wa.me/5531971523294" 
+                  <a
+                    href={waHref || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-3 bg-brand-orange hover:bg-brand-orange-dark text-white font-bold py-5 px-10 rounded-full text-base shadow-2xl shadow-brand-orange/20 transition-all hover:-translate-y-1 w-full sm:w-auto"
