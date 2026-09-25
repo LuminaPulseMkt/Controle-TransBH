@@ -69,8 +69,10 @@ interface Transport {
   origin_city: string; destination_city: string; status: string;
   partner_id: string | null; partner_quoted_amount: number | null;
   cost_pickup: number | null; cost_boarding: number | null; cost_other: number | null;
+  closed_by: string | null;
   created_at: string;
 }
+interface StaffLite { user_id: string; display_name: string | null; }
 interface Receivable { id: string; client_name: string; amount: number; status: string; due_date: string; paid_at: string | null; transport_id: string | null; }
 interface Payable { id: string; amount: number; expense_date: string; category: string; }
 interface Doc { id: string; doc_type: string; total_amount: number | null; created_at: string; accepted_at: string | null; client_name: string; }
@@ -93,6 +95,8 @@ function DashboardPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [inProgressCount, setInProgressCount] = useState(0);
+  const [staff, setStaff] = useState<StaffLite[]>([]);
+  const [staffFilter, setStaffFilter] = useState<string>("all");
 
   useEffect(() => { void load(); }, [preset, customFrom, customTo, isAdmin]);
 
@@ -102,18 +106,20 @@ function DashboardPage() {
     const fromIso = isoDate(range.from);
     const toIso = isoDate(range.to);
 
-    const [trRes, partRes, ipRes] = await Promise.all([
+    const [trRes, partRes, ipRes, staffRes] = await Promise.all([
       supabase.from("transports")
-        .select("id, code, client_name, vehicle_plate, origin_city, destination_city, status, partner_id, partner_quoted_amount, cost_pickup, cost_boarding, cost_other, created_at")
+        .select("id, code, client_name, vehicle_plate, origin_city, destination_city, status, partner_id, partner_quoted_amount, cost_pickup, cost_boarding, cost_other, closed_by, created_at")
         .gte("created_at", range.from.toISOString())
         .lte("created_at", range.to.toISOString())
         .order("created_at", { ascending: false }),
       supabase.from("partners").select("id, name"),
       supabase.from("transports").select("id", { count: "exact", head: true }).in("status", ["aguardando_coleta", "coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada"]),
+      supabase.from("profiles").select("user_id, display_name").eq("is_active", true).order("display_name"),
     ]);
     setTransports((trRes.data ?? []) as Transport[]);
     setPartners((partRes.data ?? []) as Partner[]);
     setInProgressCount(ipRes.count ?? 0);
+    setStaff((staffRes.data ?? []) as StaffLite[]);
 
     if (showValues) {
       const [recRes, payRes, docRes] = await Promise.all([
@@ -157,9 +163,13 @@ function DashboardPage() {
   const quotedTotal = budgets.reduce((s, d) => s + Number(d.total_amount ?? 0), 0);
   const closedTotal = acceptedBudgets.reduce((s, d) => s + Number(d.total_amount ?? 0), 0);
 
+  const staffById = useMemo(() => Object.fromEntries(staff.map((s) => [s.user_id, s.display_name])), [staff]);
+
   // Margin per transport
   const marginRows = useMemo(() => {
-    return transports.map((t) => {
+    return transports
+      .filter((t) => staffFilter === "all" || t.closed_by === staffFilter)
+      .map((t) => {
       const rev = receivables.filter(r => r.transport_id === t.id).reduce((s, r) => s + Number(r.amount), 0);
       const costPickup = Number(t.cost_pickup ?? 0);
       const costBoarding = Number(t.cost_boarding ?? 0);
@@ -170,11 +180,12 @@ function DashboardPage() {
       const pct = rev > 0 ? (margin / rev) * 100 : 0;
       return {
         id: t.id, code: t.code, client: t.client_name,
+        responsible: t.closed_by ? staffById[t.closed_by] ?? "—" : "—",
         partner: t.partner_id ? partnerById[t.partner_id] ?? "—" : "—",
         revenue: rev, costPickup, costBoarding, costOther, partnerCost, cost, margin, pct,
       };
     });
-  }, [transports, receivables, partnerById]);
+  }, [transports, receivables, partnerById, staffById, staffFilter]);
 
   // Daily series (revenue x expenses)
   const dailySeries = useMemo(() => {
@@ -224,9 +235,9 @@ function DashboardPage() {
 
   // Export rows
   const marginExport = useMemo(() => ({
-    columns: ["Código", "Cliente", "Cobrado (R$)", "Custo coleta (R$)", "Custo embarque (R$)", "Outros custos (R$)", "Parceiro", "Custo parceiro (R$)", "Custo total (R$)", "Lucro real (R$)", "Margem %"],
+    columns: ["Código", "Cliente", "Responsável", "Cobrado (R$)", "Custo coleta (R$)", "Custo embarque (R$)", "Outros custos (R$)", "Parceiro", "Custo parceiro (R$)", "Custo total (R$)", "Lucro real (R$)", "Margem %"],
     rows: marginRows.map(r => [
-      r.code, r.client, r.revenue.toFixed(2),
+      r.code, r.client, r.responsible, r.revenue.toFixed(2),
       r.costPickup.toFixed(2), r.costBoarding.toFixed(2), r.costOther.toFixed(2),
       r.partner, r.partnerCost.toFixed(2),
       r.cost.toFixed(2), r.margin.toFixed(2), `${r.pct.toFixed(1)}%`,
@@ -408,16 +419,28 @@ function DashboardPage() {
         {/* Custo x Cobrado */}
         {showValues && (
           <Card className="p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h2 className="text-display text-xl">Custo do frete × Valor cobrado</h2>
-              <ExportMenu
-                filename={`margem-${isoDate(range.from)}_${isoDate(range.to)}`}
-                title="Margem por transporte"
-                subtitle={range.label}
-                columns={marginExport.columns}
-                rows={marginExport.rows}
-                orientation="landscape"
-              />
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-8 px-2 rounded-md border border-input bg-background text-xs"
+                  value={staffFilter}
+                  onChange={(e) => setStaffFilter(e.target.value)}
+                >
+                  <option value="all">Todos os responsáveis</option>
+                  {staff.map((s) => (
+                    <option key={s.user_id} value={s.user_id}>{s.display_name || s.user_id}</option>
+                  ))}
+                </select>
+                <ExportMenu
+                  filename={`margem-${isoDate(range.from)}_${isoDate(range.to)}`}
+                  title="Margem por transporte"
+                  subtitle={range.label}
+                  columns={marginExport.columns}
+                  rows={marginExport.rows}
+                  orientation="landscape"
+                />
+              </div>
             </div>
             {marginRows.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Nenhum transporte no período.</p>
@@ -428,6 +451,7 @@ function DashboardPage() {
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="px-2 py-2">Código</th>
                       <th className="px-2 py-2">Cliente</th>
+                      <th className="px-2 py-2">Responsável</th>
                       <th className="px-2 py-2">Parceiro</th>
                       <th className="px-2 py-2 text-right">Cobrado</th>
                       <th className="px-2 py-2 text-right">Custo</th>
@@ -444,6 +468,7 @@ function DashboardPage() {
                       >
                         <td className="px-2 py-2 font-mono text-xs text-primary">{r.code}</td>
                         <td className="px-2 py-2">{r.client}</td>
+                        <td className="px-2 py-2 text-muted-foreground text-xs">{r.responsible}</td>
                         <td className="px-2 py-2 text-muted-foreground text-xs">{r.partner}</td>
                         <td className="px-2 py-2 text-right font-mono">{brl(r.revenue)}</td>
                         <td className="px-2 py-2 text-right font-mono text-muted-foreground">{brl(r.cost)}</td>

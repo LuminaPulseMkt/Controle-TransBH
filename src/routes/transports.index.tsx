@@ -80,6 +80,7 @@ interface Transport {
   photo_url: string | null;
   current_location: string | null;
   location_updated_at: string | null;
+  closed_by: string | null;
   created_at: string;
 }
 
@@ -112,6 +113,7 @@ const emptyForm = {
   photo_url: "",
   current_location: "",
   location_note: "",
+  closed_by: "",
 };
 
 function TransportsPage() {
@@ -133,6 +135,7 @@ function TransportsPage() {
   const [extraPhotoUrls, setExtraPhotoUrls] = useState<string[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [staff, setStaff] = useState<{ user_id: string; display_name: string | null }[]>([]);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -144,6 +147,10 @@ function TransportsPage() {
   };
 
   useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    supabase.from("profiles").select("user_id, display_name").eq("is_active", true).order("display_name")
+      .then(({ data }) => setStaff(data ?? []));
+  }, []);
 
   const filtered = useMemo(() => {
     if (!items) return [];
@@ -170,7 +177,7 @@ function TransportsPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, closed_by: user?.id ?? "" });
     resetPhotoState();
     setOpen(true);
   };
@@ -197,6 +204,7 @@ function TransportsPage() {
       driver_name: t.driver_name ?? "",
       estimated_delivery: t.estimated_delivery ?? "",
       status: t.status,
+      closed_by: t.closed_by ?? "",
       notes: t.notes ?? "",
       photo_url: t.photo_url ?? "",
       current_location: t.current_location ?? "",
@@ -674,6 +682,18 @@ function TransportsPage() {
               </Field>
               <Field label="Motorista">
                 <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />
+              </Field>
+              <Field label="Responsável pelo fechamento">
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  value={form.closed_by}
+                  onChange={(e) => setForm({ ...form, closed_by: e.target.value })}
+                >
+                  <option value="">— Não definido —</option>
+                  {staff.map((s) => (
+                    <option key={s.user_id} value={s.user_id}>{s.display_name || s.user_id}</option>
+                  ))}
+                </select>
               </Field>
 
               <Field label="Cidade origem *">

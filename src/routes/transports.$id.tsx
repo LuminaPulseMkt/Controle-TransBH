@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
 import {
   ArrowLeft, Upload, Loader2, Trash2, CheckCircle2,
-  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send, ClipboardCheck, Wallet,
+  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send, ClipboardCheck, Wallet, User, History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +76,7 @@ interface Transport {
   partner_id: string | null;
   partner_quoted_amount: number | null;
   partner_notified_at: string | null;
+  closed_by: string | null;
   cost_pickup: number | null;
   cost_boarding: number | null;
   cost_other: number | null;
@@ -100,6 +101,8 @@ interface LocationUpdate {
 }
 
 interface Photo { id: string; photo_url: string; caption: string | null; created_at: string; }
+interface StaffLite { user_id: string; display_name: string | null; email: string | null; }
+interface TransportEvent { id: string; event_type: string; description: string | null; created_at: string; created_by: string | null; }
 interface Receivable {
   id: string; client_name: string; amount: number; due_date: string;
   status: string; description: string | null; paid_at: string | null;
@@ -123,6 +126,10 @@ function TransportDetailPage() {
   const [costOther, setCostOther] = useState<string>("");
   const [costNotes, setCostNotes] = useState<string>("");
   const [savingCosts, setSavingCosts] = useState(false);
+  const [staff, setStaff] = useState<StaffLite[]>([]);
+  const [closedBy, setClosedBy] = useState<string>("");
+  const [savingClosedBy, setSavingClosedBy] = useState(false);
+  const [events, setEvents] = useState<TransportEvent[]>([]);
   const [newLocation, setNewLocation] = useState("");
   const [newLocationNote, setNewLocationNote] = useState("");
   const [savingLocation, setSavingLocation] = useState(false);
@@ -160,15 +167,19 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r, loc, pa, cl] = await Promise.all([
+    const [t, p, r, loc, pa, cl, st, ev] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
       supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
       supabase.from("partners").select("id, name, whatsapp, phone, default_amount").eq("is_active", true).order("name"),
       supabase.from("vehicle_checklists").select("id, checklist_date, created_at").eq("transport_id", id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("user_id, display_name, email").eq("is_active", true).order("display_name"),
+      supabase.from("transport_events").select("id, event_type, description, created_at, created_by").eq("transport_id", id).order("created_at", { ascending: false }),
     ]);
     setChecklists(cl.data ?? []);
+    setStaff((st.data ?? []) as StaffLite[]);
+    setEvents((ev.data ?? []) as TransportEvent[]);
     if (!t.data) { setTransport("missing"); return; }
     const tr = t.data as Transport;
     setTransport(tr);
@@ -182,6 +193,7 @@ function TransportDetailPage() {
     setCostBoarding(tr.cost_boarding != null ? String(tr.cost_boarding) : "");
     setCostOther(tr.cost_other != null ? String(tr.cost_other) : "");
     setCostNotes(tr.cost_notes ?? "");
+    setClosedBy(tr.closed_by ?? "");
   };
 
   useEffect(() => { void load(); }, [id]);
@@ -236,6 +248,12 @@ function TransportDetailPage() {
       .eq("id", transport.id);
     setSavingPartner(false);
     if (error) return toast.error(error.message);
+    const partnerName = partners.find((p) => p.id === partnerId)?.name;
+    await supabase.from("transport_events").insert({
+      transport_id: transport.id, event_type: "partner_assigned",
+      description: partnerId ? `Parceiro definido: ${partnerName ?? partnerId}` : "Parceiro removido",
+      created_by: user?.id ?? null,
+    });
     toast.success("Parceiro atualizado.");
     void load();
   };
@@ -254,7 +272,30 @@ function TransportDetailPage() {
       .eq("id", transport.id);
     setSavingCosts(false);
     if (error) return toast.error(error.message);
+    await supabase.from("transport_events").insert({
+      transport_id: transport.id, event_type: "costs_updated",
+      description: "Custos do transporte atualizados", created_by: user?.id ?? null,
+    });
     toast.success("Custos atualizados.");
+    void load();
+  };
+
+  const saveClosedBy = async () => {
+    if (!transport || transport === "missing") return;
+    setSavingClosedBy(true);
+    const { error } = await supabase
+      .from("transports")
+      .update({ closed_by: closedBy || null })
+      .eq("id", transport.id);
+    setSavingClosedBy(false);
+    if (error) return toast.error(error.message);
+    const staffName = staff.find((s) => s.user_id === closedBy)?.display_name;
+    await supabase.from("transport_events").insert({
+      transport_id: transport.id, event_type: "closed_by_set",
+      description: closedBy ? `Responsável pelo fechamento definido: ${staffName ?? closedBy}` : "Responsável pelo fechamento removido",
+      created_by: user?.id ?? null,
+    });
+    toast.success("Responsável pelo fechamento atualizado.");
     void load();
   };
 
@@ -593,6 +634,30 @@ function TransportDetailPage() {
             )}
           </Card>
 
+          {/* Responsável pelo fechamento */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="h-5 w-5 text-primary" />
+              <h3 className="text-display text-xl">Responsável pelo fechamento</h3>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[2fr_auto]">
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                value={closedBy}
+                onChange={(e) => setClosedBy(e.target.value)}
+              >
+                <option value="">— Não definido —</option>
+                {staff.map((s) => (
+                  <option key={s.user_id} value={s.user_id}>{s.display_name || s.email || s.user_id}</option>
+                ))}
+              </select>
+              <Button size="sm" onClick={saveClosedBy} disabled={savingClosedBy}>
+                {savingClosedBy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Salvar
+              </Button>
+            </div>
+          </Card>
+
           {/* Partner */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3">
@@ -714,6 +779,28 @@ function TransportDetailPage() {
               </div>
             </Card>
           )}
+
+          {/* Histórico */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <History className="h-5 w-5 text-primary" />
+              <h3 className="text-display text-xl">Histórico</h3>
+            </div>
+            {events.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda.</p>
+            ) : (
+              <ol className="space-y-2">
+                {events.map((e) => (
+                  <li key={e.id} className="flex items-start justify-between gap-3 text-sm border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                    <span>{e.description ?? e.event_type}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(e.created_at).toLocaleString("pt-BR")}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
 
           {/* Photo gallery */}
           <Card className="p-5">

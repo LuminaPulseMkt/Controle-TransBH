@@ -126,6 +126,7 @@ export const generateContractAssets = createServerFn({ method: "POST" })
             estimated_delivery: estimatedDelivery || null,
             status: "aguardando_coleta",
             created_by: contract.created_by,
+            closed_by: contract.created_by,
           })
           .select("id")
           .single();

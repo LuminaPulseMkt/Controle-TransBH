@@ -600,6 +600,41 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_type: string
+          id: string
+          transport_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          transport_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          transport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_events_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_location_updates: {
         Row: {
           created_at: string
@@ -677,6 +712,7 @@ export type Database = {
           client_email: string | null
           client_name: string
           client_phone: string | null
+          closed_by: string | null
           code: string
           cost_boarding: number | null
           cost_notes: string | null
@@ -714,6 +750,7 @@ export type Database = {
           client_email?: string | null
           client_name: string
           client_phone?: string | null
+          closed_by?: string | null
           code?: string
           cost_boarding?: number | null
           cost_notes?: string | null
@@ -751,6 +788,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string
           client_phone?: string | null
+          closed_by?: string | null
           code?: string
           cost_boarding?: number | null
           cost_notes?: string | null

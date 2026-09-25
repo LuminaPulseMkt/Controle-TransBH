@@ -41,7 +41,7 @@ const Schema = z.object({
 export const notifyTransportStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Schema.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { data: transport, error } = await supabaseAdmin
       .from("transports")
       .select("code, client_name, client_phone, vehicle_plate")
@@ -69,5 +69,16 @@ export const notifyTransportStatus = createServerFn({ method: "POST" })
       review_link: company?.google_review_url ?? "",
     });
 
-    return sendWhatsAppText({ phone: transport.client_phone, text });
+    const result = await sendWhatsAppText({ phone: transport.client_phone, text });
+
+    await supabaseAdmin.from("transport_events").insert({
+      transport_id: data.transport_id,
+      event_type: "whatsapp_sent",
+      description: result.ok
+        ? `Mensagem de WhatsApp enviada (${data.status})`
+        : `Falha ao enviar WhatsApp (${data.status}): ${result.error}`,
+      created_by: context.userId ?? null,
+    });
+
+    return result;
   });

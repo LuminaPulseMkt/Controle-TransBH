@@ -94,6 +94,12 @@ function NewChecklistPage() {
       .single();
     setSaving(false);
     if (error || !row) return toast.error(error?.message ?? "Erro ao salvar.");
+    if (transport_id) {
+      await supabase.from("transport_events").insert({
+        transport_id, event_type: "checklist_created",
+        description: "Checklist do veículo realizado", created_by: user.id,
+      });
+    }
     toast.success("Checklist salvo.");
     navigate({ to: "/checklists/$id", params: { id: row.id } });
   };
