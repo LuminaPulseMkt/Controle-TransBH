@@ -341,7 +341,7 @@ function DocumentsPage() {
     if (vehicles.length === 0) return toast.error("Adicione pelo menos um veículo.");
     setBusy(true);
     const vehiclesPayload = vehicles.map((v) => ({
-      description: v.description,
+      description: [v.brand, v.model, v.year].filter(Boolean).join(" "),
       brand: v.brand || null,
       model: v.model || null,
       year: v.year !== "" ? Number(v.year) || null : null,
@@ -788,14 +788,6 @@ function DocumentsPage() {
                           </button>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div className="md:col-span-2">
-                            <Label className="text-xs">Descrição</Label>
-                            <Input
-                              value={v.description}
-                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, description: e.target.value } : p))}
-                              placeholder="Honda Civic 2020"
-                            />
-                          </div>
                           <div>
                             <Label className="text-xs">Marca</Label>
                             <Input
@@ -937,7 +929,7 @@ function DocumentsPage() {
                   disabled={!form.client_name || vehicles.length === 0}
                   onClick={() => {
                     const vehiclesPayload = vehicles.map((v) => ({
-                      description: v.description,
+                      description: [v.brand, v.model, v.year].filter(Boolean).join(" "),
                       brand: v.brand || null,
                       model: v.model || null,
                       year: v.year !== "" ? Number(v.year) || null : null,
