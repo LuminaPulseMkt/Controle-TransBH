@@ -149,6 +149,10 @@ function DocumentsPage() {
   const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
   const [deletingDocBusy, setDeletingDocBusy] = useState(false);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
+  const [waPrompt, setWaPrompt] = useState<{
+    client_phone: string; client_name: string; title: string; total_amount: number; public_token: string | null;
+  } | null>(null);
+  const [waSending, setWaSending] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -416,25 +420,15 @@ function DocumentsPage() {
     }
     toast.success(editingDoc ? "Documento atualizado." : "Documento criado.");
 
-    // Auto-send WhatsApp on new budget creation
-    if (!editingDoc && docType === "budget" && form.client_phone && createdToken) {
-      const link = publicDocUrl(createdToken);
-      const vars = {
+    // Ask before sending via WhatsApp — never send silently.
+    if (form.client_phone) {
+      setWaPrompt({
+        client_phone: form.client_phone,
         client_name: form.client_name,
         title: payload.title,
-        link,
-        company_name: company?.name ?? "TransBH",
-      };
-      const fallback = `Olá {client_name}! Segue o link do seu orçamento {company_name}: {link}`;
-      renderFromDb("wa_budget_created", vars, fallback)
-        .then((text) => sendWhatsAppManual({ data: { phone: form.client_phone, text } }))
-        .then((r) => {
-          if (r?.ok) toast.success("WhatsApp enviado ao cliente.");
-          else if (r?.error) toast.message("WhatsApp não enviado", { description: r.error });
-        })
-        .catch(() => {
-          /* silencioso — não bloqueia criação */
-        });
+        total_amount: total,
+        public_token: createdToken ?? editingDoc?.public_token ?? null,
+      });
     }
 
     setOpen(false);
@@ -447,13 +441,15 @@ function DocumentsPage() {
     await exportDocumentPdf(d, company);
   };
 
-  const shareWhatsApp = async (d: Document) => {
-    const phone = (d.client_phone ?? "").replace(/\D/g, "");
-    const link = d.public_token ? publicDocUrl(d.public_token) : "";
+  const sendDocWhatsApp = async (doc: {
+    client_phone: string | null; client_name: string; title: string; total_amount: number | null; public_token: string | null;
+  }) => {
+    const phone = (doc.client_phone ?? "").replace(/\D/g, "");
+    const link = doc.public_token ? publicDocUrl(doc.public_token) : "";
     const vars = {
-      client_name: d.client_name,
-      title: d.title,
-      amount: Number(d.total_amount ?? 0),
+      client_name: doc.client_name,
+      title: doc.title,
+      amount: Number(doc.total_amount ?? 0),
       link,
       company_name: company?.name ?? "TransBH",
     };
@@ -481,6 +477,8 @@ function DocumentsPage() {
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
     }
   };
+
+  const shareWhatsApp = (d: Document) => sendDocWhatsApp(d);
 
   const generateAssets = async (d: Document) => {
     if (d.doc_type !== "contract") return;
@@ -1088,6 +1086,38 @@ function DocumentsPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deletingDocBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!waPrompt} onOpenChange={(v) => !v && !waSending && setWaPrompt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar por WhatsApp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {waPrompt && (
+                <>
+                  Deseja enviar <strong>{waPrompt.title}</strong> para{" "}
+                  <strong>{waPrompt.client_name}</strong> ({waPrompt.client_phone}) agora pelo WhatsApp?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={waSending}>Agora não</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!waPrompt) return;
+                setWaSending(true);
+                await sendDocWhatsApp(waPrompt);
+                setWaSending(false);
+                setWaPrompt(null);
+              }}
+              disabled={waSending}
+            >
+              {waSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
