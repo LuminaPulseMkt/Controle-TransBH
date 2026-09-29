@@ -573,33 +573,6 @@ export type Database = {
         }
         Relationships: []
       }
-      transport_feedback: {
-        Row: {
-          client_name: string | null
-          comment: string | null
-          created_at: string
-          id: string
-          rating: number
-          transport_code: string | null
-        }
-        Insert: {
-          client_name?: string | null
-          comment?: string | null
-          created_at?: string
-          id?: string
-          rating: number
-          transport_code?: string | null
-        }
-        Update: {
-          client_name?: string | null
-          comment?: string | null
-          created_at?: string
-          id?: string
-          rating?: number
-          transport_code?: string | null
-        }
-        Relationships: []
-      }
       transport_events: {
         Row: {
           created_at: string
@@ -634,6 +607,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transport_feedback: {
+        Row: {
+          client_name: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          transport_code: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          transport_code?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          transport_code?: string | null
+        }
+        Relationships: []
       }
       transport_location_updates: {
         Row: {
