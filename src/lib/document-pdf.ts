@@ -48,6 +48,11 @@ export interface DocumentPdfCompany {
 
 const ORANGE: [number, number, number] = [232, 90, 30];
 const MIN_ROWS = 12;
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  "50% no embarque e o restante quando chegar no destino": "50% no embarque e o restante quando chegar no destino",
+  "Cartão de Crédito": "Cartão de Crédito",
+  "Pix ou Dinheiro": "Pix ou Dinheiro",
+};
 
 function vehicleLines(body: any): string[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
@@ -158,7 +163,16 @@ export async function exportDocumentPdf(
   const valueEndX = pageW - 15;
   let y = headerH + 30;
 
+  const bottomLimit = pageH - 40;
+  const ensureSpace = (mm: number) => {
+    if (y + mm > bottomLimit) {
+      pdf.addPage();
+      y = 20;
+    }
+  };
+
   const drawField = (label: string, value: string, italic = false) => {
+    ensureSpace(7);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.text(`${label}:`, labelX, y);
@@ -175,19 +189,69 @@ export async function exportDocumentPdf(
     y += 7;
   };
 
-  drawField("Cliente", d.client_name);
-  const veics = vehicleLines(body);
-  if (veics.length > 0) {
-    drawField("Veículo", veics[0]);
-    for (let i = 1; i < veics.length; i++) drawField("", veics[i]);
-  }
-  drawField("Origem", body.origin ?? "", true);
-  drawField("Destino", body.destination ?? "", true);
-  if (body.delivery_deadline) drawField("Prazo estimado", String(body.delivery_deadline), true);
+  const drawSectionTitle = (title: string) => {
+    ensureSpace(8);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.text(title.toUpperCase(), labelX, y);
+    y += 6;
+  };
 
-  if (d.client_phone) drawField("Telefone", d.client_phone, true);
-  if (d.client_email) drawField("E-mail", d.client_email, true);
-  if (d.client_document) drawField("CPF/CNPJ", d.client_document);
+  if (isContract) {
+    const vehicles: any[] = Array.isArray(body.vehicles) ? body.vehicles : [];
+
+    drawSectionTitle("Contratante");
+    drawField("Nome", d.client_name);
+    if (body.client_rg) drawField("RG", String(body.client_rg));
+    if (d.client_document) drawField("CPF/CNPJ", d.client_document);
+    if (d.client_phone) drawField("Telefone", d.client_phone, true);
+    if (d.client_email) drawField("E-mail", d.client_email, true);
+    if (body.client_address) drawField("Endereço", String(body.client_address), true);
+    y += 3;
+
+    drawSectionTitle("Contratado");
+    drawField("Nome", company?.name || "TransBH");
+    if (company?.cnpj) drawField("CPF/CNPJ", company.cnpj);
+    if (company?.whatsapp || company?.phone) drawField("Telefone", company.whatsapp || company.phone || "", true);
+    if (company?.email) drawField("E-mail", company.email, true);
+    if (company?.address) drawField("Endereço", company.address, true);
+    y += 3;
+
+    drawSectionTitle("Dados do Veículo e Transporte");
+    for (const v of vehicles.length > 0 ? vehicles : [{}]) {
+      drawField("Placa", v.plate ?? "");
+      drawField("Marca/Modelo", [v.brand, v.model].filter(Boolean).join(" / "));
+      drawField("Chassi", v.chassis ?? "");
+      drawField("Renavan", v.renavan ?? "");
+      drawField("Cor", v.color ?? "");
+      drawField("Ano/Modelo", v.year ? String(v.year) : "");
+      if (v.market_value != null && v.market_value !== "") {
+        drawField("Valor assegurado", brl(Number(v.market_value)));
+      }
+    }
+    drawField("Origem", body.origin ?? "", true);
+    drawField("Destino", body.destination ?? "", true);
+    drawField("Valor do Transporte", brl(Number(d.total_amount ?? 0)));
+    drawField("Coleta e entrega", body.pickup_and_delivery === false ? "Não" : "Sim");
+    if (body.delivery_deadline) drawField("Prazo para entrega", String(body.delivery_deadline), true);
+    if (body.payment_method) {
+      drawField("Forma de pagamento", PAYMENT_METHOD_LABELS[body.payment_method] ?? String(body.payment_method), true);
+    }
+  } else {
+    drawField("Cliente", d.client_name);
+    const veics = vehicleLines(body);
+    if (veics.length > 0) {
+      drawField("Veículo", veics[0]);
+      for (let i = 1; i < veics.length; i++) drawField("", veics[i]);
+    }
+    drawField("Origem", body.origin ?? "", true);
+    drawField("Destino", body.destination ?? "", true);
+    if (body.delivery_deadline) drawField("Prazo estimado", String(body.delivery_deadline), true);
+
+    if (d.client_phone) drawField("Telefone", d.client_phone, true);
+    if (d.client_email) drawField("E-mail", d.client_email, true);
+    if (d.client_document) drawField("CPF/CNPJ", d.client_document);
+  }
 
   // --- Table ---
   y += 4;
@@ -278,13 +342,6 @@ export async function exportDocumentPdf(
   if (isContract) {
     const notes: string = body.notes ?? "";
     y += 8;
-    const bottomLimit = pageH - 40;
-    const ensureSpace = (mm: number) => {
-      if (y + mm > bottomLimit) {
-        pdf.addPage();
-        y = 20;
-      }
-    };
     if (notes) {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);

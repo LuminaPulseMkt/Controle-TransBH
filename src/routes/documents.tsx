@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -52,12 +53,13 @@ interface VehicleForm {
   year: string;
   plate: string;
   chassis: string;
+  renavan: string;
   color: string;
   type: VehicleType;
   value: string;
   market_value: string;
 }
-const emptyVehicle = (): VehicleForm => ({ description: "", brand: "", model: "", year: "", plate: "", chassis: "", color: "", type: "sedan", value: "", market_value: "" });
+const emptyVehicle = (): VehicleForm => ({ description: "", brand: "", model: "", year: "", plate: "", chassis: "", renavan: "", color: "", type: "sedan", value: "", market_value: "" });
 
 function bodyToVehicles(body: any): VehicleForm[] {
   if (Array.isArray(body?.vehicles) && body.vehicles.length > 0) {
@@ -68,6 +70,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
       year: v.year != null ? String(v.year) : "",
       plate: v.plate ?? "",
       chassis: v.chassis ?? "",
+      renavan: v.renavan ?? "",
       color: v.color ?? "",
       type: (v.type ?? "sedan") as VehicleType,
       value: v.value != null ? String(v.value) : "",
@@ -82,6 +85,7 @@ function bodyToVehicles(body: any): VehicleForm[] {
       year: "",
       plate: body.vehicle_plate ?? "",
       chassis: body.vehicle_chassis ?? "",
+      renavan: "",
       color: body.vehicle_color ?? "",
       type: "sedan",
       value: body.service_value != null ? String(body.service_value) : "",
@@ -150,6 +154,7 @@ function DocumentsPage() {
     title: "",
     client_name: "",
     client_document: "",
+    client_rg: "",
     client_phone: "",
     client_email: "",
     client_address: "",
@@ -160,6 +165,8 @@ function DocumentsPage() {
     delivery_value: "",
     extra: "",
     delivery_deadline: "",
+    payment_method: "",
+    pickup_and_delivery: true,
     notes: "",
 
   });
@@ -290,6 +297,7 @@ function DocumentsPage() {
       title: d.title ?? "",
       client_name: d.client_name ?? "",
       client_document: d.client_document ?? "",
+      client_rg: d.body?.client_rg ?? "",
       client_phone: d.client_phone ?? "",
       client_email: d.client_email ?? "",
       client_address: d.body?.client_address ?? "",
@@ -300,6 +308,8 @@ function DocumentsPage() {
       delivery_value: d.body?.delivery_value != null ? String(d.body.delivery_value) : "",
       extra: d.body?.extra != null ? String(d.body.extra) : "",
       delivery_deadline: d.body?.delivery_deadline ?? "",
+      payment_method: d.body?.payment_method ?? "",
+      pickup_and_delivery: d.body?.pickup_and_delivery ?? true,
       notes: d.body?.notes ?? "",
 
     });
@@ -347,6 +357,7 @@ function DocumentsPage() {
       year: v.year !== "" ? Number(v.year) || null : null,
       plate: v.plate.toUpperCase(),
       chassis: v.chassis.toUpperCase(),
+      renavan: v.renavan || null,
       color: v.color,
       type: v.type,
       value: Number(v.value) || 0,
@@ -359,6 +370,9 @@ function DocumentsPage() {
       pickup_value: Number(form.pickup_value) || 0,
       delivery_value: Number(form.delivery_value) || 0,
       client_address: form.client_address || null,
+      client_rg: form.client_rg || null,
+      payment_method: form.payment_method || null,
+      pickup_and_delivery: form.pickup_and_delivery,
       vehicles: vehiclesPayload,
       // legacy mirror (compat com PDFs / dialogs antigos)
       vehicle: single?.description ?? "",
@@ -747,6 +761,10 @@ function DocumentsPage() {
                   <Input value={form.client_document} onChange={(e) => setForm({ ...form, client_document: e.target.value })} />
                 </div>
                 <div>
+                  <Label>RG</Label>
+                  <Input value={form.client_rg} onChange={(e) => setForm({ ...form, client_rg: e.target.value })} />
+                </div>
+                <div>
                   <Label>Telefone</Label>
                   <Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
                 </div>
@@ -819,6 +837,14 @@ function DocumentsPage() {
                               value={v.chassis}
                               onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, chassis: e.target.value.toUpperCase() } : p))}
                               placeholder="Número do Chassi"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Renavan</Label>
+                            <Input
+                              value={v.renavan}
+                              onChange={(e) => setVehicles((prev) => prev.map((p, idx) => idx === i ? { ...p, renavan: e.target.value } : p))}
+                              placeholder="Número do Renavan"
                             />
                           </div>
                           <div>
@@ -911,6 +937,28 @@ function DocumentsPage() {
                     placeholder="Ex.: até 5 dias úteis após a coleta"
                   />
                 </div>
+                <div>
+                  <Label>Forma de pagamento</Label>
+                  <Select
+                    value={form.payment_method}
+                    onValueChange={(val) => setForm({ ...form, payment_method: val })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50% no embarque e o restante quando chegar no destino">50% no embarque e o restante quando chegar no destino</SelectItem>
+                      <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                      <SelectItem value="Pix ou Dinheiro">Pix ou Dinheiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 pt-6">
+                  <Checkbox
+                    id="pickup-and-delivery"
+                    checked={form.pickup_and_delivery}
+                    onCheckedChange={(v) => setForm({ ...form, pickup_and_delivery: !!v })}
+                  />
+                  <label htmlFor="pickup-and-delivery" className="text-sm">Serviço inclui coleta e entrega</label>
+                </div>
 
                 <div>
                   <Label>Total</Label>
@@ -935,6 +983,7 @@ function DocumentsPage() {
                       year: v.year !== "" ? Number(v.year) || null : null,
                       plate: v.plate.toUpperCase(),
                       chassis: v.chassis.toUpperCase(),
+                      renavan: v.renavan || null,
                       color: v.color,
                       type: v.type,
                       value: Number(v.value) || 0,
@@ -964,6 +1013,9 @@ function DocumentsPage() {
                         pickup_value: Number(form.pickup_value) || 0,
                         delivery_value: Number(form.delivery_value) || 0,
                         client_address: form.client_address || null,
+                        client_rg: form.client_rg || null,
+                        payment_method: form.payment_method || null,
+                        pickup_and_delivery: form.pickup_and_delivery,
                         vehicles: vehiclesPayload,
                         vehicle: single?.description ?? "",
                         vehicle_plate: single?.plate ?? "",

@@ -70,12 +70,19 @@ function buildVehicleLines(doc: DocumentViewData): string[] {
   return [];
 }
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  "50% no embarque e o restante quando chegar no destino": "50% no embarque e o restante quando chegar no destino",
+  "Cartão de Crédito": "Cartão de Crédito",
+  "Pix ou Dinheiro": "Pix ou Dinheiro",
+};
+
 export function DocumentView({ doc, company }: Props) {
   const isContract = doc.doc_type === "contract";
   const body = doc.body ?? {};
   const items = buildLineItems(doc);
   const vehicleLines = buildVehicleLines(doc);
   const total = Number(doc.total_amount ?? 0);
+  const vehicles: any[] = Array.isArray(body.vehicles) ? body.vehicles : [];
 
   // Minimum 12 rows in the items table to match the printed model layout.
   const MIN_ROWS = 12;
@@ -133,26 +140,90 @@ export function DocumentView({ doc, company }: Props) {
           </div>
         </div>
 
-        {/* Client fields with underline */}
-        <div className="space-y-3 mb-8 text-[15px]">
-          <UnderlineField label="Cliente" value={doc.client_name} />
-          {vehicleLines.length > 0 && (
-            <UnderlineField
-              label="Veículo"
-              value={vehicleLines[0]}
-              extra={vehicleLines.slice(1)}
-            />
-          )}
-          <UnderlineField label="Origem" value={body.origin ?? ""} italic />
-          <UnderlineField label="Destino" value={body.destination ?? ""} italic />
-          {body.delivery_deadline && (
-            <UnderlineField label="Prazo estimado" value={String(body.delivery_deadline)} italic />
-          )}
+        {isContract ? (
+          <div className="space-y-6 mb-8 text-[15px]">
+            <div>
+              <div className="text-sm uppercase tracking-[0.1em] font-bold text-black mb-3">Contratante</div>
+              <div className="space-y-3">
+                <UnderlineField label="Nome" value={doc.client_name} />
+                {body.client_rg && <UnderlineField label="RG" value={String(body.client_rg)} />}
+                {doc.client_document && <UnderlineField label="CPF/CNPJ" value={doc.client_document} />}
+                {doc.client_phone && <UnderlineField label="Telefone" value={doc.client_phone} italic />}
+                {doc.client_email && <UnderlineField label="E-mail" value={doc.client_email} italic />}
+                {body.client_address && <UnderlineField label="Endereço" value={String(body.client_address)} italic />}
+              </div>
+            </div>
 
-          {doc.client_phone && <UnderlineField label="Telefone" value={doc.client_phone} italic />}
-          {doc.client_email && <UnderlineField label="E-mail" value={doc.client_email} italic />}
-          {doc.client_document && <UnderlineField label="CPF/CNPJ" value={doc.client_document} />}
-        </div>
+            <div>
+              <div className="text-sm uppercase tracking-[0.1em] font-bold text-black mb-3">Contratado</div>
+              <div className="space-y-3">
+                <UnderlineField label="Nome" value={company?.name || "TransBH"} />
+                {company?.cnpj && <UnderlineField label="CPF/CNPJ" value={company.cnpj} />}
+                {(company?.whatsapp || company?.phone) && (
+                  <UnderlineField label="Telefone" value={company.whatsapp || company.phone || ""} italic />
+                )}
+                {company?.email && <UnderlineField label="E-mail" value={company.email} italic />}
+                {company?.address && <UnderlineField label="Endereço" value={company.address} italic />}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm uppercase tracking-[0.1em] font-bold text-black mb-3">Dados do Veículo e Transporte</div>
+              <div className="space-y-4">
+                {(vehicles.length > 0 ? vehicles : [null]).map((v, i) => (
+                  <div key={i} className="space-y-3">
+                    <UnderlineField label="Placa" value={v?.plate ?? ""} />
+                    <UnderlineField label="Marca/Modelo" value={[v?.brand, v?.model].filter(Boolean).join(" / ")} />
+                    <UnderlineField label="Chassi" value={v?.chassis ?? ""} />
+                    <UnderlineField label="Renavan" value={v?.renavan ?? ""} />
+                    <UnderlineField label="Cor" value={v?.color ?? ""} />
+                    <UnderlineField label="Ano/Modelo" value={v?.year ? String(v.year) : ""} />
+                    {v?.market_value != null && v.market_value !== "" && (
+                      <UnderlineField label="Valor assegurado" value={brl(Number(v.market_value))} />
+                    )}
+                  </div>
+                ))}
+                <UnderlineField label="Origem" value={body.origin ?? ""} italic />
+                <UnderlineField label="Destino" value={body.destination ?? ""} italic />
+                <UnderlineField label="Valor do Transporte" value={brl(total)} />
+                <UnderlineField
+                  label="Coleta e entrega"
+                  value={body.pickup_and_delivery === false ? "Não" : "Sim"}
+                />
+                {body.delivery_deadline && (
+                  <UnderlineField label="Prazo para entrega" value={String(body.delivery_deadline)} italic />
+                )}
+                {body.payment_method && (
+                  <UnderlineField
+                    label="Forma de pagamento"
+                    value={PAYMENT_METHOD_LABELS[body.payment_method] ?? String(body.payment_method)}
+                    italic
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 mb-8 text-[15px]">
+            <UnderlineField label="Cliente" value={doc.client_name} />
+            {vehicleLines.length > 0 && (
+              <UnderlineField
+                label="Veículo"
+                value={vehicleLines[0]}
+                extra={vehicleLines.slice(1)}
+              />
+            )}
+            <UnderlineField label="Origem" value={body.origin ?? ""} italic />
+            <UnderlineField label="Destino" value={body.destination ?? ""} italic />
+            {body.delivery_deadline && (
+              <UnderlineField label="Prazo estimado" value={String(body.delivery_deadline)} italic />
+            )}
+
+            {doc.client_phone && <UnderlineField label="Telefone" value={doc.client_phone} italic />}
+            {doc.client_email && <UnderlineField label="E-mail" value={doc.client_email} italic />}
+            {doc.client_document && <UnderlineField label="CPF/CNPJ" value={doc.client_document} />}
+          </div>
+        )}
 
         {/* Items table */}
         <table className="w-full border-collapse text-[14px]">

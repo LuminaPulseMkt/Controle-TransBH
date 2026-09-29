@@ -51,7 +51,18 @@ export function Footer() {
           </div>
         </div>
         
-        <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-brand-graphite-light">
+        <div className="pt-8 border-t border-gray-100 flex flex-col gap-3 text-xs text-brand-graphite-light">
+          <p className="flex flex-wrap items-center gap-x-2">
+            <span className="font-semibold text-brand-graphite">TRANSBH TRANSPORTES</span>
+            {company?.cnpj && <span>· CNPJ {company.cnpj}</span>}
+            <span>· Brasília – DF</span>
+            {(company?.whatsapp || company?.phone) && <span>· {company.whatsapp || company.phone}</span>}
+            {company?.email && (
+              <span>
+                · <a href={`mailto:${company.email}`} className="hover:text-brand-orange">{company.email}</a>
+              </span>
+            )}
+          </p>
           <p>© {currentYear} TransBH – Transportes de Veículos. Todos os direitos reservados.</p>
         </div>
       </div>
