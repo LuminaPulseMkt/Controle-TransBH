@@ -89,7 +89,11 @@ export function LeadForm() {
           vehicle_quantity: parseInt(values.vehicle_quantity),
           message: values.message || "",
         },
-      }).catch((e) => console.error("[LeadForm] notify email failed", e));
+      })
+        .then((r) => {
+          if (!r?.ok) console.error("[LeadForm] notify email failed", r?.error);
+        })
+        .catch((e) => console.error("[LeadForm] notify email failed", e));
 
       setIsSuccess(true);
       toast.success("Solicitação enviada com sucesso!");
