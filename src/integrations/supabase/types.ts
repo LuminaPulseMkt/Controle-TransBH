@@ -1035,6 +1035,7 @@ export type Database = {
           total_amount: number
         }[]
       }
+      get_lead_notify_email: { Args: never; Returns: string }
       get_public_company_info: {
         Args: never
         Returns: {
