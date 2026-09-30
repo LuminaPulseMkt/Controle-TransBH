@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendWhatsAppText } from "@/server/whatsapp.server";
 import { renderTemplate, type TemplateKey } from "@/lib/message-templates";
 
@@ -42,7 +41,8 @@ export const notifyTransportStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Schema.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: transport, error } = await supabaseAdmin
+    const sb = context.supabase;
+    const { data: transport, error } = await sb
       .from("transports")
       .select("code, client_name, client_phone, vehicle_plate")
       .eq("id", data.transport_id)
@@ -56,22 +56,26 @@ export const notifyTransportStatus = createServerFn({ method: "POST" })
     }
 
     const templateKey = STATUS_TEMPLATE_KEY[data.status];
-    const [{ data: tpl }, { data: company }] = await Promise.all([
-      supabaseAdmin.from("message_templates").select("body").eq("key", templateKey).maybeSingle(),
-      supabaseAdmin.from("company_settings").select("name, google_review_url").maybeSingle(),
+    // Public client + SECURITY DEFINER RPCs — message_templates/company_settings
+    // are RLS-restricted to settings managers, and this app's server functions
+    // don't reliably get SUPABASE_SERVICE_ROLE_KEY in this hosting environment.
+    const [{ data: tplBody }, { data: companyRows }] = await Promise.all([
+      sb.rpc("get_message_template" as never, { _key: templateKey } as never),
+      sb.rpc("get_public_company_info" as never),
     ]);
+    const company = Array.isArray(companyRows) ? companyRows[0] : companyRows;
 
-    const text = renderTemplate(tpl?.body ?? FALLBACK_BODY[data.status], {
+    const text = renderTemplate((tplBody as unknown as string) ?? FALLBACK_BODY[data.status], {
       client_name: transport.client_name,
       transport_code: transport.code,
       vehicle_plate: transport.vehicle_plate,
-      company_name: company?.name ?? "TransBH",
-      review_link: company?.google_review_url ?? "",
+      company_name: (company as any)?.name ?? "TransBH",
+      review_link: (company as any)?.google_review_url ?? "",
     });
 
     const result = await sendWhatsAppText({ phone: transport.client_phone, text });
 
-    await supabaseAdmin.from("transport_events").insert({
+    await sb.from("transport_events").insert({
       transport_id: data.transport_id,
       event_type: "whatsapp_sent",
       description: result.ok

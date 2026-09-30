@@ -1036,6 +1036,7 @@ export type Database = {
         }[]
       }
       get_lead_notify_email: { Args: never; Returns: string }
+      get_message_template: { Args: { _key: string }; Returns: string }
       get_public_company_info: {
         Args: never
         Returns: {
