@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/server/email.server";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
@@ -30,12 +30,24 @@ function escapeHtml(s: string): string {
 export const notifyNewLead = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Schema.parse(input))
   .handler(async ({ data }) => {
-    const { data: company } = await supabaseAdmin
-      .from("company_settings")
-      .select("email, name")
-      .maybeSingle();
+    // Public client + SECURITY DEFINER RPC that exposes only the company email
+    // (no service role key needed).
+    const url = process.env["SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"];
+    const key =
+      process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+    if (!url || !key) {
+      console.error("[notifyNewLead] missing SUPABASE_URL/PUBLISHABLE_KEY");
+      return { ok: false as const, error: "Servidor sem configuração do banco." };
+    }
+    const sb = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: companyEmail, error: rpcError } = await sb.rpc(
+      "get_lead_notify_email" as never,
+    );
+    if (rpcError) console.error("[notifyNewLead] rpc error", rpcError);
 
-    const to = company?.email;
+    const to = (companyEmail as unknown as string | null) ?? undefined;
     if (!to) {
       console.error("[notifyNewLead] no company email configured");
       return { ok: false as const, error: "E-mail da empresa não configurado." };
