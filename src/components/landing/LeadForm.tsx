@@ -1,7 +1,9 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyNewLead } from "@/lib/notify-lead.functions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +46,7 @@ export function LeadForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const { getSetting } = useSiteSettings();
   const formBg = getSetting("lead_form_bg");
+  const notifyLead = useServerFn(notifyNewLead);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -74,6 +77,19 @@ export function LeadForm() {
       });
 
       if (error) throw error;
+
+      notifyLead({
+        data: {
+          name: values.name,
+          whatsapp: values.whatsapp,
+          email: values.email || "",
+          origin: values.origin,
+          destination: values.destination,
+          vehicle_type: values.vehicle_type,
+          vehicle_quantity: parseInt(values.vehicle_quantity),
+          message: values.message || "",
+        },
+      }).catch((e) => console.error("[LeadForm] notify email failed", e));
 
       setIsSuccess(true);
       toast.success("Solicitação enviada com sucesso!");
