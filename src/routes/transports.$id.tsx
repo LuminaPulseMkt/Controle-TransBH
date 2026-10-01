@@ -198,7 +198,7 @@ function TransportDetailPage() {
 
   useEffect(() => { void load(); }, [id]);
 
-  const NOTIFIABLE_STATUSES = ["aguardando_coleta", "coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada", "finalizado"];
+  const NOTIFIABLE_STATUSES = ["aguardando_coleta", "coletado_aguardando_embarque", "em_transito", "veiculo_patio_aguardando_retirada", "finalizado"];
 
   const updateStatus = async (status: string) => {
     if (!transport || transport === "missing") return;
@@ -501,6 +501,11 @@ function TransportDetailPage() {
                   </Button>
                 )}
                 {t.status === "coletado_aguardando_embarque" && (
+                  <Button size="sm" onClick={() => updateStatus("em_transito")}>
+                    <Truck className="h-4 w-4 mr-1" /> Iniciar trânsito
+                  </Button>
+                )}
+                {t.status === "em_transito" && (
                   <Button size="sm" onClick={() => updateStatus("veiculo_patio_aguardando_retirada")}>
                     <Truck className="h-4 w-4 mr-1" /> Chegou ao pátio
                   </Button>
@@ -980,9 +985,16 @@ function Timeline({ transport }: { transport: Transport }) {
     {
       key: "coletado_aguardando_embarque",
       label: "Coletado - aguardando embarque",
-      date: ["coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status) ? transport.updated_at : null,
+      date: ["coletado_aguardando_embarque", "em_transito", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status) ? transport.updated_at : null,
       icon: Truck,
-      reached: ["coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status),
+      reached: ["coletado_aguardando_embarque", "em_transito", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status),
+    },
+    {
+      key: "em_transito",
+      label: "Em trânsito",
+      date: ["em_transito", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status) ? transport.updated_at : null,
+      icon: Truck,
+      reached: ["em_transito", "veiculo_patio_aguardando_retirada", "finalizado"].includes(transport.status),
     },
     {
       key: "veiculo_patio_aguardando_retirada",

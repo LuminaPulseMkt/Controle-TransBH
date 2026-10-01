@@ -7,6 +7,7 @@ export type TemplateKey =
   | "wa_charge_reminder"
   | "wa_status_aguardando_coleta"
   | "wa_status_coletado_aguardando_embarque"
+  | "wa_status_em_transito"
   | "wa_status_veiculo_patio_aguardando_retirada"
   | "wa_status_finalizado"
   | "email_budget_created"

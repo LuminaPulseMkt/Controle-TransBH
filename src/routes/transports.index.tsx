@@ -361,6 +361,7 @@ function TransportsPage() {
       estimated_delivery: form.estimated_delivery || null,
       vehicle_type: form.vehicle_type as any,
       status: form.status as any,
+      closed_by: form.closed_by || null,
       created_by: user?.id ?? null,
     };
 

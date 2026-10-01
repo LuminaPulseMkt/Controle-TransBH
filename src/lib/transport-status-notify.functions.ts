@@ -7,6 +7,7 @@ import { renderTemplate, type TemplateKey } from "@/lib/message-templates";
 const NOTIFIABLE_STATUSES = [
   "aguardando_coleta",
   "coletado_aguardando_embarque",
+  "em_transito",
   "veiculo_patio_aguardando_retirada",
   "finalizado",
 ] as const;
@@ -16,6 +17,7 @@ type NotifiableStatus = (typeof NOTIFIABLE_STATUSES)[number];
 const STATUS_TEMPLATE_KEY: Record<NotifiableStatus, TemplateKey> = {
   aguardando_coleta: "wa_status_aguardando_coleta",
   coletado_aguardando_embarque: "wa_status_coletado_aguardando_embarque",
+  em_transito: "wa_status_em_transito",
   veiculo_patio_aguardando_retirada: "wa_status_veiculo_patio_aguardando_retirada",
   finalizado: "wa_status_finalizado",
 };
@@ -26,6 +28,8 @@ const FALLBACK_BODY: Record<NotifiableStatus, string> = {
     "Olá {client_name}! Seu veículo {vehicle_plate} (transporte {transport_code}) foi cadastrado na {company_name} e está aguardando programação de coleta.",
   coletado_aguardando_embarque:
     "Olá {client_name}! Seu veículo {vehicle_plate} (transporte {transport_code}) já foi coletado e está aguardando embarque para o destino.",
+  em_transito:
+    "Olá {client_name}! Seu veículo {vehicle_plate} (transporte {transport_code}) está em trânsito para o destino.",
   veiculo_patio_aguardando_retirada:
     "Olá {client_name}! Seu veículo {vehicle_plate} (transporte {transport_code}) chegou e está no pátio aguardando retirada.",
   finalizado:

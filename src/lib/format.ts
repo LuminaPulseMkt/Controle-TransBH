@@ -13,6 +13,7 @@ export const daysBetween = (from: Date, to: Date) =>
 export const transportStatusLabel: Record<string, string> = {
   aguardando_coleta: "Aguardando coleta",
   coletado_aguardando_embarque: "Coletado - aguardando embarque",
+  em_transito: "Em trânsito",
   veiculo_patio_aguardando_retirada: "Veículo em pátio - aguardando retirada",
   finalizado: "Finalizado",
   cancelled: "Cancelado",

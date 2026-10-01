@@ -113,7 +113,7 @@ function DashboardPage() {
         .lte("created_at", range.to.toISOString())
         .order("created_at", { ascending: false }),
       supabase.from("partners").select("id, name"),
-      supabase.from("transports").select("id", { count: "exact", head: true }).in("status", ["aguardando_coleta", "coletado_aguardando_embarque", "veiculo_patio_aguardando_retirada"]),
+      supabase.from("transports").select("id", { count: "exact", head: true }).in("status", ["aguardando_coleta", "coletado_aguardando_embarque", "em_transito", "veiculo_patio_aguardando_retirada"]),
       supabase.from("profiles").select("user_id, display_name").eq("is_active", true).order("display_name"),
     ]);
     setTransports((trRes.data ?? []) as Transport[]);
@@ -226,6 +226,7 @@ function DashboardPage() {
     const colors: Record<string, string> = {
       aguardando_coleta: "#eab308",
       coletado_aguardando_embarque: "#3b82f6",
+      em_transito: "#8b5cf6",
       veiculo_patio_aguardando_retirada: "#f97316",
       finalizado: "#10b981",
       cancelled: "#6b7280",

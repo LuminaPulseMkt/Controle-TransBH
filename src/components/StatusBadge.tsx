@@ -4,6 +4,7 @@ import { paymentStatusLabel, transportStatusLabel } from "@/lib/format";
 const transportStyles: Record<string, string> = {
   aguardando_coleta: "bg-muted text-muted-foreground border-border",
   coletado_aguardando_embarque: "bg-info/15 text-info border-info/40",
+  em_transito: "bg-primary/15 text-primary border-primary/40",
   veiculo_patio_aguardando_retirada: "bg-warning/15 text-warning border-warning/40",
   finalizado: "bg-success/15 text-success border-success/40",
   cancelled: "bg-destructive/15 text-destructive border-destructive/40",

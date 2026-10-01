@@ -1077,6 +1077,7 @@ export type Database = {
       transport_status:
         | "aguardando_coleta"
         | "coletado_aguardando_embarque"
+        | "em_transito"
         | "veiculo_patio_aguardando_retirada"
         | "finalizado"
         | "cancelled"
@@ -1215,6 +1216,7 @@ export const Constants = {
       transport_status: [
         "aguardando_coleta",
         "coletado_aguardando_embarque",
+        "em_transito",
         "veiculo_patio_aguardando_retirada",
         "finalizado",
         "cancelled",
