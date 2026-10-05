@@ -97,7 +97,10 @@ function FinancialPage() {
 
 function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   const [items, setItems] = useState<Receivable[] | null>(null);
-  const [transports, setTransports] = useState<{ id: string; code: string; client_name: string }[]>([]);
+  const [transports, setTransports] = useState<{
+    id: string; code: string; client_name: string;
+    vehicle_brand: string | null; vehicle_model: string | null; vehicle_year: number | null; vehicle_plate: string | null;
+  }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
   const [historyTarget, setHistoryTarget] = useState<Receivable | null>(null);
@@ -122,12 +125,21 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
     await supabase.rpc("mark_overdue_receivables");
     const [{ data: r }, { data: t }] = await Promise.all([
       supabase.from("receivables").select("*").order("due_date", { ascending: true }),
-      supabase.from("transports").select("id, code, client_name").order("created_at", { ascending: false }),
+      supabase.from("transports").select("id, code, client_name, vehicle_brand, vehicle_model, vehicle_year, vehicle_plate").order("created_at", { ascending: false }),
     ]);
     setItems(r ?? []);
     setTransports(t ?? []);
   };
   useEffect(() => { void load(); }, []);
+
+  const vehicleOf = (r: Receivable): string => {
+    const t = transports.find((x) => x.id === r.transport_id);
+    if (!t) return "";
+    const name = [t.vehicle_brand, t.vehicle_model, t.vehicle_year].filter(Boolean).join(" ");
+    return [name, t.vehicle_plate].filter(Boolean).join(" · ");
+  };
+  const descriptionOf = (r: Receivable): string =>
+    [r.description, vehicleOf(r)].filter(Boolean).join(" — ") || "—";
 
   const filtered = useMemo(() => {
     if (!items) return [];
@@ -303,7 +315,7 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
               const balance = Number(r.amount) - paid;
               return [
                 r.client_name,
-                r.description ?? "—",
+                descriptionOf(r),
                 Number(r.amount).toFixed(2),
                 paid.toFixed(2),
                 balance.toFixed(2),
@@ -345,7 +357,10 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
               {filtered.map((r) => (
                 <tr key={r.id} className="border-t border-border/50 hover:bg-muted/30">
                   <td className="px-4 py-3">{r.client_name}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{r.description || "—"}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    <div>{r.description || "—"}</div>
+                    {vehicleOf(r) && <div className="text-foreground/80 font-medium mt-0.5">{vehicleOf(r)}</div>}
+                  </td>
                   <td className={`px-4 py-3 font-medium ${r.status === "overdue" ? "text-destructive" : ""}`}>
                     {brl(r.amount)}
                     {r.status === "partial" && r.paid_amount != null && (
@@ -456,8 +471,8 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
             <div className="space-y-4">
               <div className="text-sm">
                 <div className="font-medium">{historyTarget.client_name}</div>
-                {historyTarget.description && (
-                  <div className="text-xs text-muted-foreground">{historyTarget.description}</div>
+                {descriptionOf(historyTarget) !== "—" && (
+                  <div className="text-xs text-muted-foreground">{descriptionOf(historyTarget)}</div>
                 )}
               </div>
 

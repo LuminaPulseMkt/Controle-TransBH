@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PUBLIC_SITE_URL } from "@/lib/public-url";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -34,7 +35,7 @@ function LoginPage() {
     setForgotBusy(true);
     const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${PUBLIC_SITE_URL}/reset-password`,
     });
     setForgotBusy(false);
     if (error) return toast.error(error.message);

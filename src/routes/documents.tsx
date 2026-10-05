@@ -522,9 +522,9 @@ function DocumentsPage() {
               d.client_name,
               d.client_phone ?? "—",
               Number(d.total_amount ?? 0).toFixed(2),
-              d.accepted_at ? "Aceito" : "Pendente",
+              d.accepted_at || d.generated_at ? "Aceito" : "Pendente",
               dateBR(d.created_at),
-              d.accepted_at ? dateBR(d.accepted_at) : "—",
+              d.accepted_at || d.generated_at ? dateBR((d.accepted_at ?? d.generated_at) as string) : "—",
             ])}
             orientation="landscape"
           />
@@ -1167,6 +1167,11 @@ function DocRow({
             {d.doc_type === "budget" && d.accepted_at && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" /> Aceito {dateBR(d.accepted_at)}
+              </span>
+            )}
+            {alreadyGenerated && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-3 w-3" /> Aceito
               </span>
             )}
             {alreadyGenerated && (

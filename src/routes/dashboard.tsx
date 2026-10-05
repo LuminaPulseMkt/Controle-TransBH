@@ -75,7 +75,7 @@ interface Transport {
 interface StaffLite { user_id: string; display_name: string | null; }
 interface Receivable { id: string; client_name: string; amount: number; status: string; due_date: string; paid_at: string | null; transport_id: string | null; }
 interface Payable { id: string; amount: number; expense_date: string; category: string; }
-interface Doc { id: string; doc_type: string; total_amount: number | null; created_at: string; accepted_at: string | null; client_name: string; }
+interface Doc { id: string; doc_type: string; total_amount: number | null; created_at: string; accepted_at: string | null; generated_at: string | null; client_name: string; }
 interface Partner { id: string; name: string; }
 
 function DashboardPage() {
@@ -93,6 +93,7 @@ function DashboardPage() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [payables, setPayables] = useState<Payable[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
+  const [linkedContractIds, setLinkedContractIds] = useState<Set<string>>(new Set());
   const [partners, setPartners] = useState<Partner[]>([]);
   const [inProgressCount, setInProgressCount] = useState(0);
   const [staff, setStaff] = useState<StaffLite[]>([]);
@@ -122,18 +123,20 @@ function DashboardPage() {
     setStaff((staffRes.data ?? []) as StaffLite[]);
 
     if (showValues) {
-      const [recRes, payRes, docRes] = await Promise.all([
+      const [recRes, payRes, docRes, linkedRes] = await Promise.all([
         supabase.from("receivables").select("id, client_name, amount, status, due_date, paid_at, transport_id"),
         supabase.from("payables").select("id, amount, expense_date, category")
           .gte("expense_date", fromIso).lte("expense_date", toIso),
-        supabase.from("documents").select("id, doc_type, total_amount, created_at, accepted_at, client_name")
+        supabase.from("documents").select("id, doc_type, total_amount, created_at, accepted_at, generated_at, client_name")
           .gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()),
+        supabase.from("documents").select("accepted_contract_id").not("accepted_contract_id", "is", null),
       ]);
       setReceivables((recRes.data ?? []) as Receivable[]);
       setPayables((payRes.data ?? []) as Payable[]);
       setDocs((docRes.data ?? []) as Doc[]);
+      setLinkedContractIds(new Set((linkedRes.data ?? []).map((r) => r.accepted_contract_id as string)));
     } else {
-      setReceivables([]); setPayables([]); setDocs([]);
+      setReceivables([]); setPayables([]); setDocs([]); setLinkedContractIds(new Set());
     }
     setLoading(false);
   };
@@ -157,8 +160,10 @@ function DashboardPage() {
   const ticketAvg = transports.length ? revenueInRange / transports.length : 0;
 
   // Funil orçamentos
-  const budgets = docs.filter(d => d.doc_type === "budget");
-  const acceptedBudgets = budgets.filter(d => d.accepted_at);
+  // Orçamentos + contratos avulsos (não originados de um orçamento aceito).
+  // Aceito = aceite do cliente OU transporte já gerado a partir do contrato.
+  const budgets = docs.filter(d => d.doc_type === "budget" || (d.doc_type === "contract" && !linkedContractIds.has(d.id)));
+  const acceptedBudgets = budgets.filter(d => d.accepted_at || d.generated_at);
   const conversion = budgets.length ? (acceptedBudgets.length / budgets.length) * 100 : 0;
   const quotedTotal = budgets.reduce((s, d) => s + Number(d.total_amount ?? 0), 0);
   const closedTotal = acceptedBudgets.reduce((s, d) => s + Number(d.total_amount ?? 0), 0);
