@@ -228,9 +228,11 @@ function DocumentsPage() {
           .update({ accepted_at: null, accepted_contract_id: null })
           .eq("accepted_contract_id", d.id);
       }
-      const { error } = await supabase.from("documents").delete().eq("id", d.id);
+      const { data: deleted, error } = await supabase.from("documents").delete().eq("id", d.id).select("id");
       if (error) {
         toast.error(error.message);
+      } else if (!deleted || deleted.length === 0) {
+        toast.error("Não foi possível excluir: seu usuário não tem permissão para excluir este documento.");
       } else {
         toast.success(`${d.doc_type === "budget" ? "Orçamento" : "Contrato"} excluído.`);
         setDeletingDoc(null);
@@ -401,9 +403,16 @@ function DocumentsPage() {
     };
     let createdToken: string | null = null;
     if (editingDoc) {
-      const { error } = await supabase.from("documents").update(payload).eq("id", editingDoc.id);
+      const { data: updated, error } = await supabase
+        .from("documents")
+        .update(payload)
+        .eq("id", editingDoc.id)
+        .select("id");
       setBusy(false);
       if (error) return toast.error(error.message);
+      if (!updated || updated.length === 0) {
+        return toast.error("Não foi possível salvar: seu usuário não tem permissão para editar este documento.");
+      }
     } else {
       const { data: inserted, error } = await supabase
         .from("documents")
