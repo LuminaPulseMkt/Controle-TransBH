@@ -25,6 +25,7 @@ import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as ChecklistsRouteImport } from './routes/checklists'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
+import { Route as VistoriaTokenRouteImport } from './routes/vistoria.$token'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 import { Route as DTokenRouteImport } from './routes/d.$token'
 import { Route as ChecklistsHistoricoRouteImport } from './routes/checklists.historico'
@@ -111,6 +112,11 @@ const TransportsIndexRoute = TransportsIndexRouteImport.update({
   path: '/transports/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VistoriaTokenRoute = VistoriaTokenRouteImport.update({
+  id: '/vistoria/$token',
+  path: '/vistoria/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransportsIdRoute = TransportsIdRouteImport.update({
   id: '/transports/$id',
   path: '/transports/$id',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
+  '/vistoria/$token': typeof VistoriaTokenRoute
   '/transports/': typeof TransportsIndexRoute
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
+  '/vistoria/$token': typeof VistoriaTokenRoute
   '/transports': typeof TransportsIndexRoute
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
+  '/vistoria/$token': typeof VistoriaTokenRoute
   '/transports/': typeof TransportsIndexRoute
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
+    | '/vistoria/$token'
     | '/transports/'
     | '/financial/clients/$name'
   fileRoutesByTo: FileRoutesByTo
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
+    | '/vistoria/$token'
     | '/transports'
     | '/financial/clients/$name'
   id:
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
+    | '/vistoria/$token'
     | '/transports/'
     | '/financial/clients/$name'
   fileRoutesById: FileRoutesById
@@ -297,6 +309,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   DTokenRoute: typeof DTokenRoute
   TransportsIdRoute: typeof TransportsIdRoute
+  VistoriaTokenRoute: typeof VistoriaTokenRoute
   TransportsIndexRoute: typeof TransportsIndexRoute
 }
 
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vistoria/$token': {
+      id: '/vistoria/$token'
+      path: '/vistoria/$token'
+      fullPath: '/vistoria/$token'
+      preLoaderRoute: typeof VistoriaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/transports/$id': {
       id: '/transports/$id'
       path: '/transports/$id'
@@ -496,6 +516,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   DTokenRoute: DTokenRoute,
   TransportsIdRoute: TransportsIdRoute,
+  VistoriaTokenRoute: VistoriaTokenRoute,
   TransportsIndexRoute: TransportsIndexRoute,
 }
 export const routeTree = rootRouteImport

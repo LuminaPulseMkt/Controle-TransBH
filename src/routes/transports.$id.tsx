@@ -19,6 +19,7 @@ import {
   Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send, ClipboardCheck, Wallet, User, History,
 } from "lucide-react";
 import { toast } from "sonner";
+import { TransportVistorias } from "@/components/vistoria/TransportVistorias";
 
 export const Route = createFileRoute("/transports/$id")({
   component: () => (
@@ -551,6 +552,9 @@ function TransportDetailPage() {
               </ul>
             )}
           </Card>
+
+          {/* Vistorias por acionamento (link público) */}
+          <TransportVistorias transport={t} />
 
           {/* Tracking / current location */}
           <Card className="p-5">

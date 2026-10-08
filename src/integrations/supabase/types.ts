@@ -997,6 +997,56 @@ export type Database = {
           },
         ]
       }
+      vistorias: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: Json
+          expires_at: string
+          finished_at: string | null
+          id: string
+          kind: string
+          status: string
+          token: string
+          transport_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          expires_at?: string
+          finished_at?: string | null
+          id?: string
+          kind: string
+          status?: string
+          token?: string
+          transport_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          expires_at?: string
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          token?: string
+          transport_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vistorias_transport_id_fkey"
+            columns: ["transport_id"]
+            isOneToOne: false
+            referencedRelation: "transports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1036,6 +1086,12 @@ export type Database = {
         }[]
       }
       get_lead_notify_email: { Args: never; Returns: string }
+      get_vistoria_by_token: { Args: { _token: string }; Returns: Json }
+      save_vistoria_by_token: {
+        Args: { _data: Json; _finalize?: boolean; _token: string }
+        Returns: string
+      }
+      vistoria_token_is_open: { Args: { _token: string }; Returns: boolean }
       get_message_template: { Args: { _key: string }; Returns: string }
       get_public_company_info: {
         Args: never
