@@ -48,6 +48,16 @@ export function VistoriaReport({ data, transport }: { data: VistoriaData; transp
         <Row label="Nome" value={data.driver.name} />
         <Row label="CPF" value={data.driver.cpf} />
         <Row label="Placa do guincho" value={data.driver.tow_plate.toUpperCase()} />
+        {data.driver.signature_url && (
+          <div className="py-2">
+            <span className="text-sm text-muted-foreground">Assinatura</span>
+            <img
+              src={data.driver.signature_url}
+              alt="Assinatura do motorista"
+              className="h-20 mt-1 bg-white rounded border border-border object-contain"
+            />
+          </div>
+        )}
       </Section>
 
       <Section title="Geral">

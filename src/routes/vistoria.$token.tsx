@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Lock, RefreshCw, Trash2, Download } from "lucide-react";
+import { AlertCircle, Camera, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Lock, RefreshCw, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { uploadVistoriaPhoto } from "@/lib/vistoria-upload";
@@ -157,6 +157,7 @@ function VistoriaPage() {
   const next = () => {
     const err = validators[step]?.(data) ?? null;
     if (err) return toast.error(err);
+    if (step === 0) rememberDriver(data.driver);
     goTo(step + 1);
   };
 
@@ -203,7 +204,7 @@ function VistoriaPage() {
         </div>
       </div>
 
-      {step === 0 && <StepDriver data={data} update={update} />}
+      {step === 0 && <StepDriver token={token} data={data} update={update} />}
       {step === 1 && <StepGeneral data={data} update={update} />}
       {step === 2 && <StepChecks data={data} update={update} />}
       {step === 3 && <StepPhotos token={token} data={data} update={update} />}
@@ -212,6 +213,14 @@ function VistoriaPage() {
       {step === 6 && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">Revise todas as informações antes de finalizar.</p>
+          <ReviewSummary
+            items={STEPS.slice(0, LAST).map((label, i) => ({
+              label,
+              error: validators[i]?.(data) ?? null,
+              optional: validators[i] === null,
+              onEdit: () => goTo(i),
+            }))}
+          />
           <VistoriaReport data={data} transport={t} />
         </div>
       )}
@@ -273,14 +282,70 @@ function YesNo({ label, value, onChange }: { label: string; value: boolean | nul
   );
 }
 
-function StepDriver({ data, update }: StepProps) {
+const DRIVER_KEY = "transbh.vistoria.driver";
+
+type DriverData = VistoriaData["driver"];
+
+function rememberDriver(d: DriverData) {
+  try {
+    localStorage.setItem(DRIVER_KEY, JSON.stringify(d));
+  } catch { /* armazenamento indisponível: segue sem lembrar */ }
+}
+
+function recallDriver(): DriverData | null {
+  try {
+    const raw = localStorage.getItem(DRIVER_KEY);
+    return raw ? (JSON.parse(raw) as DriverData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function ReviewSummary({ items }: { items: { label: string; error: string | null; optional: boolean; onEdit: () => void }[] }) {
+  return (
+    <Card className="divide-y divide-border">
+      {items.map((it) => (
+        <div key={it.label} className="flex items-start justify-between gap-3 p-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {it.error ? (
+                <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+              )}
+              {it.label}
+              {it.optional && <span className="text-xs font-normal text-muted-foreground">(opcional)</span>}
+            </div>
+            {it.error && <p className="mt-0.5 text-xs text-destructive">{it.error}</p>}
+          </div>
+          <Button type="button" size="sm" variant="outline" onClick={it.onEdit}>Editar</Button>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+function StepDriver({ data, update, token }: StepProps & { token: string }) {
   const d = data.driver;
   const set = (patch: Partial<typeof d>) => update((x) => ({ ...x, driver: { ...x.driver, ...patch } }));
+  const [recalled, setRecalled] = useState(false);
+  useEffect(() => {
+    if (d.cpf || d.name) return;
+    const saved = recallDriver();
+    if (saved?.cpf) {
+      set(saved);
+      setRecalled(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">Identificação do motorista</h2>
         <p className="text-sm text-muted-foreground">Quem está realizando esta vistoria.</p>
+        {recalled && (
+          <p className="mt-1 text-xs text-primary">Preenchido com os dados salvos neste aparelho. Confira antes de continuar.</p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="d-cpf">CPF</Label>
@@ -293,6 +358,11 @@ function StepDriver({ data, update }: StepProps) {
       <div className="space-y-1.5">
         <Label htmlFor="d-plate">Placa do guincho / cegonha</Label>
         <Input id="d-plate" className="uppercase" maxLength={8} value={d.tow_plate} onChange={(e) => set({ tow_plate: e.target.value.toUpperCase() })} />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Assinatura do motorista</Label>
+        <VistoriaSignature token={token} name="assinatura-motorista" value={d.signature_url} onChange={(url) => set({ signature_url: url })} />
+        <p className="text-xs text-muted-foreground">Fica salva neste aparelho para as próximas vistorias.</p>
       </div>
     </div>
   );

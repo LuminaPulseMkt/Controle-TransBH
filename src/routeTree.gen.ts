@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VistoriasRouteImport } from './routes/vistorias'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as SocialRouteImport } from './routes/social'
 import { Route as SiteImagesRouteImport } from './routes/site-images'
@@ -24,6 +25,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as ChecklistsRouteImport } from './routes/checklists'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VistoriaIndexRouteImport } from './routes/vistoria.index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
 import { Route as VistoriaTokenRouteImport } from './routes/vistoria.$token'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
@@ -32,6 +34,11 @@ import { Route as ChecklistsHistoricoRouteImport } from './routes/checklists.his
 import { Route as ChecklistsIdRouteImport } from './routes/checklists.$id'
 import { Route as FinancialClientsNameRouteImport } from './routes/financial.clients.$name'
 
+const VistoriasRoute = VistoriasRouteImport.update({
+  id: '/vistorias',
+  path: '/vistorias',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -107,6 +114,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VistoriaIndexRoute = VistoriaIndexRouteImport.update({
+  id: '/vistoria/',
+  path: '/vistoria/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransportsIndexRoute = TransportsIndexRouteImport.update({
   id: '/transports/',
   path: '/transports/',
@@ -159,12 +171,14 @@ export interface FileRoutesByFullPath {
   '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
+  '/vistorias': typeof VistoriasRoute
   '/checklists/$id': typeof ChecklistsIdRoute
   '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/vistoria/$token': typeof VistoriaTokenRoute
   '/transports/': typeof TransportsIndexRoute
+  '/vistoria/': typeof VistoriaIndexRoute
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRoutesByTo {
@@ -183,12 +197,14 @@ export interface FileRoutesByTo {
   '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
+  '/vistorias': typeof VistoriasRoute
   '/checklists/$id': typeof ChecklistsIdRoute
   '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/vistoria/$token': typeof VistoriaTokenRoute
   '/transports': typeof TransportsIndexRoute
+  '/vistoria': typeof VistoriaIndexRoute
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRoutesById {
@@ -208,12 +224,14 @@ export interface FileRoutesById {
   '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
+  '/vistorias': typeof VistoriasRoute
   '/checklists/$id': typeof ChecklistsIdRoute
   '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/vistoria/$token': typeof VistoriaTokenRoute
   '/transports/': typeof TransportsIndexRoute
+  '/vistoria/': typeof VistoriaIndexRoute
   '/financial/clients/$name': typeof FinancialClientsNameRoute
 }
 export interface FileRouteTypes {
@@ -234,12 +252,14 @@ export interface FileRouteTypes {
     | '/site-images'
     | '/social'
     | '/users'
+    | '/vistorias'
     | '/checklists/$id'
     | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/vistoria/$token'
     | '/transports/'
+    | '/vistoria/'
     | '/financial/clients/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -258,12 +278,14 @@ export interface FileRouteTypes {
     | '/site-images'
     | '/social'
     | '/users'
+    | '/vistorias'
     | '/checklists/$id'
     | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/vistoria/$token'
     | '/transports'
+    | '/vistoria'
     | '/financial/clients/$name'
   id:
     | '__root__'
@@ -282,12 +304,14 @@ export interface FileRouteTypes {
     | '/site-images'
     | '/social'
     | '/users'
+    | '/vistorias'
     | '/checklists/$id'
     | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/vistoria/$token'
     | '/transports/'
+    | '/vistoria/'
     | '/financial/clients/$name'
   fileRoutesById: FileRoutesById
 }
@@ -307,14 +331,23 @@ export interface RootRouteChildren {
   SiteImagesRoute: typeof SiteImagesRoute
   SocialRoute: typeof SocialRoute
   UsersRoute: typeof UsersRoute
+  VistoriasRoute: typeof VistoriasRoute
   DTokenRoute: typeof DTokenRoute
   TransportsIdRoute: typeof TransportsIdRoute
   VistoriaTokenRoute: typeof VistoriaTokenRoute
   TransportsIndexRoute: typeof TransportsIndexRoute
+  VistoriaIndexRoute: typeof VistoriaIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vistorias': {
+      id: '/vistorias'
+      path: '/vistorias'
+      fullPath: '/vistorias'
+      preLoaderRoute: typeof VistoriasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users': {
       id: '/users'
       path: '/users'
@@ -420,6 +453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vistoria/': {
+      id: '/vistoria/'
+      path: '/vistoria'
+      fullPath: '/vistoria/'
+      preLoaderRoute: typeof VistoriaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/transports/': {
       id: '/transports/'
       path: '/transports'
@@ -514,10 +554,12 @@ const rootRouteChildren: RootRouteChildren = {
   SiteImagesRoute: SiteImagesRoute,
   SocialRoute: SocialRoute,
   UsersRoute: UsersRoute,
+  VistoriasRoute: VistoriasRoute,
   DTokenRoute: DTokenRoute,
   TransportsIdRoute: TransportsIdRoute,
   VistoriaTokenRoute: VistoriaTokenRoute,
   TransportsIndexRoute: TransportsIndexRoute,
+  VistoriaIndexRoute: VistoriaIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

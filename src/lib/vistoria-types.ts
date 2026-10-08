@@ -1,3 +1,5 @@
+import { PUBLIC_SITE_URL } from "@/lib/public-url";
+
 // Listas padrão e tipos da Vistoria por acionamento (link público com token).
 
 export type VistoriaKind = "coleta" | "entrega";
@@ -110,7 +112,7 @@ export const FUEL_STEPS = ["E", "1/4", "1/2", "3/4", "F"];
 
 // ---- Dados da vistoria (jsonb `data`) -----------------------------------------
 export interface VistoriaData {
-  driver: { cpf: string; name: string; tow_plate: string };
+  driver: { cpf: string; name: string; tow_plate: string; signature_url: string | null };
   general: {
     interior_access: boolean | null;
     vehicle_working: boolean | null;
@@ -130,7 +132,7 @@ export interface VistoriaData {
 
 export function emptyVistoriaData(): VistoriaData {
   return {
-    driver: { cpf: "", name: "", tow_plate: "" },
+    driver: { cpf: "", name: "", tow_plate: "", signature_url: null },
     general: {
       interior_access: null,
       vehicle_working: null,
@@ -224,6 +226,7 @@ export function validateDriver(d: VistoriaData): string | null {
   if (!isValidCpf(d.driver.cpf)) return "Informe um CPF válido do motorista.";
   if (d.driver.name.trim().length < 3) return "Informe o nome do motorista.";
   if (d.driver.tow_plate.trim().length < 6) return "Informe a placa do guincho/cegonha.";
+  if (!d.driver.signature_url) return "A assinatura do motorista é obrigatória.";
   return null;
 }
 
@@ -254,4 +257,24 @@ export function validateClient(d: VistoriaData): string | null {
   if (!/^\S+@\S+\.\S+$/.test(d.client.email.trim())) return "Informe um e-mail válido.";
   if (!d.client.signature_url) return "A assinatura do cliente é obrigatória.";
   return null;
+}
+
+// ---- Links e mensagens --------------------------------------------------------
+
+export const vistoriaLink = (token: string) => `${PUBLIC_SITE_URL}/vistoria/${token}`;
+export const vistoriaAccessPageLink = () => `${PUBLIC_SITE_URL}/vistoria`;
+
+export function vistoriaMessage(opts: {
+  clientName: string;
+  kind: VistoriaKind;
+  plate: string;
+  token: string;
+  accessCode: string;
+}) {
+  return (
+    `Olá ${opts.clientName}, segue o link da vistoria de ${VISTORIA_KIND_LABEL[opts.kind].toLowerCase()} do veículo ${opts.plate}: ${vistoriaLink(opts.token)}
+
+` +
+    `Se preferir, acesse ${vistoriaAccessPageLink()} e informe o código ${opts.accessCode} e a placa ${opts.plate}.`
+  );
 }

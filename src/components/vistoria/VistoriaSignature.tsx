@@ -8,9 +8,10 @@ interface Props {
   token: string;
   value: string | null;
   onChange: (url: string | null) => void;
+  name?: string;
 }
 
-export function VistoriaSignature({ token, value, onChange }: Props) {
+export function VistoriaSignature({ token, value, onChange, name = "assinatura-cliente" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -60,7 +61,7 @@ export function VistoriaSignature({ token, value, onChange }: Props) {
       const blob: Blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Falha ao gerar a assinatura."))), "image/png"),
       );
-      const url = await uploadVistoriaFile(token, "assinatura-cliente", blob, "image/png");
+      const url = await uploadVistoriaFile(token, name, blob, "image/png");
       onChange(url);
       toast.success("Assinatura salva.");
     } catch (e) {

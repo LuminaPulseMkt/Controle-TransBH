@@ -2,24 +2,23 @@ import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCompanyInfo } from "@/lib/use-company-info";
-import { PUBLIC_SITE_URL } from "@/lib/public-url";
 import { waLink } from "@/lib/format";
 import { exportVistoriaPDF } from "@/lib/vistoria-pdf";
+import { VistoriaViewDialog } from "@/components/vistoria/VistoriaViewDialog";
 import {
-  VISTORIA_KIND_LABEL, VISTORIA_STATUS_LABEL, normalizeVistoriaData,
+  VISTORIA_KIND_LABEL, VISTORIA_STATUS_LABEL, normalizeVistoriaData, vistoriaLink, vistoriaMessage,
   type VistoriaKind, type VistoriaStatus, type VistoriaTransportInfo,
 } from "@/lib/vistoria-types";
-import { VistoriaReport } from "@/components/vistoria/VistoriaReport";
 import { ClipboardList, Copy, Download, Eye, Loader2, MessageCircle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Row {
   id: string;
   token: string;
+  access_code: string;
   kind: VistoriaKind;
   status: VistoriaStatus;
   data: unknown;
@@ -49,8 +48,6 @@ interface Props {
   };
 }
 
-const linkOf = (token: string) => `${PUBLIC_SITE_URL}/vistoria/${token}`;
-
 export function TransportVistorias({ transport }: Props) {
   const { can, user } = useAuth();
   const company = useCompanyInfo();
@@ -64,7 +61,7 @@ export function TransportVistorias({ transport }: Props) {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from("vistorias")
-      .select("id, token, kind, status, data, expires_at, finished_at, created_at")
+      .select("id, token, access_code, kind, status, data, expires_at, finished_at, created_at")
       .eq("transport_id", transport.id)
       .order("created_at", { ascending: false });
     if (error) toast.error("Erro ao carregar vistorias: " + error.message);
@@ -91,15 +88,21 @@ export function TransportVistorias({ transport }: Props) {
 
   const copy = async (r: Row) => {
     try {
-      await navigator.clipboard.writeText(linkOf(r.token));
+      await navigator.clipboard.writeText(vistoriaLink(r.token));
       toast.success("Link copiado.");
     } catch {
-      toast.error("Não foi possível copiar. Link: " + linkOf(r.token));
+      toast.error("Não foi possível copiar. Link: " + vistoriaLink(r.token));
     }
   };
 
   const whatsapp = (r: Row) => {
-    const text = `Olá ${transport.client_name}, segue o link da vistoria de ${VISTORIA_KIND_LABEL[r.kind].toLowerCase()} do veículo ${transport.vehicle_plate}: ${linkOf(r.token)}`;
+    const text = vistoriaMessage({
+      clientName: transport.client_name,
+      kind: r.kind,
+      plate: transport.vehicle_plate,
+      token: r.token,
+      accessCode: r.access_code,
+    });
     const url = waLink(transport.client_phone, text) ?? `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank", "noopener");
   };
@@ -163,6 +166,7 @@ export function TransportVistorias({ transport }: Props) {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
+                    Código: <span className="font-mono font-semibold text-foreground">{r.access_code}</span> ·{" "}
                     {r.status === "finalizada" && r.finished_at
                       ? `Finalizada em ${new Date(r.finished_at).toLocaleString("pt-BR")}`
                       : `Válido até ${new Date(r.expires_at).toLocaleDateString("pt-BR")}`}
@@ -201,17 +205,13 @@ export function TransportVistorias({ transport }: Props) {
         </ul>
       )}
 
-      <Dialog open={viewing !== null} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Vistoria de {viewing ? VISTORIA_KIND_LABEL[viewing.kind].toLowerCase() : ""}
-              {viewing && viewing.status !== "finalizada" ? " (em andamento)" : ""}
-            </DialogTitle>
-          </DialogHeader>
-          {viewing && <VistoriaReport data={normalizeVistoriaData(viewing.data)} transport={info} />}
-        </DialogContent>
-      </Dialog>
+      <VistoriaViewDialog
+        kind={viewing?.kind ?? null}
+        status={viewing?.status ?? null}
+        data={viewing?.data}
+        transport={info}
+        onClose={() => setViewing(null)}
+      />
     </Card>
   );
 }

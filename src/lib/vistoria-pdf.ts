@@ -161,7 +161,7 @@ export async function exportVistoriaPDF(opts: {
     y += cellH + labelH + gap;
   }
 
-  // Cliente + assinatura
+  // Assinaturas
   if (y > pageH - 80) {
     doc.addPage();
     y = 10;
@@ -171,19 +171,26 @@ export async function exportVistoriaPDF(opts: {
     ["CPF", data.client.cpf || "—"],
     ["E-mail", data.client.email || "—"],
   ]);
-  if (data.client.signature_url) {
-    const sig = await loadImage(data.client.signature_url);
+  const signatures: [string | null, string][] = [
+    [data.client.signature_url, "Assinatura do cliente"],
+    [data.driver.signature_url, "Assinatura do motorista"],
+  ];
+  const sigImages = await Promise.all(signatures.map(([url]) => (url ? loadImage(url) : Promise.resolve(null))));
+  const sigH = 28;
+  const colW = (pageW - 20) / 2;
+  signatures.forEach(([, label], i) => {
+    const sig = sigImages[i];
+    const x = 10 + i * colW;
     if (sig) {
-      const h = 28;
-      const w = Math.min((sig.w / sig.h) * h, 80);
-      doc.addImage(sig.dataUrl, sig.format, 10, y, w, h);
-      doc.setDrawColor(120);
-      doc.line(10, y + h + 1, 90, y + h + 1);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text("Assinatura do cliente", 10, y + h + 5);
+      const w = Math.min((sig.w / sig.h) * sigH, colW - 10);
+      doc.addImage(sig.dataUrl, sig.format, x, y, w, sigH);
     }
-  }
+    doc.setDrawColor(120);
+    doc.line(x, y + sigH + 1, x + colW - 10, y + sigH + 1);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(label, x, y + sigH + 5);
+  });
 
   doc.save(`vistoria-${kind}-${(transport.vehicle_plate || "veiculo").replace(/\s+/g, "_")}.pdf`);
 }

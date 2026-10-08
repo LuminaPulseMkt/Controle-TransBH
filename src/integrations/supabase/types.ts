@@ -999,6 +999,7 @@ export type Database = {
       }
       vistorias: {
         Row: {
+          access_code: string
           created_at: string
           created_by: string | null
           data: Json
@@ -1012,6 +1013,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_code?: string
           created_at?: string
           created_by?: string | null
           data?: Json
@@ -1025,6 +1027,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_code?: string
           created_at?: string
           created_by?: string | null
           data?: Json
@@ -1086,6 +1089,10 @@ export type Database = {
         }[]
       }
       get_lead_notify_email: { Args: never; Returns: string }
+      find_vistoria_token: {
+        Args: { _code: string; _plate: string }
+        Returns: string
+      }
       get_vistoria_by_token: { Args: { _token: string }; Returns: Json }
       save_vistoria_by_token: {
         Args: { _data: Json; _finalize?: boolean; _token: string }
