@@ -10,9 +10,8 @@ import {
   Settings,
   LogOut,
   Handshake,
-  ClipboardCheck,
   ScanSearch,
-  FileSpreadsheet,
+  Container,
   Image as ImageIcon,
   Home,
 } from "lucide-react";
@@ -36,9 +35,8 @@ import { Button } from "@/components/ui/button";
 const allItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: PermKey }[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Transportes", url: "/transports", icon: Truck, permission: "transports.view" },
-  { title: "Checklists", url: "/checklists", icon: ClipboardCheck, permission: "transports.view" },
   { title: "Vistorias", url: "/vistorias", icon: ScanSearch, permission: "transports.view" },
-  { title: "Planilhas", url: "/planilhas", icon: FileSpreadsheet, permission: "transports.view" },
+  { title: "Frota", url: "/frota", icon: Container, permission: "transports.view" },
   { title: "Parceiros", url: "/partners", icon: Handshake, permission: "partners.view" },
   { title: "Financeiro", url: "/financial", icon: Wallet, permission: "financial.view" },
   { title: "Cobranças", url: "/collections", icon: AlertTriangle, permission: "collections.view" },

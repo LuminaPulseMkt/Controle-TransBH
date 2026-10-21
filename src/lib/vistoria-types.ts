@@ -112,7 +112,16 @@ export const FUEL_STEPS = ["E", "1/4", "1/2", "3/4", "F"];
 
 // ---- Dados da vistoria (jsonb `data`) -----------------------------------------
 export interface VistoriaData {
-  driver: { cpf: string; name: string; tow_plate: string; signature_url: string | null };
+  driver: {
+    cpf: string;
+    name: string;
+    /** Veículo foi/vai em guincho/cegonha ou ficou em um pátio. */
+    transport_mode: "caminhao" | "patio";
+    tow_plate: string;
+    patio_name: string;
+    received_by: string;
+    signature_url: string | null;
+  };
   general: {
     interior_access: boolean | null;
     vehicle_working: boolean | null;
@@ -132,7 +141,7 @@ export interface VistoriaData {
 
 export function emptyVistoriaData(): VistoriaData {
   return {
-    driver: { cpf: "", name: "", tow_plate: "", signature_url: null },
+    driver: { cpf: "", name: "", transport_mode: "caminhao", tow_plate: "", patio_name: "", received_by: "", signature_url: null },
     general: {
       interior_access: null,
       vehicle_working: null,
@@ -223,9 +232,14 @@ export function isValidCpf(s: string) {
 }
 
 export function validateDriver(d: VistoriaData): string | null {
-  if (!isValidCpf(d.driver.cpf)) return "Informe um CPF válido do motorista.";
+  if (d.driver.cpf.trim() && !isValidCpf(d.driver.cpf)) return "O CPF do motorista informado é inválido.";
   if (d.driver.name.trim().length < 3) return "Informe o nome do motorista.";
-  if (d.driver.tow_plate.trim().length < 6) return "Informe a placa do guincho/cegonha.";
+  if (d.driver.transport_mode === "patio") {
+    if (d.driver.patio_name.trim().length < 2) return "Informe o nome do pátio.";
+    if (d.driver.received_by.trim().length < 2) return "Informe quem recebeu o veículo no pátio.";
+  } else if (d.driver.tow_plate.trim().length < 6) {
+    return "Informe a placa do guincho/cegonha.";
+  }
   if (!d.driver.signature_url) return "A assinatura do motorista é obrigatória.";
   return null;
 }
@@ -252,9 +266,9 @@ export function validatePhotos(d: VistoriaData): string | null {
 }
 
 export function validateClient(d: VistoriaData): string | null {
-  if (!isValidCpf(d.client.cpf)) return "Informe um CPF válido do cliente.";
+  if (d.client.cpf.trim() && !isValidCpf(d.client.cpf)) return "O CPF informado é inválido.";
   if (d.client.name.trim().length < 3) return "Informe o nome do cliente.";
-  if (!/^\S+@\S+\.\S+$/.test(d.client.email.trim())) return "Informe um e-mail válido.";
+  if (d.client.email.trim() && !/^\S+@\S+\.\S+$/.test(d.client.email.trim())) return "O e-mail informado é inválido.";
   if (!d.client.signature_url) return "A assinatura do cliente é obrigatória.";
   return null;
 }
@@ -270,11 +284,28 @@ export function vistoriaMessage(opts: {
   plate: string;
   token: string;
   accessCode: string;
+  /** Veículo (marca/modelo) — incluído quando a vistoria é enviada a quem vai receber/coletar. */
+  vehicle?: string;
+  /** Quando preenchido, a mensagem pede que a pessoa receba/colete e faça a vistoria. */
+  recipientName?: string;
 }) {
-  return (
-    `Olá ${opts.clientName}, segue o link da vistoria de ${VISTORIA_KIND_LABEL[opts.kind].toLowerCase()} do veículo ${opts.plate}: ${vistoriaLink(opts.token)}
+  const kind = VISTORIA_KIND_LABEL[opts.kind].toLowerCase();
+  const access = `Se preferir, acesse ${vistoriaAccessPageLink()} e informe o código ${opts.accessCode} e a placa ${opts.plate}.`;
+  if (opts.recipientName !== undefined) {
+    const verb = opts.kind === "entrega" ? "receber" : "coletar";
+    const who = opts.recipientName.trim() ? `Olá ${opts.recipientName.trim()}` : "Olá";
+    const car = [opts.vehicle, opts.plate ? `placa ${opts.plate}` : ""].filter(Boolean).join(", ");
+    return (
+      `${who}, você vai ${verb} o veículo ${car} (cliente: ${opts.clientName}).
 
 ` +
-    `Se preferir, acesse ${vistoriaAccessPageLink()} e informe o código ${opts.accessCode} e a placa ${opts.plate}.`
-  );
+      `Pedimos que faça a vistoria de ${kind} pelo link, registrando o estado do veículo e a assinatura no momento do recebimento: ${vistoriaLink(opts.token)}
+
+` +
+      access
+    );
+  }
+  return `Olá ${opts.clientName}, segue o link da vistoria de ${kind} do veículo ${opts.plate}: ${vistoriaLink(opts.token)}
+
+${access}`;
 }

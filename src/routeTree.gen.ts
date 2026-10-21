@@ -15,23 +15,20 @@ import { Route as SocialRouteImport } from './routes/social'
 import { Route as SiteImagesRouteImport } from './routes/site-images'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PlanilhasRouteImport } from './routes/planilhas'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FrotaRouteImport } from './routes/frota'
 import { Route as FinancialRouteImport } from './routes/financial'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CollectionsRouteImport } from './routes/collections'
-import { Route as ChecklistsRouteImport } from './routes/checklists'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VistoriaIndexRouteImport } from './routes/vistoria.index'
 import { Route as TransportsIndexRouteImport } from './routes/transports.index'
 import { Route as VistoriaTokenRouteImport } from './routes/vistoria.$token'
 import { Route as TransportsIdRouteImport } from './routes/transports.$id'
 import { Route as DTokenRouteImport } from './routes/d.$token'
-import { Route as ChecklistsHistoricoRouteImport } from './routes/checklists.historico'
-import { Route as ChecklistsIdRouteImport } from './routes/checklists.$id'
 import { Route as FinancialClientsNameRouteImport } from './routes/financial.clients.$name'
 
 const VistoriasRoute = VistoriasRouteImport.update({
@@ -64,11 +61,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PlanilhasRoute = PlanilhasRouteImport.update({
-  id: '/planilhas',
-  path: '/planilhas',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PartnersRoute = PartnersRouteImport.update({
   id: '/partners',
   path: '/partners',
@@ -77,6 +69,11 @@ const PartnersRoute = PartnersRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrotaRoute = FrotaRouteImport.update({
+  id: '/frota',
+  path: '/frota',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinancialRoute = FinancialRouteImport.update({
@@ -102,11 +99,6 @@ const DashboardRoute = DashboardRouteImport.update({
 const CollectionsRoute = CollectionsRouteImport.update({
   id: '/collections',
   path: '/collections',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChecklistsRoute = ChecklistsRouteImport.update({
-  id: '/checklists',
-  path: '/checklists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -139,16 +131,6 @@ const DTokenRoute = DTokenRouteImport.update({
   path: '/d/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChecklistsHistoricoRoute = ChecklistsHistoricoRouteImport.update({
-  id: '/historico',
-  path: '/historico',
-  getParentRoute: () => ChecklistsRoute,
-} as any)
-const ChecklistsIdRoute = ChecklistsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ChecklistsRoute,
-} as any)
 const FinancialClientsNameRoute = FinancialClientsNameRouteImport.update({
   id: '/clients/$name',
   path: '/clients/$name',
@@ -157,23 +139,20 @@ const FinancialClientsNameRoute = FinancialClientsNameRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
+  '/frota': typeof FrotaRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
-  '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/vistorias': typeof VistoriasRoute
-  '/checklists/$id': typeof ChecklistsIdRoute
-  '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/vistoria/$token': typeof VistoriaTokenRoute
@@ -183,23 +162,20 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
+  '/frota': typeof FrotaRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
-  '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/vistorias': typeof VistoriasRoute
-  '/checklists/$id': typeof ChecklistsIdRoute
-  '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/vistoria/$token': typeof VistoriaTokenRoute
@@ -210,23 +186,20 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/checklists': typeof ChecklistsRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/feedback': typeof FeedbackRoute
   '/financial': typeof FinancialRouteWithChildren
+  '/frota': typeof FrotaRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
-  '/planilhas': typeof PlanilhasRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/site-images': typeof SiteImagesRoute
   '/social': typeof SocialRoute
   '/users': typeof UsersRoute
   '/vistorias': typeof VistoriasRoute
-  '/checklists/$id': typeof ChecklistsIdRoute
-  '/checklists/historico': typeof ChecklistsHistoricoRoute
   '/d/$token': typeof DTokenRoute
   '/transports/$id': typeof TransportsIdRoute
   '/vistoria/$token': typeof VistoriaTokenRoute
@@ -238,23 +211,20 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/checklists'
     | '/collections'
     | '/dashboard'
     | '/documents'
     | '/feedback'
     | '/financial'
+    | '/frota'
     | '/login'
     | '/partners'
-    | '/planilhas'
     | '/reset-password'
     | '/settings'
     | '/site-images'
     | '/social'
     | '/users'
     | '/vistorias'
-    | '/checklists/$id'
-    | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/vistoria/$token'
@@ -264,23 +234,20 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/checklists'
     | '/collections'
     | '/dashboard'
     | '/documents'
     | '/feedback'
     | '/financial'
+    | '/frota'
     | '/login'
     | '/partners'
-    | '/planilhas'
     | '/reset-password'
     | '/settings'
     | '/site-images'
     | '/social'
     | '/users'
     | '/vistorias'
-    | '/checklists/$id'
-    | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/vistoria/$token'
@@ -290,23 +257,20 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/checklists'
     | '/collections'
     | '/dashboard'
     | '/documents'
     | '/feedback'
     | '/financial'
+    | '/frota'
     | '/login'
     | '/partners'
-    | '/planilhas'
     | '/reset-password'
     | '/settings'
     | '/site-images'
     | '/social'
     | '/users'
     | '/vistorias'
-    | '/checklists/$id'
-    | '/checklists/historico'
     | '/d/$token'
     | '/transports/$id'
     | '/vistoria/$token'
@@ -317,15 +281,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ChecklistsRoute: typeof ChecklistsRouteWithChildren
   CollectionsRoute: typeof CollectionsRoute
   DashboardRoute: typeof DashboardRoute
   DocumentsRoute: typeof DocumentsRoute
   FeedbackRoute: typeof FeedbackRoute
   FinancialRoute: typeof FinancialRouteWithChildren
+  FrotaRoute: typeof FrotaRoute
   LoginRoute: typeof LoginRoute
   PartnersRoute: typeof PartnersRoute
-  PlanilhasRoute: typeof PlanilhasRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   SiteImagesRoute: typeof SiteImagesRoute
@@ -383,13 +346,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/planilhas': {
-      id: '/planilhas'
-      path: '/planilhas'
-      fullPath: '/planilhas'
-      preLoaderRoute: typeof PlanilhasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/partners': {
       id: '/partners'
       path: '/partners'
@@ -402,6 +358,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frota': {
+      id: '/frota'
+      path: '/frota'
+      fullPath: '/frota'
+      preLoaderRoute: typeof FrotaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/financial': {
@@ -437,13 +400,6 @@ declare module '@tanstack/react-router' {
       path: '/collections'
       fullPath: '/collections'
       preLoaderRoute: typeof CollectionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checklists': {
-      id: '/checklists'
-      path: '/checklists'
-      fullPath: '/checklists'
-      preLoaderRoute: typeof ChecklistsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -488,20 +444,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/checklists/historico': {
-      id: '/checklists/historico'
-      path: '/historico'
-      fullPath: '/checklists/historico'
-      preLoaderRoute: typeof ChecklistsHistoricoRouteImport
-      parentRoute: typeof ChecklistsRoute
-    }
-    '/checklists/$id': {
-      id: '/checklists/$id'
-      path: '/$id'
-      fullPath: '/checklists/$id'
-      preLoaderRoute: typeof ChecklistsIdRouteImport
-      parentRoute: typeof ChecklistsRoute
-    }
     '/financial/clients/$name': {
       id: '/financial/clients/$name'
       path: '/clients/$name'
@@ -511,20 +453,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface ChecklistsRouteChildren {
-  ChecklistsIdRoute: typeof ChecklistsIdRoute
-  ChecklistsHistoricoRoute: typeof ChecklistsHistoricoRoute
-}
-
-const ChecklistsRouteChildren: ChecklistsRouteChildren = {
-  ChecklistsIdRoute: ChecklistsIdRoute,
-  ChecklistsHistoricoRoute: ChecklistsHistoricoRoute,
-}
-
-const ChecklistsRouteWithChildren = ChecklistsRoute._addFileChildren(
-  ChecklistsRouteChildren,
-)
 
 interface FinancialRouteChildren {
   FinancialClientsNameRoute: typeof FinancialClientsNameRoute
@@ -540,15 +468,14 @@ const FinancialRouteWithChildren = FinancialRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ChecklistsRoute: ChecklistsRouteWithChildren,
   CollectionsRoute: CollectionsRoute,
   DashboardRoute: DashboardRoute,
   DocumentsRoute: DocumentsRoute,
   FeedbackRoute: FeedbackRoute,
   FinancialRoute: FinancialRouteWithChildren,
+  FrotaRoute: FrotaRoute,
   LoginRoute: LoginRoute,
   PartnersRoute: PartnersRoute,
-  PlanilhasRoute: PlanilhasRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   SiteImagesRoute: SiteImagesRoute,

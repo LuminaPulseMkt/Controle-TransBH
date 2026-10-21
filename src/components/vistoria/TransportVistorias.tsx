@@ -8,11 +8,12 @@ import { useCompanyInfo } from "@/lib/use-company-info";
 import { waLink } from "@/lib/format";
 import { exportVistoriaPDF } from "@/lib/vistoria-pdf";
 import { VistoriaViewDialog } from "@/components/vistoria/VistoriaViewDialog";
+import { SendVistoriaDialog, type SendTarget } from "@/components/vistoria/SendVistoriaDialog";
 import {
   VISTORIA_KIND_LABEL, VISTORIA_STATUS_LABEL, normalizeVistoriaData, vistoriaLink, vistoriaMessage,
   type VistoriaKind, type VistoriaStatus, type VistoriaTransportInfo,
 } from "@/lib/vistoria-types";
-import { ClipboardList, Copy, Download, Eye, Loader2, MessageCircle, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, Copy, Download, Eye, Loader2, MessageCircle, Plus, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Row {
@@ -55,6 +56,7 @@ export function TransportVistorias({ transport }: Props) {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState<VistoriaKind | null>(null);
   const [viewing, setViewing] = useState<Row | null>(null);
+  const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
 
   const info: VistoriaTransportInfo = transport;
 
@@ -142,6 +144,9 @@ export function TransportVistorias({ transport }: Props) {
                 {VISTORIA_KIND_LABEL[k]}
               </Button>
             ))}
+            <Button size="sm" onClick={() => setSendTarget({})}>
+              <Send className="h-4 w-4 mr-1" /> Enviar a quem vai receber/coletar
+            </Button>
           </div>
         )}
       </div>
@@ -181,6 +186,13 @@ export function TransportVistorias({ transport }: Props) {
                       <Button size="sm" variant="outline" onClick={() => whatsapp(r)}>
                         <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSendTarget({ existing: { token: r.token, access_code: r.access_code, kind: r.kind } })}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-1" /> Enviar a terceiro
+                      </Button>
                     </>
                   )}
                   {r.status !== "pendente" && (
@@ -204,6 +216,13 @@ export function TransportVistorias({ transport }: Props) {
           })}
         </ul>
       )}
+
+      <SendVistoriaDialog
+        target={sendTarget}
+        transport={transport}
+        onClose={() => setSendTarget(null)}
+        onCreated={() => void load()}
+      />
 
       <VistoriaViewDialog
         kind={viewing?.kind ?? null}

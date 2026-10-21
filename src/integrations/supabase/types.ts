@@ -997,6 +997,54 @@ export type Database = {
           },
         ]
       }
+      fleet_vehicles: {
+        Row: {
+          capacity: string | null
+          created_at: string
+          created_by: string | null
+          daily_rate: number | null
+          driver_name: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          model: string | null
+          notes: string | null
+          plate: string
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          capacity?: string | null
+          created_at?: string
+          created_by?: string | null
+          daily_rate?: number | null
+          driver_name?: string | null
+          id?: string
+          is_active?: boolean
+          kind: string
+          model?: string | null
+          notes?: string | null
+          plate: string
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          capacity?: string | null
+          created_at?: string
+          created_by?: string | null
+          daily_rate?: number | null
+          driver_name?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          model?: string | null
+          notes?: string | null
+          plate?: string
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
       vistorias: {
         Row: {
           access_code: string

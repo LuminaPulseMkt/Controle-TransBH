@@ -348,7 +348,7 @@ function StepDriver({ data, update, token }: StepProps & { token: string }) {
         )}
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="d-cpf">CPF</Label>
+        <Label htmlFor="d-cpf">CPF <span className="text-xs font-normal text-muted-foreground">(opcional)</span></Label>
         <Input id="d-cpf" inputMode="numeric" placeholder="000.000.000-00" value={d.cpf} onChange={(e) => set({ cpf: formatCpf(e.target.value) })} />
       </div>
       <div className="space-y-1.5">
@@ -356,9 +356,33 @@ function StepDriver({ data, update, token }: StepProps & { token: string }) {
         <Input id="d-name" value={d.name} onChange={(e) => set({ name: e.target.value })} autoComplete="name" />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="d-plate">Placa do guincho / cegonha</Label>
-        <Input id="d-plate" className="uppercase" maxLength={8} value={d.tow_plate} onChange={(e) => set({ tow_plate: e.target.value.toUpperCase() })} />
+        <Label>Onde está o veículo?</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" variant={d.transport_mode === "caminhao" ? "default" : "outline"} onClick={() => set({ transport_mode: "caminhao" })}>
+            Guincho / cegonha
+          </Button>
+          <Button type="button" variant={d.transport_mode === "patio" ? "default" : "outline"} onClick={() => set({ transport_mode: "patio" })}>
+            Pátio
+          </Button>
+        </div>
       </div>
+      {d.transport_mode === "patio" ? (
+        <>
+          <div className="space-y-1.5">
+            <Label htmlFor="d-patio">Nome do pátio</Label>
+            <Input id="d-patio" value={d.patio_name} onChange={(e) => set({ patio_name: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="d-received">Quem recebeu</Label>
+            <Input id="d-received" value={d.received_by} onChange={(e) => set({ received_by: e.target.value })} />
+          </div>
+        </>
+      ) : (
+        <div className="space-y-1.5">
+          <Label htmlFor="d-plate">Placa do guincho / cegonha</Label>
+          <Input id="d-plate" className="uppercase" maxLength={8} value={d.tow_plate} onChange={(e) => set({ tow_plate: e.target.value.toUpperCase() })} />
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label>Assinatura do motorista</Label>
         <VistoriaSignature token={token} name="assinatura-motorista" value={d.signature_url} onChange={(url) => set({ signature_url: url })} />
@@ -633,7 +657,7 @@ function StepClient({ token, data, update, defaultName }: StepProps & { token: s
         <p className="text-sm text-muted-foreground">O cliente confirma que o estado do veículo foi registrado.</p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="c-cpf">CPF</Label>
+        <Label htmlFor="c-cpf">CPF <span className="text-xs font-normal text-muted-foreground">(opcional)</span></Label>
         <Input id="c-cpf" inputMode="numeric" placeholder="000.000.000-00" value={c.cpf} onChange={(e) => set({ cpf: formatCpf(e.target.value) })} />
       </div>
       <div className="space-y-1.5">
@@ -641,7 +665,7 @@ function StepClient({ token, data, update, defaultName }: StepProps & { token: s
         <Input id="c-name" value={c.name} onChange={(e) => set({ name: e.target.value })} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="c-email">E-mail</Label>
+        <Label htmlFor="c-email">E-mail <span className="text-xs font-normal text-muted-foreground">(opcional)</span></Label>
         <Input id="c-email" type="email" value={c.email} onChange={(e) => set({ email: e.target.value })} autoComplete="email" />
       </div>
       <div className="space-y-1.5">

@@ -1,7 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AuthGate } from "@/components/AuthGate";
-import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Download, MessageCircle, Pencil, Loader2, Save, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -18,6 +16,7 @@ import { dateBR } from "@/lib/format";
 import {
   emptyRow, emptyTripSheet, emptyExpense, type TripDirection, type TripRow, type TripSheetData, type ExpenseRow
 } from "@/lib/trip-sheet-types";
+import { fleetLabel, type FleetVehicle } from "@/lib/fleet-types";
 import { exportTripSheetPDF } from "@/lib/trip-sheet-pdf";
 import { exportCSV } from "@/lib/exporters";
 
@@ -36,31 +35,13 @@ function exportTripSheetCSV(s: TripSheetData) {
   exportCSV(`planilha-${safeDate}.csv`, columns, rows);
 }
 
-export const Route = createFileRoute("/planilhas")({
-  head: () => ({
-    meta: [
-      { title: "Planilhas de Viagem — TransBH" },
-      { name: "description", content: "Gerencie planilhas de viagem (IDA/VOLTA) da frota, exporte em PDF e compartilhe via WhatsApp." },
-      { property: "og:title", content: "Planilhas de Viagem — TransBH" },
-      { property: "og:description", content: "Planilhas de IDA e VOLTA organizadas por data." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: () => (
-    <AuthGate requirePermission="transports.view">
-      <TripSheetsPage />
-    </AuthGate>
-  ),
-});
-
 interface SheetRow extends TripSheetData {
   id: string;
   created_at: string;
   updated_at: string;
 }
 
-function TripSheetsPage() {
+export function TripSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
   const { user, isAdmin } = useAuth();
   const [items, setItems] = useState<SheetRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,15 +104,13 @@ function TripSheetsPage() {
   };
 
   return (
-    <AppLayout
-      title="Planilhas de Viagem"
-      actions={
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Nova planilha
-        </Button>
-      }
-    >
+    <>
       <div className="space-y-6">
+        <div className="flex justify-end">
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nova planilha de carreta
+          </Button>
+        </div>
         {loading && (
           <div className="flex justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -140,7 +119,7 @@ function TripSheetsPage() {
         {!loading && grouped.length === 0 && (
           <Card className="p-12 text-center text-muted-foreground">
             <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            Nenhuma planilha criada ainda. Clique em <b>Nova planilha</b> para começar.
+            Nenhuma planilha de carreta criada ainda. Clique em <b>Nova planilha de carreta</b> para começar.
           </Card>
         )}
         {grouped.map(([date, sheets]) => (
@@ -156,6 +135,11 @@ function TripSheetsPage() {
                   <Card key={s.id} className="p-4 space-y-3">
                     <div>
                       <div className="font-medium truncate">{s.title}</div>
+                      {s.fleet_vehicle_id && fleet.find((f) => f.id === s.fleet_vehicle_id) && (
+                        <div className="text-xs text-primary truncate">
+                          Carreta: {fleetLabel(fleet.find((f) => f.id === s.fleet_vehicle_id)!)}
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground">
                         {ida} IDA · {volta} VOLTA
                       </div>
@@ -189,6 +173,7 @@ function TripSheetsPage() {
 
       {(creating || editing) && (
         <TripSheetEditor
+          fleet={fleet}
           initial={editing || emptyTripSheet()}
           existingId={editing?.id ?? null}
           userId={user?.id ?? ""}
@@ -196,13 +181,14 @@ function TripSheetsPage() {
           onSaved={() => { setEditing(null); setCreating(false); void load(); }}
         />
       )}
-    </AppLayout>
+    </>
   );
 }
 
 function TripSheetEditor({
-  initial, existingId, userId, onClose, onSaved,
+  fleet, initial, existingId, userId, onClose, onSaved,
 }: {
+  fleet: FleetVehicle[];
   initial: TripSheetData;
   existingId: string | null;
   userId: string;
@@ -256,6 +242,7 @@ function TripSheetEditor({
       sheet_date: data.sheet_date,
       return_date: data.return_date || null,
       phone: data.phone || null,
+      fleet_vehicle_id: data.fleet_vehicle_id || null,
       rows: data.rows as unknown as Record<string, unknown>[],
       expenses: (data.expenses || []) as unknown as Record<string, unknown>[],
     };
@@ -336,7 +323,22 @@ function TripSheetEditor({
           <DialogDescription>Preencha as linhas de IDA e VOLTA da viagem e as despesas.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-5">
+          <div>
+            <Label>Carreta</Label>
+            <Select
+              value={data.fleet_vehicle_id ?? "none"}
+              onValueChange={(v) => update("fleet_vehicle_id", v === "none" ? null : v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Sem carreta" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem carreta</SelectItem>
+                {fleet.filter((f) => f.is_active || f.id === data.fleet_vehicle_id).map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{fleetLabel(f)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>Título</Label>
             <Input value={data.title} onChange={(e) => update("title", e.target.value)} />

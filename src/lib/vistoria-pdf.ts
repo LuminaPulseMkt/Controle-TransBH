@@ -92,7 +92,12 @@ export async function exportVistoriaPDF(opts: {
   section("Motorista", [
     ["Nome", data.driver.name || "—"],
     ["CPF", data.driver.cpf || "—"],
-    ["Placa do guincho/cegonha", (data.driver.tow_plate || "—").toUpperCase()],
+    ...(data.driver.transport_mode === "patio"
+      ? [
+          ["Pátio", data.driver.patio_name || "—"],
+          ["Quem recebeu", data.driver.received_by || "—"],
+        ]
+      : [["Placa do guincho/cegonha", (data.driver.tow_plate || "—").toUpperCase()]]),
   ]);
 
   const g = data.general;

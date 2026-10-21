@@ -25,6 +25,7 @@ export interface TripSheetData {
   sheet_date: string; // yyyy-mm-dd
   return_date: string; // yyyy-mm-dd, New field
   phone: string;
+  fleet_vehicle_id?: string | null;
   rows: TripRow[];
   expenses: ExpenseRow[]; // New section
 }

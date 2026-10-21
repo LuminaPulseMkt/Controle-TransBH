@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth-context";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
 import {
   ArrowLeft, Upload, Loader2, Trash2, CheckCircle2,
-  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send, ClipboardCheck, Wallet, User, History,
+  Truck, Package, XCircle, Clock, ImagePlus, MapPin, Send, Wallet, User, History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TransportVistorias } from "@/components/vistoria/TransportVistorias";
@@ -141,7 +141,6 @@ function TransportDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
   const previewUrlsRef = useRef<Map<File, string>>(new Map());
-  const [checklists, setChecklists] = useState<{ id: string; checklist_date: string | null; created_at: string }[]>([]);
 
   // Manage preview URLs lifecycle to avoid leaks
   useEffect(() => {
@@ -168,17 +167,15 @@ function TransportDetailPage() {
   }, []);
 
   const load = async () => {
-    const [t, p, r, loc, pa, cl, st, ev] = await Promise.all([
+    const [t, p, r, loc, pa, st, ev] = await Promise.all([
       supabase.from("transports").select("*").eq("id", id).maybeSingle(),
       supabase.from("transport_photos").select("*").eq("transport_id", id).order("created_at", { ascending: true }),
       supabase.from("receivables").select("*").eq("transport_id", id).order("due_date", { ascending: true }),
       supabase.from("transport_location_updates").select("id, location, note, created_at").eq("transport_id", id).order("created_at", { ascending: false }).limit(20),
       supabase.from("partners").select("id, name, whatsapp, phone, default_amount").eq("is_active", true).order("name"),
-      supabase.from("vehicle_checklists").select("id, checklist_date, created_at").eq("transport_id", id).order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, display_name, email").eq("is_active", true).order("display_name"),
       supabase.from("transport_events").select("id, event_type, description, created_at, created_by").eq("transport_id", id).order("created_at", { ascending: false }),
     ]);
-    setChecklists(cl.data ?? []);
     setStaff((st.data ?? []) as StaffLite[]);
     setEvents((ev.data ?? []) as TransportEvent[]);
     if (!t.data) { setTransport("missing"); return; }
@@ -520,36 +517,6 @@ function TransportDetailPage() {
                   <XCircle className="h-4 w-4 mr-1" /> Cancelar
                 </Button>
               </div>
-            )}
-          </Card>
-
-          {/* Checklists */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-display text-xl">Checklists</h3>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/checklists" search={{ transport_id: t.id }}>
-                  <ClipboardCheck className="h-4 w-4 mr-1" /> Novo checklist
-                </Link>
-              </Button>
-            </div>
-            {checklists.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum checklist vinculado a este transporte.</p>
-            ) : (
-              <ul className="space-y-1">
-                {checklists.map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      to="/checklists/$id"
-                      params={{ id: c.id }}
-                      className="text-sm text-primary hover:underline flex items-center gap-2"
-                    >
-                      <ClipboardCheck className="h-3.5 w-3.5" />
-                      Checklist de {dateBR(c.checklist_date ?? c.created_at)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
             )}
           </Card>
 
