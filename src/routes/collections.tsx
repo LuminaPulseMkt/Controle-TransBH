@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -36,6 +38,7 @@ interface Overdue {
 
 function CollectionsPage() {
   const [items, setItems] = useState<Overdue[] | null>(null);
+  const [search, setSearch] = useState("");
   const [templates, setTemplates] = useState<Record<string, string>>({});
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteFor, setNoteFor] = useState<Overdue | null>(null);
@@ -98,6 +101,11 @@ function CollectionsPage() {
     setNoteOpen(true);
   };
 
+  const visible = useMemo(
+    () => (items ?? []).filter((r) => matchesQuery(search, [r.client_name, r.client_phone, r.client_email, r.transport_code])),
+    [items, search],
+  );
+
   const saveNote = async () => {
     if (!noteFor || !noteText.trim()) return;
     setBusy(true);
@@ -119,13 +127,13 @@ function CollectionsPage() {
           filename={`cobrancas-vencidas-${new Date().toISOString().slice(0,10)}`}
           title="Cobranças vencidas"
           columns={["Cliente", "Telefone", "Transporte", "Valor (R$)", "Vencimento", "Dias atraso"]}
-          rows={(items ?? []).map((r) => {
+          rows={visible.map((r) => {
             const days = Math.floor((Date.now() - new Date(r.due_date).getTime()) / 86400000);
             return [r.client_name, r.client_phone ?? "—", r.transport_code ?? "—", Number(r.amount).toFixed(2), dateBR(r.due_date), String(days)];
           })}
           summary={[
-            { label: "Total vencido", value: brl((items ?? []).reduce((s, r) => s + Number(r.amount), 0)) },
-            { label: "Devedores", value: String((items ?? []).length) },
+            { label: "Total vencido", value: brl(visible.reduce((s, r) => s + Number(r.amount), 0)) },
+            { label: "Devedores", value: String(visible.length) },
           ]}
         />
       }
@@ -140,7 +148,11 @@ function CollectionsPage() {
         </Card>
       ) : (
         <div className="grid gap-3">
-          {items.map((r) => {
+          <SearchInput className="max-w-md" value={search} onChange={setSearch} placeholder="Buscar cliente, telefone, transporte…" />
+          {visible.length === 0 && (
+            <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum devedor encontrado para esta busca.</Card>
+          )}
+          {visible.map((r) => {
             const days = Math.floor((Date.now() - new Date(r.due_date).getTime()) / 86400000);
             return (
               <Card key={r.id} className="p-4 border-l-4 border-l-destructive">

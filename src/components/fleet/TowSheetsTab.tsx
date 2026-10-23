@@ -23,6 +23,8 @@ import {
 } from "@/lib/fleet-types";
 import { exportTowSheetPDF, towSheetTotals } from "@/lib/tow-sheet-pdf";
 import { toast } from "sonner";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 
 interface SheetRow extends TowSheetData {
   id: string;
@@ -38,12 +40,25 @@ export function TowSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<SheetRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
 
   const guinchos = useMemo(() => fleet.filter((f) => f.kind === "guincho"), [fleet]);
   const labelOf = (s: TowSheetData) => {
     const v = fleet.find((f) => f.id === s.fleet_vehicle_id);
     return v ? fleetLabel(v) : "";
   };
+
+  const visible = useMemo(
+    () =>
+      items.filter((s) => {
+        const v = fleet.find((f) => f.id === s.fleet_vehicle_id);
+        return matchesQuery(search, [
+          s.title, s.driver_name, v?.plate, v?.model,
+          ...s.rows.flatMap((r) => [r.cliente, r.local, r.servico, r.veiculos, r.recebido_por]),
+        ]);
+      }),
+    [items, search, fleet],
+  );
 
   const load = async () => {
     setLoading(true);
@@ -102,6 +117,7 @@ export function TowSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
           <p className="text-sm text-muted-foreground">
             Guinchos são cobrados por <b>dia</b>: cada linha é uma diária, não uma viagem.
           </p>
+          <SearchInput className="w-full max-w-sm" value={search} onChange={setSearch} placeholder="Buscar cliente, placa, motorista…" />
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova planilha de guincho
           </Button>
@@ -112,6 +128,9 @@ export function TowSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         )}
+        {!loading && items.length > 0 && visible.length === 0 && (
+          <Card className="p-8 text-center text-sm text-muted-foreground">Nenhuma planilha encontrada para esta busca.</Card>
+        )}
         {!loading && items.length === 0 && (
           <Card className="p-12 text-center text-muted-foreground">
             <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -119,7 +138,7 @@ export function TowSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
           </Card>
         )}
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((s) => {
+          {visible.map((s) => {
             const t = towSheetTotals(s);
             return (
               <Card key={s.id} className="p-4 space-y-3">

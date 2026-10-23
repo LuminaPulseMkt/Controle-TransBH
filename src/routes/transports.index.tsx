@@ -25,7 +25,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransportStatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, vehicleTypeLabel, transportStatusLabel } from "@/lib/format";
-import { Plus, Search, Loader2, X, Upload, MapPin, Send, Trash2 } from "lucide-react";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
+import { Plus, Loader2, X, Upload, MapPin, Send, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -156,15 +158,10 @@ function TransportsPage() {
     if (!items) return [];
     return items.filter((t) => {
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      return (
-        t.vehicle_plate.toLowerCase().includes(q) ||
-        t.client_name.toLowerCase().includes(q) ||
-        t.code.toLowerCase().includes(q) ||
-        t.origin_city.toLowerCase().includes(q) ||
-        t.destination_city.toLowerCase().includes(q)
-      );
+      return matchesQuery(search, [
+        t.client_name, t.vehicle_plate, t.code, t.origin_city, t.destination_city,
+        t.client_phone, t.client_document, t.vehicle_brand, t.vehicle_model,
+      ]);
     });
   }, [items, search, statusFilter]);
 
@@ -508,15 +505,12 @@ function TransportsPage() {
       }
     >
       <Card className="p-4 mb-4 flex flex-col md:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por placa, cliente, código…"
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          className="flex-1"
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por cliente, placa, código, telefone…"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full md:w-48">
             <SelectValue />

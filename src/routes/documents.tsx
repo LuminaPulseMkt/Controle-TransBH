@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -139,6 +141,7 @@ function DocumentsPage() {
   const [step, setStep] = useState<"template" | "form">("template");
   const [docType, setDocType] = useState<"budget" | "contract">("budget");
   const [filter, setFilter] = useState<"all" | "budget" | "contract">("all");
+  const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [tplDialogOpen, setTplDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocTemplate | null>(null);
@@ -245,9 +248,12 @@ function DocumentsPage() {
 
   const filtered = useMemo(() => {
     if (!items) return [];
-    if (filter === "all") return items;
-    return items.filter((i) => i.doc_type === filter);
-  }, [items, filter]);
+    return items.filter(
+      (i) =>
+        (filter === "all" || i.doc_type === filter) &&
+        matchesQuery(search, [i.client_name, i.client_document, i.client_phone, i.client_email, i.title]),
+    );
+  }, [items, filter, search]);
 
   // Agrupa documentos por cliente (chave = nome normalizado)
   // O total ignora contratos gerados a partir de aceites de orçamento
@@ -550,6 +556,12 @@ function DocumentsPage() {
         </div>
       }
     >
+      <SearchInput
+        className="mb-3 max-w-md"
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar cliente, CPF/CNPJ, telefone…"
+      />
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
           <TabsList>
@@ -578,7 +590,9 @@ function DocumentsPage() {
       {!items ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
       ) : filtered.length === 0 ? (
-        <Card className="p-12 text-center text-muted-foreground">Nenhum documento ainda.</Card>
+        <Card className="p-12 text-center text-muted-foreground">
+          {search.trim() ? "Nenhum documento encontrado para esta busca." : "Nenhum documento ainda."}
+        </Card>
       ) : groupByClient ? (
         <div className="space-y-3">
           {groupedByClient.map((group) => {

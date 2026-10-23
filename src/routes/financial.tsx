@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -103,6 +105,7 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   }[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(initialStatus ?? "all");
+  const [search, setSearch] = useState("");
   const [historyTarget, setHistoryTarget] = useState<Receivable | null>(null);
   const [payments, setPayments] = useState<Payment[] | null>(null);
   const [newPayAmount, setNewPayAmount] = useState("");
@@ -143,9 +146,12 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
 
   const filtered = useMemo(() => {
     if (!items) return [];
-    if (filter === "all") return items;
-    return items.filter((i) => i.status === filter);
-  }, [items, filter]);
+    return items.filter(
+      (i) =>
+        (filter === "all" || i.status === filter) &&
+        matchesQuery(search, [i.client_name, i.client_phone, i.client_email, i.description, vehicleOf(i)]),
+    );
+  }, [items, filter, search, transports]);
 
   const save = async () => {
     if (!form.client_name || !form.amount) return toast.error("Cliente e valor são obrigatórios.");
@@ -295,15 +301,23 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
   return (
     <>
       <Card className="p-4 mb-4 flex flex-col md:flex-row gap-3 md:items-center justify-between">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-full md:w-56"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {Object.entries(paymentStatusLabel).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col md:flex-row gap-3 flex-1 md:max-w-2xl">
+          <SearchInput
+            className="flex-1"
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar cliente, descrição, placa…"
+          />
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-full md:w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.entries(paymentStatusLabel).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex gap-2">
           <ExportMenu
             filename={`recebiveis-${new Date().toISOString().slice(0,10)}`}
@@ -340,7 +354,9 @@ function ReceivablesTab({ initialStatus }: { initialStatus?: string }) {
         {!items ? (
           <div className="p-4 space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-muted-foreground">Nenhum recebível.</div>
+          <div className="p-10 text-center text-muted-foreground">
+            {search.trim() ? "Nenhum recebível encontrado para esta busca." : "Nenhum recebível."}
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40">

@@ -19,6 +19,8 @@ import {
 import { fleetLabel, type FleetVehicle } from "@/lib/fleet-types";
 import { exportTripSheetPDF } from "@/lib/trip-sheet-pdf";
 import { exportCSV } from "@/lib/exporters";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 
 function exportTripSheetCSV(s: TripSheetData) {
   const columns = ["Direção", "Veículo", "Placa", "Empresa", "Origem", "Destino", "Pátio", "Valor", "Pago", "Recebido Por"];
@@ -48,6 +50,7 @@ export function TripSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
   const [company, setCompany] = useState<{ name?: string | null; logo_url?: string | null } | null>(null);
   const [editing, setEditing] = useState<SheetRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -70,12 +73,18 @@ export function TripSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
   const grouped = useMemo(() => {
     const map = new Map<string, SheetRow[]>();
     for (const it of items) {
+      const carreta = fleet.find((f) => f.id === it.fleet_vehicle_id);
+      const hit = matchesQuery(search, [
+        it.title, carreta?.plate, carreta?.model,
+        ...(it.rows ?? []).flatMap((r) => [r.veiculo, r.placa, r.empresa, r.origem, r.destino, r.patio, r.recebido_por]),
+      ]);
+      if (!hit) continue;
       const key = it.sheet_date;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(it);
     }
     return Array.from(map.entries());
-  }, [items]);
+  }, [items, search, fleet]);
 
   const remove = async (id: string) => {
     if (!confirm("Excluir esta planilha?")) return;
@@ -106,7 +115,8 @@ export function TripSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <SearchInput className="w-full max-w-sm" value={search} onChange={setSearch} placeholder="Buscar cliente/empresa, placa, destino…" />
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova planilha de carreta
           </Button>
@@ -116,7 +126,10 @@ export function TripSheetsTab({ fleet }: { fleet: FleetVehicle[] }) {
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         )}
-        {!loading && grouped.length === 0 && (
+        {!loading && grouped.length === 0 && search.trim() && (
+          <Card className="p-8 text-center text-sm text-muted-foreground">Nenhuma planilha encontrada para esta busca.</Card>
+        )}
+        {!loading && grouped.length === 0 && !search.trim() && (
           <Card className="p-12 text-center text-muted-foreground">
             <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 opacity-50" />
             Nenhuma planilha de carreta criada ainda. Clique em <b>Nova planilha de carreta</b> para começar.

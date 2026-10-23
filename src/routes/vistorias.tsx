@@ -5,7 +5,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VistoriaViewDialog } from "@/components/vistoria/VistoriaViewDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,7 +72,6 @@ function VistoriasPage() {
   const isExpired = (r: Row) => r.status !== "finalizada" && new Date(r.expires_at) <= new Date();
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase().replace(/[^a-z0-9 ]/g, "");
     return rows.filter((r) => {
       if (kind !== "todos" && r.kind !== kind) return false;
       if (status === "expirada") {
@@ -79,14 +79,8 @@ function VistoriasPage() {
       } else if (status !== "todos" && (r.status !== status || isExpired(r))) {
         return false;
       }
-      if (!q) return true;
       const t = r.transports;
-      const hay = [t?.vehicle_plate, t?.client_name, t?.code, r.access_code, t?.vehicle_model]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .replace(/[^a-z0-9 ]/g, "");
-      return hay.includes(q);
+      return matchesQuery(search, [t?.client_name, t?.vehicle_plate, t?.code, r.access_code, t?.vehicle_model, t?.client_phone]);
     });
   }, [rows, search, status, kind]);
 
@@ -144,11 +138,11 @@ function VistoriasPage() {
     <AppLayout title="Vistorias">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Input
-            className="max-w-xs"
-            placeholder="Buscar por placa, cliente, código…"
+          <SearchInput
+            className="w-full max-w-xs"
+            placeholder="Buscar por cliente, placa, código…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
           />
           <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>

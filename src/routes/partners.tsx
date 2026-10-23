@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SearchInput } from "@/components/SearchInput";
+import { matchesQuery } from "@/lib/search";
 import { AuthGate } from "@/components/AuthGate";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -81,6 +83,7 @@ function PartnersPage() {
   const canManage = can("partners.manage");
   const showValues = can("values.view");
   const [list, setList] = useState<Partner[] | null>(null);
+  const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Partner>>(empty);
   const [saving, setSaving] = useState(false);
@@ -146,6 +149,11 @@ function PartnersPage() {
     window.open(`https://wa.me/${digits}?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
+  const visible = useMemo(
+    () => (list ?? []).filter((p) => matchesQuery(search, [p.name, p.phone, p.whatsapp, p.document, p.base_city, p.routes])),
+    [list, search],
+  );
+
   return (
     <AppLayout
       title="Parceiros"
@@ -178,8 +186,13 @@ function PartnersPage() {
           {canManage && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Cadastrar primeiro parceiro</Button>}
         </Card>
       ) : (
+        <div className="space-y-3">
+        <SearchInput className="max-w-md" value={search} onChange={setSearch} placeholder="Buscar parceiro, telefone, cidade, rota…" />
+        {visible.length === 0 && (
+          <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum parceiro encontrado para esta busca.</Card>
+        )}
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {list.map((p) => (
+          {visible.map((p) => (
             <Card key={p.id} className={`p-4 ${!p.is_active ? "opacity-60" : ""}`}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="min-w-0">
@@ -229,6 +242,7 @@ function PartnersPage() {
               </div>
             </Card>
           ))}
+        </div>
         </div>
       )}
 
