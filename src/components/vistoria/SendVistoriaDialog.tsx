@@ -6,33 +6,32 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { waLink } from "@/lib/format";
-import { VISTORIA_KIND_LABEL, vistoriaMessage, type VistoriaKind } from "@/lib/vistoria-types";
+import {
+  VISTORIA_KIND_LABEL, vistoriaRecipientMessage,
+  type RecipientLink, type RecipientTransport, type VistoriaKind,
+} from "@/lib/vistoria-types";
 import { Copy, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export interface SendTarget {
-  /** Vistoria já existente a reaproveitar; sem ela, um novo link é gerado. */
-  existing?: { token: string; access_code: string; kind: VistoriaKind };
+  /** Vistoria já existente a reaproveitar; sem ela, novos links são gerados. */
+  existing?: RecipientLink;
   kind?: VistoriaKind;
 }
 
 interface Props {
   target: SendTarget | null;
-  transport: {
-    id: string;
-    client_name: string;
-    vehicle_plate: string;
-    vehicle_brand: string | null;
-    vehicle_model: string | null;
-  };
+  transport: RecipientTransport & { id: string };
   onClose: () => void;
   onCreated: () => void;
 }
 
-/** Envia a vistoria (com modelo e placa) para quem vai receber/coletar o veículo. */
+type KindChoice = VistoriaKind | "ambos";
+
+/** Envia a vistoria (com todos os dados do transporte) para quem vai coletar/receber o veículo. */
 export function SendVistoriaDialog({ target, transport, onClose, onCreated }: Props) {
   const { user } = useAuth();
-  const [kind, setKind] = useState<VistoriaKind>("entrega");
+  const [kind, setKind] = useState<KindChoice>("entrega");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -45,38 +44,30 @@ export function SendVistoriaDialog({ target, transport, onClose, onCreated }: Pr
   }, [target]);
 
   const vehicle = [transport.vehicle_brand, transport.vehicle_model].filter(Boolean).join(" ");
+  const verb = kind === "entrega" ? "receber" : kind === "coleta" ? "coletar" : "coletar e entregar";
 
-  // Garante um link: reaproveita o existente ou cria um novo para este destinatário.
-  const ensureLink = async () => {
-    if (target?.existing) return target.existing;
+  // Garante os links: reaproveita o existente ou cria novos para este destinatário.
+  const ensureLinks = async (): Promise<RecipientLink[]> => {
+    if (target?.existing) return [target.existing];
+    const kinds: VistoriaKind[] = kind === "ambos" ? ["coleta", "entrega"] : [kind];
     const { data, error } = await supabase
       .from("vistorias")
-      .insert({ transport_id: transport.id, kind, created_by: user?.id ?? null })
-      .select("token, access_code, kind")
-      .maybeSingle();
-    if (error || !data) throw new Error(error?.message ?? "sem permissão para gerar a vistoria");
+      .insert(kinds.map((k) => ({ transport_id: transport.id, kind: k, created_by: user?.id ?? null })))
+      .select("token, access_code, kind");
+    if (error || !data || data.length === 0) throw new Error(error?.message ?? "sem permissão para gerar a vistoria");
     onCreated();
-    return data as { token: string; access_code: string; kind: VistoriaKind };
+    return data as RecipientLink[];
   };
 
-  const buildText = (v: { token: string; access_code: string; kind: VistoriaKind }) =>
-    vistoriaMessage({
-      clientName: transport.client_name,
-      kind: v.kind,
-      plate: transport.vehicle_plate,
-      token: v.token,
-      accessCode: v.access_code,
-      vehicle,
-      recipientName: name,
-    });
+  const buildText = (links: RecipientLink[]) =>
+    vistoriaRecipientMessage({ recipientName: name, transport, links });
 
   const sendWhatsApp = async () => {
     // Abre a aba antes do await para o navegador não bloquear o pop-up.
     const win = window.open("", "_blank");
     setBusy(true);
     try {
-      const v = await ensureLink();
-      const text = buildText(v);
+      const text = buildText(await ensureLinks());
       const url = waLink(phone, text) ?? `https://wa.me/?text=${encodeURIComponent(text)}`;
       if (win) win.location.href = url;
       else window.open(url, "_blank", "noopener");
@@ -92,8 +83,7 @@ export function SendVistoriaDialog({ target, transport, onClose, onCreated }: Pr
   const copyMessage = async () => {
     setBusy(true);
     try {
-      const v = await ensureLink();
-      await navigator.clipboard.writeText(buildText(v));
+      await navigator.clipboard.writeText(buildText(await ensureLinks()));
       toast.success("Mensagem copiada.");
     } catch (e) {
       toast.error("Não foi possível copiar: " + (e as Error).message);
@@ -102,14 +92,20 @@ export function SendVistoriaDialog({ target, transport, onClose, onCreated }: Pr
     }
   };
 
+  const options: { value: KindChoice; label: string }[] = [
+    { value: "coleta", label: VISTORIA_KIND_LABEL.coleta },
+    { value: "entrega", label: VISTORIA_KIND_LABEL.entrega },
+    { value: "ambos", label: "Coleta e entrega" },
+  ];
+
   return (
     <Dialog open={target !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Enviar vistoria a quem vai receber/coletar</DialogTitle>
           <DialogDescription>
-            A mensagem leva o modelo e a placa do veículo ({vehicle || "veículo"} · {transport.vehicle_plate}) e pede para
-            a pessoa fazer a vistoria no momento do recebimento.
+            A mensagem leva cliente, veículo ({vehicle || "veículo"} · {transport.vehicle_plate}), origem, destino, prazo,
+            o link da vistoria e o código de acesso.
           </DialogDescription>
         </DialogHeader>
 
@@ -117,20 +113,23 @@ export function SendVistoriaDialog({ target, transport, onClose, onCreated }: Pr
           {!target?.existing && (
             <div className="space-y-1.5">
               <Label>Tipo de vistoria</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["coleta", "entrega"] as VistoriaKind[]).map((k) => (
-                  <Button key={k} type="button" variant={kind === k ? "default" : "outline"} onClick={() => setKind(k)}>
-                    {VISTORIA_KIND_LABEL[k]}
+              <div className="grid grid-cols-3 gap-2">
+                {options.map((o) => (
+                  <Button
+                    key={o.value}
+                    type="button"
+                    size="sm"
+                    variant={kind === o.value ? "default" : "outline"}
+                    onClick={() => setKind(o.value)}
+                  >
+                    {o.label}
                   </Button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {kind === "entrega" ? "Para quem vai receber o veículo no destino." : "Para quem vai coletar o veículo na origem."}
-              </p>
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="sv-name">Nome de quem vai {kind === "entrega" ? "receber" : "coletar"}</Label>
+            <Label htmlFor="sv-name">Nome de quem vai {verb}</Label>
             <Input id="sv-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-1.5">

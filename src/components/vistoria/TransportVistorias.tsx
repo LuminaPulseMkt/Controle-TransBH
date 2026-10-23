@@ -46,6 +46,7 @@ interface Props {
     origin_state: string;
     destination_city: string;
     destination_state: string;
+    estimated_delivery?: string | null;
   };
 }
 

@@ -284,28 +284,100 @@ export function vistoriaMessage(opts: {
   plate: string;
   token: string;
   accessCode: string;
-  /** Veículo (marca/modelo) — incluído quando a vistoria é enviada a quem vai receber/coletar. */
-  vehicle?: string;
-  /** Quando preenchido, a mensagem pede que a pessoa receba/colete e faça a vistoria. */
-  recipientName?: string;
 }) {
   const kind = VISTORIA_KIND_LABEL[opts.kind].toLowerCase();
-  const access = `Se preferir, acesse ${vistoriaAccessPageLink()} e informe o código ${opts.accessCode} e a placa ${opts.plate}.`;
-  if (opts.recipientName !== undefined) {
-    const verb = opts.kind === "entrega" ? "receber" : "coletar";
-    const who = opts.recipientName.trim() ? `Olá ${opts.recipientName.trim()}` : "Olá";
-    const car = [opts.vehicle, opts.plate ? `placa ${opts.plate}` : ""].filter(Boolean).join(", ");
-    return (
-      `${who}, você vai ${verb} o veículo ${car} (cliente: ${opts.clientName}).
+  return (
+    `Olá ${opts.clientName}, segue o link da vistoria de ${kind} do veículo ${opts.plate}: ${vistoriaLink(opts.token)}\n\n` +
+    `Se preferir, acesse ${vistoriaAccessPageLink()} e informe o código ${opts.accessCode} e a placa ${opts.plate}.`
+  );
+}
 
-` +
-      `Pedimos que faça a vistoria de ${kind} pelo link, registrando o estado do veículo e a assinatura no momento do recebimento: ${vistoriaLink(opts.token)}
+export interface RecipientTransport {
+  code: string;
+  client_name: string;
+  client_phone: string | null;
+  vehicle_plate: string;
+  vehicle_brand: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  origin_city: string;
+  origin_state: string;
+  destination_city: string;
+  destination_state: string;
+  estimated_delivery?: string | null;
+}
 
-` +
-      access
+export interface RecipientLink {
+  kind: VistoriaKind;
+  token: string;
+  access_code: string;
+}
+
+const brDate = (iso: string) => {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : iso;
+};
+
+/** Mensagem completa para quem vai coletar e/ou receber o veículo. */
+export function vistoriaRecipientMessage(opts: {
+  recipientName: string;
+  transport: RecipientTransport;
+  links: RecipientLink[];
+}) {
+  const { transport: t, links } = opts;
+  const coleta = links.find((l) => l.kind === "coleta");
+  const entrega = links.find((l) => l.kind === "entrega");
+  const title = coleta && entrega ? "coleta e entrega" : coleta ? "coleta" : "entrega";
+  const verb = coleta && entrega ? "coletar e entregar" : coleta ? "coletar" : "receber";
+  const vehicle = [t.vehicle_brand, t.vehicle_model].filter(Boolean).join(" ").toUpperCase() || "VEÍCULO";
+  const color = t.vehicle_color ? ` (${t.vehicle_color.toUpperCase()})` : "";
+  const name = opts.recipientName.trim();
+
+  const lines: string[] = [
+    `🚨 Vistoria de ${title} — Transporte ${t.code}`,
+    "",
+    `Olá${name ? ` ${name}` : ""}, você vai ${verb} o veículo abaixo. Pedimos que faça a vistoria registrando o estado do veículo e a assinatura no momento ${coleta && entrega ? "de cada etapa" : coleta ? "da coleta" : "do recebimento"}.`,
+    "",
+    `Cliente: ${t.client_name.toUpperCase()}`,
+  ];
+  if (t.client_phone) lines.push(`Contato: ${t.client_phone}`);
+  lines.push(
+    "",
+    `Veículo: ${vehicle}${color}`,
+    `Placa: ${t.vehicle_plate.toUpperCase()}`,
+    "",
+    `Origem: ${t.origin_city} - ${t.origin_state}`,
+    `Destino: ${t.destination_city} - ${t.destination_state}`,
+  );
+  if (t.estimated_delivery) lines.push(`Data limite para entrega: ${brDate(t.estimated_delivery)}`);
+  lines.push("", "Documentos: CRLV do veículo, se disponível.");
+
+  if (coleta) {
+    lines.push(
+      "",
+      "📍 COLETA — na origem",
+      "Ao chegar no local de origem, clique no link abaixo para iniciar a vistoria:",
+      vistoriaLink(coleta.token),
     );
   }
-  return `Olá ${opts.clientName}, segue o link da vistoria de ${kind} do veículo ${opts.plate}: ${vistoriaLink(opts.token)}
+  if (entrega) {
+    lines.push(
+      "",
+      "🎯 ENTREGA — no destino",
+      "Ao chegar no destino, clique no link abaixo para finalizar a vistoria:",
+      vistoriaLink(entrega.token),
+    );
+  }
 
-${access}`;
+  const code =
+    coleta && entrega
+      ? `coleta ${coleta.access_code} / entrega ${entrega.access_code}`
+      : (coleta ?? entrega)?.access_code ?? "";
+  lines.push(
+    "",
+    "Os links expiram em 30 dias.",
+    "",
+    `Não conseguiu abrir pelo link? Acesse ${vistoriaAccessPageLink()} e informe a placa do veículo e o código: ${code}`,
+  );
+  return lines.join("\n");
 }
